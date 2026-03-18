@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cap.local/schemas/canonical-model/events/error/event-blocked.schema.json",
+  "title": "CAP Event Blocked Event",
+  "description": "Specialized canonical event schema for event.blocked events.",
+  "allOf": [
+    {
+      "$ref": "../../canonical-event-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_type", "payload"],
+      "properties": {
+        "event_type": {
+          "const": "event.blocked"
+        },
+        "payload": {
+          "type": "object",
+          "required": ["reason", "block_stage", "retryable"],
+          "properties": {
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            },
+            "block_stage": {
+              "type": "string",
+              "minLength": 1
+            },
+            "retryable": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "event_id": "evt_200",
+      "schema_version": "v1alpha1",
+      "event_type": "event.blocked",
+      "tenant_id": "tenant_acme",
+      "workspace_id": "ws_support",
+      "conversation_id": "conv_1",
+      "session_id": "sess_1",
+      "correlation_id": "corr_1",
+      "causation_id": "evt_199",
+      "occurred_at": "2026-03-17T12:01:00Z",
+      "actor_type": "system",
+      "payload": {
+        "reason": "policy deny",
+        "block_stage": "governance",
+        "retryable": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cap.local/schemas/canonical-model/events/agent/agent-invocation-requested.schema.json",
+  "title": "CAP Agent Invocation Requested Event",
+  "description": "Specialized canonical event schema for agent.invocation.requested events.",
+  "allOf": [
+    {
+      "$ref": "../../canonical-event-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_type", "payload", "actor_type"],
+      "properties": {
+        "event_type": {
+          "const": "agent.invocation.requested"
+        },
+        "actor_type": {
+          "const": "system"
+        },
+        "payload": {
+          "type": "object",
+          "required": ["backend", "input_event_id"],
+          "properties": {
+            "backend": {
+              "type": "string",
+              "minLength": 1
+            },
+            "input_event_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "event_id": "evt_103",
+      "schema_version": "v1alpha1",
+      "event_type": "agent.invocation.requested",
+      "tenant_id": "tenant_acme",
+      "workspace_id": "ws_support",
+      "conversation_id": "conv_1",
+      "session_id": "sess_1",
+      "correlation_id": "corr_1",
+      "causation_id": "evt_102",
+      "occurred_at": "2026-03-17T12:00:02Z",
+      "actor_type": "system",
+      "payload": {
+        "backend": "http-agent",
+        "input_event_id": "evt_100"
+      }
+    }
+  ]
+}

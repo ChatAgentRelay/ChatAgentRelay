@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cap.local/schemas/canonical-model/events/identity/identity-resolution-challenge-sent.schema.json",
+  "title": "CAP Identity Resolution Challenge Sent Event",
+  "description": "Specialized canonical event schema for identity.resolution.challenge.sent events.",
+  "allOf": [
+    {
+      "$ref": "../../canonical-event-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_type", "payload"],
+      "properties": {
+        "event_type": {
+          "const": "identity.resolution.challenge.sent"
+        },
+        "payload": {
+          "type": "object",
+          "required": ["status"],
+          "properties": {
+            "status": {
+              "const": "challenge_sent"
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    }
+  ]
+}

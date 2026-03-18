@@ -183,7 +183,7 @@ These influence implementation style, deployment profile, or selected subsystem 
 | Channel Adapter SDK / Contract | Build | 需统一 ingress/egress/idempotency/capabilities/test contract |
 | Backend Agent Adapter Contract | Build | 需对接多 runtime；参考 Agent Kernel |
 | Event Ledger / Replay / Audit Logic | Build | 属于系统事实来源与治理核心 |
-| Storage Engine | Adopt | 先采用 Postgres-first |
+| Storage Engine | Adopt | 先选择能支撑 ledger/replay/audit 的 durable store，具体技术单独选型 |
 | Queue / Broker | Optional Adopt Later | 初期可不强依赖 Kafka / NATS |
 | Operator Inbox UX | Borrow ideas, build later | 先把 handoff state 设计成 canonical event projection |
 

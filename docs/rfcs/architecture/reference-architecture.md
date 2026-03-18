@@ -72,8 +72,8 @@ A system that cannot complete this loop is not yet CAP.
 - blocked / denied / retry / dead-letter path retention
 
 Storage strategy:
-- **Postgres-first**
-- 后续按吞吐需求再评估 Kafka / NATS / object storage
+- use a durable append-capable primary store that can support the event ledger, replay, and audit requirements
+- evaluate specific database and queue choices separately based on correctness, operational fit, and throughput needs
 
 Companion stores:
 - secure trace store for sensitive raw payload / protocol trace retention
@@ -269,22 +269,22 @@ Important distinction:
 - **Canonical protocol / event schema**：自研；参考 Bot Framework + Rasa
 - **Channel adapter SDK / contract**：自研；参考 Bot Framework + opsdroid + Omni
 - **Backend agent adapter contract**：自研；参考 Agent Kernel
-- **Event ledger / replay / audit**：自研逻辑，底层先采用 Postgres-first
+- **Event ledger / replay / audit**：自研逻辑，底层存储实现单独选型，不在本 RFC 中预设为某个数据库
 - **企业运营 / inbox / handoff 经验**：借鉴 Chatwoot / Chaskiq，不直接照搬产品模型
 - **完整现成底座复用**：当前不建议直接选单一项目作为基础底座
 
 ## Recommended v1 Scope
 
 ### Channels
-- web chat
-- Slack
+- at least one real inbound/outbound channel path
+- channel selection should be decided in a separate implementation decision, not fixed by this RFC
 
 ### Backends
-- generic HTTP / streaming adapter
-- one framework-specific adapter
+- at least one real backend adapter path
+- backend adapter shape should be decided in a separate implementation decision, not fixed by this RFC
 
 ### Infra
-- Postgres-first
+- no storage engine is mandated by this RFC
 - no mandatory broker in v1
 
 ### Governance

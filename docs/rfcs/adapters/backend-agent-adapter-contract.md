@@ -248,9 +248,9 @@ Adapter maps between them.
 
 ## 7. Initial v1 Guidance
 
-建议 v1 先定义两类 adapter：
-- generic HTTP / streaming adapter
-- one framework-specific adapter
+v1 backend work should include at least one real adapter path that can validate the contract.
+
+具体采用 generic binding、framework-specific binding，还是两者组合，应由单独的 implementation decision 决定，而不是由本 RFC 预设。
 
 目标是先验证：
 - sync + streaming response

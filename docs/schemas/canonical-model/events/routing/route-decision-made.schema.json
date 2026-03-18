@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cap.local/schemas/canonical-model/events/routing/route-decision-made.schema.json",
+  "title": "CAP Route Decision Made Event",
+  "description": "Specialized canonical event schema for route.decision.made events.",
+  "allOf": [
+    {
+      "$ref": "../../canonical-event-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_type", "payload", "actor_type"],
+      "properties": {
+        "event_type": {
+          "const": "route.decision.made"
+        },
+        "actor_type": {
+          "const": "system"
+        },
+        "payload": {
+          "type": "object",
+          "required": ["route", "reason"],
+          "properties": {
+            "route": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "event_id": "evt_102",
+      "schema_version": "v1alpha1",
+      "event_type": "route.decision.made",
+      "tenant_id": "tenant_acme",
+      "workspace_id": "ws_support",
+      "conversation_id": "conv_1",
+      "session_id": "sess_1",
+      "correlation_id": "corr_1",
+      "causation_id": "evt_101",
+      "occurred_at": "2026-03-17T12:00:01Z",
+      "actor_type": "system",
+      "payload": {
+        "route": "support-agent",
+        "reason": "default_support_route"
+      }
+    }
+  ]
+}

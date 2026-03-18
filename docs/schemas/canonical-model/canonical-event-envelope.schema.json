@@ -1,0 +1,296 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cap.local/schemas/canonical-model/canonical-event-envelope.schema.json",
+  "title": "CAP Canonical Event Envelope",
+  "description": "Machine-readable contract for the CAP canonical event envelope. RFC semantics remain normative; this schema defines the first authoritative machine-readable contract layer for envelope shape.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "event_id",
+    "schema_version",
+    "event_type",
+    "tenant_id",
+    "workspace_id",
+    "channel",
+    "channel_instance_id",
+    "conversation_id",
+    "session_id",
+    "correlation_id",
+    "occurred_at"
+  ],
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable unique identifier for the canonical event."
+    },
+    "schema_version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Schema version label carried by the event envelope."
+    },
+    "event_type": {
+      "$ref": "#/$defs/event_type"
+    },
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workspace_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "channel": {
+      "type": "string",
+      "minLength": 1
+    },
+    "channel_instance_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "conversation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "thread_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "message_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "correlation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "causation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "trace_context": {
+      "$ref": "#/$defs/trace_context"
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "actor": {
+      "$ref": "#/$defs/actor"
+    },
+    "actor_type": {
+      "$ref": "#/$defs/actor_type"
+    },
+    "identity_refs": {
+      "$ref": "#/$defs/identity_refs"
+    },
+    "payload": {
+      "type": "object",
+      "description": "Canonical business content for the event. Event-family-specific payload specialization is layered separately from this envelope contract.",
+      "additionalProperties": true
+    },
+    "attachments": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/attachment"
+      },
+      "default": []
+    },
+    "provider_extensions": {
+      "$ref": "#/$defs/provider_extensions"
+    },
+    "governance_labels": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "actor_type": {
+      "type": "string",
+      "enum": [
+        "end_user",
+        "agent",
+        "human_operator",
+        "system",
+        "channel_adapter"
+      ]
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "message.received",
+        "message.send.requested",
+        "message.sent",
+        "message.delivery.updated",
+        "route.decision.made",
+        "policy.decision.made",
+        "agent.invocation.requested",
+        "agent.response.delta",
+        "agent.response.completed",
+        "tool.call.requested",
+        "tool.result.received",
+        "handoff.requested",
+        "handoff.started",
+        "handoff.completed",
+        "identity.linked",
+        "identity.resolution.requested",
+        "identity.resolution.completed",
+        "identity.resolution.ambiguous",
+        "identity.resolution.challenge.sent",
+        "audit.annotation.added",
+        "error.occurred",
+        "event.blocked"
+      ]
+    },
+    "trace_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "trace_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "span_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "parent_span_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "actor": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "identity_refs": {
+      "type": "object",
+      "properties": {
+        "channel_user_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "platform_principal_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "attachment": {
+      "type": "object",
+      "properties": {
+        "attachment_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mime_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "blob_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "caption": {
+          "type": "string"
+        }
+      },
+      "anyOf": [
+        {
+          "required": ["url"]
+        },
+        {
+          "required": ["blob_ref"]
+        }
+      ],
+      "additionalProperties": true
+    },
+    "provider_extensions": {
+      "type": "object",
+      "description": "Open namespaced object for provider-native fields. Keys should use provider or integration namespaces; values may contain arbitrary JSON compatible extension data.",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+      },
+      "additionalProperties": true
+    }
+  },
+  "examples": [
+    {
+      "event_id": "evt_01H...",
+      "schema_version": "v1alpha1",
+      "event_type": "message.received",
+      "tenant_id": "tenant_acme",
+      "workspace_id": "ws_support",
+      "channel": "slack",
+      "channel_instance_id": "slack_support_prod",
+      "conversation_id": "conv_123",
+      "thread_id": "thr_123",
+      "session_id": "sess_123",
+      "message_id": "msg_123",
+      "correlation_id": "corr_123",
+      "causation_id": "evt_prev",
+      "trace_context": {
+        "trace_id": "trace_123",
+        "span_id": "span_123",
+        "parent_span_id": "span_122"
+      },
+      "occurred_at": "2026-03-17T12:00:00Z",
+      "actor": {
+        "id": "user_ext_42",
+        "display_name": "Alice"
+      },
+      "actor_type": "end_user",
+      "identity_refs": {
+        "channel_user_id": "U123",
+        "platform_principal_id": "principal_42"
+      },
+      "payload": {
+        "text": "hello"
+      },
+      "attachments": [],
+      "provider_extensions": {
+        "slack": {
+          "team_id": "T123",
+          "raw_event_type": "app_mention"
+        }
+      },
+      "governance_labels": [
+        "contains_pii:false",
+        "tenant_policy:default"
+      ]
+    }
+  ]
+}

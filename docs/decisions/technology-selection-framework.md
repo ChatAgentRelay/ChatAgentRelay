@@ -11,7 +11,7 @@ Technology selection should be performed by subsystem, not as one repo-wide stac
 Initial subsystem scopes:
 - implementation language and runtime
 - API and gateway framework
-- Postgres ledger model and migration tool
+- primary ledger storage model and migration tool
 - backend adapter streaming interface
 - test strategy
 - observability baseline
@@ -26,7 +26,7 @@ From `docs/rfcs/architecture/reference-architecture.md`:
 - the minimum kernel must remain implementable as one coherent loop
 - channel adapters and backend adapters must remain distinct boundaries
 - append-only ledger and replay remain core architectural requirements
-- Postgres-first is the current storage baseline
+- storage technology remains an open choice and should be evaluated separately
 - v1 should not require a mandatory broker
 
 ### Canonical model constraints
@@ -56,16 +56,25 @@ From `docs/rfcs/middleware/routing-middleware-governance.md`:
 
 ## Evaluation Criteria
 
-Each subsystem decision should score options against at least these criteria:
+Each subsystem decision should score options against at least these criteria.
+
+In addition, each decision should explicitly analyze each implementation stage or subsystem ring in terms of:
+- what capabilities are required at that stage
+- whether suitable third-party libraries already exist
+- how mature those libraries are
+- whether the capability is simple enough to rewrite in-house without much long-term cost
+- whether the capability is complex enough that library maturity should strongly influence the decision
+
+The goal is to avoid overvaluing library comparisons for simple replaceable pieces, while giving proper weight to mature ecosystem support where the implementation burden is genuinely high.
 
 ### 1. Ledger and replay fitness
 - Does the option work well with an append-only ledger?
 - Does it support replay and auditable state reconstruction cleanly?
 - Does it encourage durable event semantics instead of hidden mutable state?
 
-### 2. Postgres-first fit
-- Does the option integrate cleanly with Postgres as the first durable store?
-- Does it support reliable migrations and schema discipline?
+### 2. Primary ledger storage fit
+- Does the option integrate cleanly with a durable primary store for the event ledger?
+- Does it support reliable migrations or schema evolution discipline where needed?
 - Does it avoid forcing an early broker or distributed system dependency?
 
 ### 3. Boundary discipline
@@ -92,6 +101,16 @@ Each subsystem decision should score options against at least these criteria:
 - Is deployment straightforward for a self-hosted, enterprise-oriented system?
 - Are observability, health checks, and failure handling mature enough for the target shape?
 
+### 9. Ecosystem availability and maturity
+- For each required capability, are credible third-party libraries available?
+- Are those libraries mature, maintained, widely used, and operationally trustworthy enough to matter?
+- Are the important libraries concentrated in one ecosystem option but missing in another?
+
+### 10. Rebuild cost versus adoption value
+- Is the capability simple enough that building it in-house is acceptable?
+- Or is it sufficiently complex, subtle, or operationally heavy that mature library support should heavily influence the choice?
+- If a library were removed later, would replacement be cheap, moderate, or expensive?
+
 ## Evaluation Template
 
 Use the following structure for each subsystem decision.
@@ -108,16 +127,35 @@ Which RFC sections most strongly constrain the choice.
 ## Candidate Options
 A short list of realistic options.
 
+## Required Capabilities by Stage
+List the concrete capabilities the subsystem must support.
+
+For each capability, identify:
+- whether it is core and must exist on day one, or can be deferred
+- whether third-party libraries exist
+- whether those libraries are mature enough to reduce risk meaningfully
+- whether the capability is cheap enough to implement in-house
+- whether the capability is subtle enough that mature ecosystem support should strongly affect the decision
+
 ## Evaluation Matrix
 For each option, assess:
 - ledger and replay fitness
-- Postgres-first fit
+- primary ledger storage fit
 - boundary discipline
 - streaming and contract support
 - testability and conformance
 - multi-tenant governance and audit
 - v0/v1 delivery simplicity
 - operational maturity
+- ecosystem availability and maturity
+- rebuild cost versus adoption value
+
+## Third-Party Library Notes
+For each serious option, summarize:
+- important libraries likely to be used
+- whether they are essential or replaceable
+- where ecosystem weakness would create real delivery risk
+- where library comparison should not dominate because the component is easy to rewrite
 
 ## v0 Recommendation
 What is the narrowest acceptable prototype choice, if different from v1.
@@ -135,7 +173,7 @@ Recommended sequencing:
 2. decide the first backend adapter target
 3. decide the implementation language and runtime
 4. decide the API and gateway framework
-5. decide the Postgres migration and schema tooling
+5. decide the primary ledger storage and migration/schema tooling
 6. decide the observability baseline
 7. decide the deployment shape
 

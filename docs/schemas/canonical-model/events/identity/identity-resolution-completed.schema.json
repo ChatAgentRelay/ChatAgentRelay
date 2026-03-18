@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cap.local/schemas/canonical-model/events/identity/identity-resolution-completed.schema.json",
+  "title": "CAP Identity Resolution Completed Event",
+  "description": "Specialized canonical event schema for identity.resolution.completed events.",
+  "allOf": [
+    {
+      "$ref": "../../canonical-event-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_type", "payload"],
+      "properties": {
+        "event_type": {
+          "const": "identity.resolution.completed"
+        },
+        "payload": {
+          "type": "object",
+          "required": ["status"],
+          "properties": {
+            "status": {
+              "const": "identified"
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    }
+  ]
+}

@@ -252,10 +252,12 @@ Each adapter must provide:
 
 ## 7. Initial v1 Guidance
 
-建议 v1 先支持：
-- one web chat adapter
-- one Slack adapter
-- one async / webhook-first adapter shape
+v1 channel work should include:
+- at least one real adapter path
+- at least one concrete ingress shape
+- at least one concrete outbound delivery path
+
+具体选择哪个 channel/provider，以及是否同时做多个 adapter，应由单独的 implementation decision 决定，而不是由本 RFC 预设。
 
 v1 adapter 目标不是覆盖全部 provider feature，而是验证：
 - canonical ingress/egress shape

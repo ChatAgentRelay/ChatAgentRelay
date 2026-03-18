@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cap.local/schemas/canonical-model/events/messaging/message-received.schema.json",
+  "title": "CAP Message Received Event",
+  "description": "Specialized canonical event schema for inbound message.received events.",
+  "allOf": [
+    {
+      "$ref": "../../canonical-event-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_type", "payload", "actor_type"],
+      "properties": {
+        "event_type": {
+          "const": "message.received"
+        },
+        "actor_type": {
+          "const": "end_user"
+        },
+        "payload": {
+          "type": "object",
+          "required": ["text"],
+          "properties": {
+            "text": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "event_id": "evt_100",
+      "schema_version": "v1alpha1",
+      "event_type": "message.received",
+      "tenant_id": "tenant_acme",
+      "workspace_id": "ws_support",
+      "channel": "slack",
+      "channel_instance_id": "slack_support_prod",
+      "conversation_id": "conv_1",
+      "session_id": "sess_1",
+      "correlation_id": "corr_1",
+      "occurred_at": "2026-03-17T12:00:00Z",
+      "actor": {
+        "id": "U123"
+      },
+      "actor_type": "end_user",
+      "payload": {
+        "text": "Where is my order?"
+      }
+    }
+  ]
+}
