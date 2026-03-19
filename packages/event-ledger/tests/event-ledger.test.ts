@@ -1,15 +1,18 @@
 import { describe, expect, test } from "bun:test";
-import { loadFirstExecutablePathFixtures } from "@cap/contract-harness";
-import { EventLedgerAppender, LedgerDuplicateConflictError } from "../src";
+import { assertFirstExecutablePathChain, loadFirstExecutablePathFixtures } from "@cap/contract-harness";
+import { EventLedgerAppender, EventLedgerReader, LedgerDuplicateConflictError } from "../src";
 
-async function loadAppender(): Promise<EventLedgerAppender> {
-  return EventLedgerAppender.create();
+async function loadLedger(): Promise<{ appender: EventLedgerAppender; reader: EventLedgerReader }> {
+  const appender = await EventLedgerAppender.create();
+  const reader = new EventLedgerReader(appender.getStore());
+
+  return { appender, reader };
 }
 
-describe("event ledger append", () => {
+describe("event ledger", () => {
   test("validates and appends the frozen seven-event fixture chain", async () => {
     const fixtures = await loadFirstExecutablePathFixtures();
-    const appender = await loadAppender();
+    const { appender, reader } = await loadLedger();
 
     for (const fixture of fixtures) {
       const result = appender.append(fixture.event);
@@ -30,11 +33,15 @@ describe("event ledger append", () => {
       expect(result.event.payload).toEqual(fixture.event.payload);
       expect(result.event.provider_extensions).toEqual(fixture.event.provider_extensions);
     }
+
+    const replayedEvents = reader.replayConversation(fixtures[0]!.event.conversation_id);
+    expect(replayedEvents).toHaveLength(7);
+    expect(() => assertFirstExecutablePathChain(replayedEvents)).not.toThrow();
   });
 
   test("returns an explicit duplicate result for an equivalent repeated append", async () => {
     const fixtures = await loadFirstExecutablePathFixtures();
-    const appender = await loadAppender();
+    const { appender, reader } = await loadLedger();
     const firstEvent = fixtures[0]!.event;
 
     const firstResult = appender.append(firstEvent);
@@ -43,12 +50,12 @@ describe("event ledger append", () => {
     expect(firstResult.status).toBe("appended");
     expect(duplicateResult.status).toBe("duplicate");
     expect(duplicateResult.event).toEqual(firstResult.event);
-    expect(appender.getStore().getAll()).toHaveLength(1);
+    expect(reader.replayConversation(firstEvent.conversation_id)).toHaveLength(1);
   });
 
   test("rejects a conflicting duplicate event_id append", async () => {
     const fixtures = await loadFirstExecutablePathFixtures();
-    const appender = await loadAppender();
+    const { appender } = await loadLedger();
     const firstEvent = fixtures[0]!.event;
 
     appender.append(firstEvent);
@@ -61,5 +68,35 @@ describe("event ledger append", () => {
     };
 
     expect(() => appender.append(conflictingDuplicate)).toThrow(LedgerDuplicateConflictError);
+  });
+
+  test("replays by conversation, finds by correlation, gets by id, and filters by time range", async () => {
+    const fixtures = await loadFirstExecutablePathFixtures();
+    const { appender, reader } = await loadLedger();
+
+    for (const fixture of fixtures) {
+      appender.append(fixture.event);
+    }
+
+    const replayedEvents = reader.replayConversation("conv_1");
+    const correlationEvents = reader.findByCorrelationId("corr_1");
+    const fetchedEvent = reader.getEvent("evt_104");
+    const timeRangeEvents = reader.findByTimeRange({
+      start: "2026-03-18T10:00:02Z",
+      end: "2026-03-18T10:00:04Z",
+    });
+
+    expect(replayedEvents.map((event) => event.event_id)).toEqual([
+      "evt_100",
+      "evt_101",
+      "evt_102",
+      "evt_103",
+      "evt_104",
+      "evt_105",
+      "evt_106",
+    ]);
+    expect(correlationEvents.map((event) => event.event_id)).toEqual(replayedEvents.map((event) => event.event_id));
+    expect(fetchedEvent).toEqual(replayedEvents[4]!);
+    expect(timeRangeEvents.map((event) => event.event_id)).toEqual(["evt_102", "evt_103", "evt_104"]);
   });
 });
