@@ -23,7 +23,7 @@ venv/
 .mypy_cache/
 .ruff_cache/
 
-# Node.js
+# Node.js / Bun
 node_modules/
 dist/
 build/
@@ -32,6 +32,7 @@ coverage/
 .pnpm-store/
 .next/
 .nuxt/
+.bun/
 
 # General build and temp outputs
 .tmp/

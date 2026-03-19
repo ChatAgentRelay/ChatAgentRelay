@@ -76,6 +76,13 @@ Do not begin broad implementation work until all of the following are true:
 
 Small exploratory prototypes may exist later, but they must not replace unresolved RFC work.
 
+Current narrow implementation status does not remove this gate. The repository currently allows only:
+- the frozen seven-event fixture baseline as a machine-readable contract corpus
+- `packages/contract-harness` as the completed validation-harness milestone
+- `packages/event-ledger` as a bounded in-memory prototype for append, replay, and audit helpers over already-canonical events
+
+This does not approve channel runtime, backend runtime, durable persistence, replay/query APIs, projections, brokers, or orchestration services.
+
 ## Future Repository Shape Guidance
 
 Language and framework choices are intentionally not fixed yet.
@@ -100,6 +107,18 @@ Recommended order of work:
 4. record decisions
 5. plan implementation
 6. implement against the approved contracts
+
+## Commit Workflow
+
+After the next commit, Claude should automatically create one commit per approved feature.
+
+That means Claude should:
+- keep each feature commit narrowly scoped
+- avoid combining unrelated changes into a single commit
+- keep commit granularity aligned to the currently approved slice
+- not treat the commit workflow rule as permission to exceed the currently approved implementation boundary
+
+This workflow rule does not change the docs-first source-of-truth hierarchy and does not approve broader runtime work on its own.
 
 ## Current Status
 
