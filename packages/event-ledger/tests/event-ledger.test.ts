@@ -8,6 +8,16 @@ import {
   explainFirstExecutablePath,
 } from "../src";
 
+function getPayloadString(event: { payload: Record<string, unknown> }, key: string): string {
+  const value = event.payload[key];
+
+  if (typeof value !== "string") {
+    throw new Error(`Expected payload.${key} to be a string`);
+  }
+
+  return value;
+}
+
 async function loadLedger(): Promise<{ appender: EventLedgerAppender; reader: EventLedgerReader }> {
   const appender = await EventLedgerAppender.create();
   const reader = new EventLedgerReader(appender.getStore());
@@ -84,26 +94,21 @@ describe("event ledger", () => {
       appender.append(fixture.event);
     }
 
-    const replayedEvents = reader.replayConversation("conv_1");
-    const correlationEvents = reader.findByCorrelationId("corr_1");
-    const fetchedEvent = reader.getEvent("evt_104");
+    const [messageReceived, , routeDecision, , agentResponse] = fixtures;
+    const replayedEvents = reader.replayConversation(messageReceived!.event.conversation_id);
+    const correlationEvents = reader.findByCorrelationId(messageReceived!.event.correlation_id);
+    const fetchedEvent = reader.getEvent(agentResponse!.event.event_id);
     const timeRangeEvents = reader.findByTimeRange({
-      start: "2026-03-18T10:00:02Z",
-      end: "2026-03-18T10:00:04Z",
+      start: routeDecision!.event.occurred_at,
+      end: agentResponse!.event.occurred_at,
     });
 
-    expect(replayedEvents.map((event) => event.event_id)).toEqual([
-      "evt_100",
-      "evt_101",
-      "evt_102",
-      "evt_103",
-      "evt_104",
-      "evt_105",
-      "evt_106",
-    ]);
+    expect(replayedEvents.map((event) => event.event_id)).toEqual(fixtures.map(({ event }) => event.event_id));
     expect(correlationEvents.map((event) => event.event_id)).toEqual(replayedEvents.map((event) => event.event_id));
     expect(fetchedEvent).toEqual(replayedEvents[4]!);
-    expect(timeRangeEvents.map((event) => event.event_id)).toEqual(["evt_102", "evt_103", "evt_104"]);
+    expect(timeRangeEvents.map((event) => event.event_id)).toEqual(
+      fixtures.slice(2, 5).map(({ event }) => event.event_id),
+    );
   });
 
   test("explains the frozen seven-event path from stored ledger facts alone", async () => {
@@ -114,41 +119,42 @@ describe("event ledger", () => {
       appender.append(fixture.event);
     }
 
-    const explanation = explainFirstExecutablePath(reader.replayConversation("conv_1"));
+    const [messageReceived, policyDecision, routeDecision, agentInvocation, agentResponse, messageSendRequested, messageSent] = fixtures;
+    const explanation = explainFirstExecutablePath(reader.replayConversation(messageReceived!.event.conversation_id));
 
     expect(explanation).toEqual({
-      conversation_id: "conv_1",
-      correlation_id: "corr_1",
+      conversation_id: messageReceived!.event.conversation_id,
+      correlation_id: messageReceived!.event.correlation_id,
       messageReceived: {
-        event_id: "evt_100",
-        text: "Where is my order?",
+        event_id: messageReceived!.event.event_id,
+        text: getPayloadString(messageReceived!.event, "text"),
       },
       policyDecision: {
-        event_id: "evt_101",
-        decision: "allow",
-        policy: "default_ingress",
+        event_id: policyDecision!.event.event_id,
+        decision: getPayloadString(policyDecision!.event, "decision"),
+        policy: getPayloadString(policyDecision!.event, "policy"),
       },
       routeDecision: {
-        event_id: "evt_102",
-        route: "default_webchat_agent",
-        reason: "default_first_path_route",
+        event_id: routeDecision!.event.event_id,
+        route: getPayloadString(routeDecision!.event, "route"),
+        reason: getPayloadString(routeDecision!.event, "reason"),
       },
       agentInvocation: {
-        event_id: "evt_103",
-        backend: "generic-http-agent",
-        input_event_id: "evt_100",
+        event_id: agentInvocation!.event.event_id,
+        backend: getPayloadString(agentInvocation!.event, "backend"),
+        input_event_id: getPayloadString(agentInvocation!.event, "input_event_id"),
       },
       agentResponse: {
-        event_id: "evt_104",
-        text: "Your order shipped yesterday.",
+        event_id: agentResponse!.event.event_id,
+        text: getPayloadString(agentResponse!.event, "text"),
       },
       messageSendRequested: {
-        event_id: "evt_105",
-        text: "Your order shipped yesterday.",
+        event_id: messageSendRequested!.event.event_id,
+        text: getPayloadString(messageSendRequested!.event, "text"),
       },
       messageSent: {
-        event_id: "evt_106",
-        provider_message_id: "webchat_msg_9001",
+        event_id: messageSent!.event.event_id,
+        provider_message_id: getPayloadString(messageSent!.event, "provider_message_id"),
       },
     });
   });
@@ -161,6 +167,8 @@ describe("event ledger", () => {
       appender.append(fixture.event);
     }
 
-    expect(() => explainFirstExecutablePath(reader.replayConversation("conv_1"))).toThrow(LedgerAuditExplanationError);
+    expect(() => explainFirstExecutablePath(reader.replayConversation(fixtures[0]!.event.conversation_id))).toThrow(
+      LedgerAuditExplanationError,
+    );
   });
 });

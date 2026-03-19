@@ -1,0 +1,32 @@
+{
+  "event_id": "evt_104",
+  "schema_version": "v1alpha1",
+  "event_type": "agent.response.completed",
+  "tenant_id": "tenant_acme",
+  "workspace_id": "ws_support",
+  "channel": "webchat",
+  "channel_instance_id": "webchat_acme_prod",
+  "conversation_id": "conv_1",
+  "session_id": "sess_1",
+  "correlation_id": "corr_1",
+  "causation_id": "evt_103",
+  "occurred_at": "2026-03-18T10:00:04Z",
+  "actor": {
+    "id": "support_agent_v1"
+  },
+  "actor_type": "agent",
+  "trace_context": {
+    "trace_id": "trace_123",
+    "span_id": "span_104",
+    "parent_span_id": "span_103"
+  },
+  "payload": {
+    "text": "Your order shipped yesterday."
+  },
+  "provider_extensions": {
+    "generic_http_backend": {
+      "backend_request_id": "backend_req_987",
+      "backend_session_handle": "be_sess_42"
+    }
+  }
+}

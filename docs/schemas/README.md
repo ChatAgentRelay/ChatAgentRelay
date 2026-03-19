@@ -25,6 +25,7 @@ docs/schemas/
     events/
       messaging/
         message-received.schema.json
+        message-send-requested.schema.json
         message-sent.schema.json
         message-delivery-updated.schema.json
       routing/
@@ -89,13 +90,26 @@ The current schemas constrain only the highest-value event payload fields needed
 
 Current specialized coverage includes:
 - inbound messaging
-- outbound messaging
+- outbound send request and send result messaging
 - delivery state updates
 - policy and route decisions
 - agent invocation and completed response
 - handoff requested
 - blocked events
 - identity resolution core events
+
+## First Executable Path Fixture Baseline
+
+The frozen seven-event happy-path fixture corpus lives under:
+- `docs/schemas/fixtures/first-executable-path/`
+
+That corpus is the current reusable contract-test baseline for:
+- envelope-first validation
+- specialized validation for the seven-event chain
+- chain-level invariant checks
+- bounded in-memory event-ledger happy-path tests
+
+It does not approve broader runtime expansion beyond fixture-driven contract verification.
 
 ## What Is Not Covered Yet
 
@@ -118,7 +132,6 @@ For implementation work, the expected flow is:
 ## Next Likely Additions
 
 The next schema work will likely include one or more of:
-- `message.send.requested`
 - `agent.response.delta`
 - `handoff.started`
 - `handoff.completed`

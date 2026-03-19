@@ -1,0 +1,24 @@
+{
+  "event_id": "evt_102",
+  "schema_version": "v1alpha1",
+  "event_type": "route.decision.made",
+  "tenant_id": "tenant_acme",
+  "workspace_id": "ws_support",
+  "channel": "webchat",
+  "channel_instance_id": "webchat_acme_prod",
+  "conversation_id": "conv_1",
+  "session_id": "sess_1",
+  "correlation_id": "corr_1",
+  "causation_id": "evt_101",
+  "occurred_at": "2026-03-18T10:00:02Z",
+  "actor_type": "system",
+  "trace_context": {
+    "trace_id": "trace_123",
+    "span_id": "span_102",
+    "parent_span_id": "span_101"
+  },
+  "payload": {
+    "route": "default_webchat_agent",
+    "reason": "default_first_path_route"
+  }
+}
