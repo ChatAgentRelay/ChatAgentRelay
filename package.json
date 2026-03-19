@@ -1,0 +1,12 @@
+{
+  "name": "cap",
+  "private": true,
+  "packageManager": "bun@1.2.22",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "typecheck": "bun run --filter './packages/*' typecheck",
+    "test": "bun run --filter './packages/*' test"
+  }
+}
