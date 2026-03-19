@@ -1,6 +1,6 @@
 # CAP First Executable Path Next Implementation Step
 
-This document narrows the first code-facing step for the frozen first executable path.
+This document records the review-gate outcome after the first code-facing step for the frozen first executable path.
 
 It does not plan the full runtime.
 It exists to prevent a premature jump from docs-first convergence into broad implementation work.
@@ -27,9 +27,9 @@ It is the smallest useful approved slice because it:
 
 It is intentionally narrower than runtime implementation.
 
-## Required Inputs
+## Review Inputs
 
-The next step should use the following frozen inputs directly:
+The review-gate record should stay aligned to the following frozen inputs and completed narrow evidence:
 - `docs/schemas/canonical-model/canonical-event-envelope.schema.json`
 - `docs/schemas/canonical-model/events/messaging/message-received.schema.json`
 - `docs/schemas/canonical-model/events/routing/policy-decision-made.schema.json`
@@ -48,11 +48,13 @@ The next step should use the following frozen inputs directly:
 - `docs/decisions/first-executable-path-plan.md`
 - `docs/decisions/first-executable-path-sequence-diagram.md`
 - `docs/decisions/first-executable-path-event-contract-matrix.md`
+- `packages/contract-harness`
+- `packages/event-ledger`
 
-## Recommended Work Packages
+## Current Review-Gate Record
 
-### 1. Record the completed validation-harness milestone
-Document that `packages/contract-harness` now proves:
+### 1. Completed validation-harness milestone
+`packages/contract-harness` now proves:
 - base envelope schema loading
 - specialized schema loading for the frozen chain
 - deterministic `event_type` mapping
@@ -60,17 +62,34 @@ Document that `packages/contract-harness` now proves:
 - fixture-driven contract checks
 - chain-level invariant assertions
 
-### 2. Record the bounded ledger prototype scope
-Document that `packages/event-ledger` now proves only:
+#### Implementation Evidence
+These links document existing narrow evidence at the review gate. They do not approve broader runtime work.
+
+- `packages/contract-harness/src/constants.ts` records the frozen seven-event order and the explicit `event_type` -> schema-path mapping
+- `packages/contract-harness/src/schema-loader.ts` loads the base envelope schema and the seven specialized schemas from `docs/schemas/`
+- `packages/contract-harness/src/fixtures.ts` loads the frozen fixture corpus from `docs/schemas/fixtures/first-executable-path/`
+- `packages/contract-harness/src/validators.ts` performs envelope-first validation, specialized validation, and explicit unknown-`event_type` failure
+- `packages/contract-harness/src/chain-assertions.ts` asserts fixed order, shared IDs, stepwise causation, and strictly increasing `occurred_at`
+
+### 2. Bounded ledger prototype scope
+`packages/event-ledger` now proves only:
 - in-memory append behavior for already-canonical events
 - duplicate/idempotency handling at the prototype boundary
 - replay helpers over the frozen fixture chain
 - audit explanation helpers over the frozen fixture chain
 
-This package must be described as a bounded prototype, not as approval for durable storage or runtime surfaces.
+#### Implementation Evidence
+These links document existing narrow evidence at the review gate. They do not approve broader runtime work.
 
-### 3. Re-state the review gate and deferrals
-Document that the post-harness state still does not approve:
+- `packages/event-ledger/src/append.ts` records bounded in-memory append behavior plus duplicate/idempotency handling at the prototype boundary
+- `packages/event-ledger/src/ledger-store.ts` records the in-memory store boundary for already-canonical events
+- `packages/event-ledger/src/replay.ts` records replay and lookup helpers over in-memory stored facts only
+- `packages/event-ledger/src/audit.ts` records audit explanation helpers over the frozen seven-event chain
+
+This package must be described as a bounded in-memory prototype, not as approval for durable storage or runtime surfaces.
+
+### 3. Review gate and deferrals remain active
+The post-harness state still does not approve:
 - web chat ingress runtime
 - backend HTTP runtime
 - durable persistence or migrations
@@ -78,11 +97,11 @@ Document that the post-harness state still does not approve:
 - projections or read models
 - brokers, queues, or orchestration services
 
-This work package keeps the next approved slice docs-first and non-runtime.
+This document is therefore a review-gate record, not a runtime start signal.
 
 ## What Must Not Start Yet
 
-The next step must not turn into broad runtime implementation.
+The review-gate state must not turn into broad runtime implementation.
 
 The following must not start in this slice:
 - web chat ingress server or adapter runtime
@@ -106,17 +125,19 @@ It must also not re-open already-settled points such as:
 
 ## Completion Criteria
 
-This next-step slice is complete only if all of the following are true:
+This review-gate record is complete only if all of the following are true:
 - the decision docs no longer contradict the existence of `packages/contract-harness`
 - the decision docs no longer contradict the existence of `packages/event-ledger`
 - the completed harness milestone is recorded as complete
 - the ledger package is described as a bounded in-memory prototype only
 - replay/audit helpers are acknowledged only inside that narrow prototype boundary
+- the added evidence links only document, record, and point to existing narrow evidence
+- this remains a review-gate record, not a runtime start signal
 - no broad runtime implementation is newly approved by these docs
 
 ## Outcome of This Step
 
-If completed successfully, this step will produce a docs-first review-gate record that:
+If completed successfully, this document will produce a docs-first review-gate record that:
 - the frozen seven-event happy path is already machine-readable
 - the schema layer is already consumable in code
 - the current prototype boundary is accurately described in decision docs

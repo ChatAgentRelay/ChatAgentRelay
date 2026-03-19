@@ -1,18 +1,18 @@
 # CAP First Executable Path Implementation Checklist
 
-This document is a pre-code implementation-readiness artifact for the frozen first executable path.
+This document is a review-gate checklist artifact for the frozen first executable path.
 
 It is not a new RFC.
 It does not expand runtime scope.
-It exists to make the next implementation-facing work mechanical and bounded.
+It exists to make the current review-gate state explicit and keep later follow-on work mechanical and bounded.
 
 ## Purpose
 
 Provide one checklist that lets a later implementer determine:
 - which first-path artifacts are already frozen
-- which boundaries are now safe to implement first
+- which narrow milestones are already complete
 - which work must remain deferred
-- what criteria must be met before broader runtime work starts
+- what criteria must be met before any broader runtime work is approved
 
 ## Locked Scope
 
@@ -35,9 +35,9 @@ The frozen seven-event chain is:
 6. `message.send.requested`
 7. `message.sent`
 
-## Pre-Code Artifact Checklist
+## Docs-First Artifact Checklist
 
-Use this section to confirm the docs-first baseline is sufficiently frozen before any code-facing work begins.
+Use this section to confirm the docs-first baseline remains sufficiently frozen at the current review gate.
 
 - [x] `docs/decisions/first-executable-path-plan.md` freezes the first executable path
 - [x] `docs/decisions/first-executable-path-sequence-diagram.md` freezes the event order and runtime boundaries
@@ -84,6 +84,16 @@ The completed validation-harness slice includes:
 - [x] treat the fixture set as the baseline contract corpus for the first path
 - [x] keep implementation-side naming and types aligned to the schema layer rather than redefining the contract elsewhere
 
+### Grouped Implemented Evidence
+These links point to existing review-gate evidence only. They do not change approval state and do not approve broader runtime work.
+
+#### Contract harness evidence
+- [x] deterministic event order and explicit schema mapping are recorded in `packages/contract-harness/src/constants.ts`
+- [x] schema loading from `docs/schemas/` is recorded in `packages/contract-harness/src/schema-loader.ts`
+- [x] frozen fixture loading is recorded in `packages/contract-harness/src/fixtures.ts`
+- [x] envelope-first validation, specialized validation, and unknown-`event_type` failure are recorded in `packages/contract-harness/src/validators.ts`
+- [x] chain assertions for fixed order, shared IDs, causation, and increasing `occurred_at` are recorded in `packages/contract-harness/src/chain-assertions.ts`
+
 ### Boundary Discipline for the First Slice
 
 - [x] keep the work limited to schema loading, schema resolution, validation, and chain assertions
@@ -101,7 +111,14 @@ That prototype is currently aligned only if it remains limited to:
 - replay helpers over the frozen seven-event path
 - audit explanation helpers over the frozen seven-event path
 
+Implemented evidence for the current prototype alignment:
+- `packages/event-ledger/src/append.ts` records append validation plus duplicate/idempotency handling at the prototype boundary
+- `packages/event-ledger/src/ledger-store.ts` records the in-memory store boundary
+- `packages/event-ledger/src/replay.ts` records replay and lookup helpers over in-memory stored facts only
+- `packages/event-ledger/src/audit.ts` records audit explanation helpers over the frozen seven-event chain
+
 This prototype does not approve broader runtime expansion.
+These evidence links do not change approval state.
 
 ## Deferred Items Checklist
 
@@ -134,7 +151,7 @@ This checklist is satisfied for the current review-gate milestone only if all of
 - [x] any existing ledger code is limited to the bounded in-memory prototype described in the decision docs
 - [x] no channel runtime, backend runtime, durable persistence, replay/query API surface, projection package, broker, or orchestration service has been newly approved
 
-## Ready-to-Implement Signal
+## Ready-for-Later-Approval Signal
 
 The current repository is ready for later follow-on discussion when a later implementer can clearly see that:
 - the contract corpus is frozen enough to load and validate
@@ -142,3 +159,4 @@ The current repository is ready for later follow-on discussion when a later impl
 - the validation and fixture-harness boundary has already been proven
 - the event-ledger package is still only a bounded in-memory prototype
 - broader runtime work is still intentionally deferred until a later slice is explicitly approved
+- the evidence links only trace existing review-gate facts and do not act as a runtime start signal

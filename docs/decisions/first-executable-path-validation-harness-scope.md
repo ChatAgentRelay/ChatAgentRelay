@@ -125,6 +125,19 @@ This validation-harness slice is complete only if all of the following are true:
 - explicit failure cases exist for unknown `event_type` and invalid fixtures
 - the work remains inside the contract-consumer boundary
 
+## Implemented Evidence at Review Gate
+
+The following links document the existing validation-harness evidence at the review gate. They record the completed contract-consumption boundary and do not approve broader runtime work.
+
+- `packages/contract-harness/src/constants.ts` records the frozen seven-event order and the explicit deterministic `event_type` -> schema-path mapping
+- `packages/contract-harness/src/schema-loader.ts` records loading of the base envelope schema and the seven specialized schemas from `docs/schemas/`
+- `packages/contract-harness/src/fixtures.ts` records loading of the frozen fixture corpus from `docs/schemas/fixtures/first-executable-path/`
+- `packages/contract-harness/src/validators.ts` records envelope-first validation, specialized validation, and explicit failure for unknown `event_type`
+- `packages/contract-harness/src/chain-assertions.ts` records fixed-order, shared-ID, causation-linkage, and strictly increasing `occurred_at` assertions
+
+These links are review inputs only.
+They do not expand the validation-harness scope into ledger work, runtime work, or broader package approval.
+
 ## Review Gate After Completion
 
 After this slice passes, work must stop at a review gate.
@@ -133,6 +146,8 @@ That review should confirm:
 - the schema layer is consumable as code-facing input
 - the frozen seven-event chain works as a machine-readable baseline
 - `packages/contract-harness` satisfies the validation-harness milestone
+- the implemented evidence links above document existing narrow review-gate facts only
 - `packages/event-ledger` exists only as a bounded in-memory prototype for append, replay, and audit helpers over already-canonical events
+- ledger files may be cited as review inputs, but that does not expand the validation-harness slice into ledger scope
 - no additional RFC, decision, or schema corrections are required before discussing a later slice
 - channel runtime, backend runtime, durable persistence, replay/query APIs, projections, brokers, and orchestration services remain deferred
