@@ -12,3 +12,13 @@ export const REQUIRED_LEDGER_EVENT_FIELDS = [
   "actor_type",
   "payload",
 ] as const;
+
+export const AUDIT_EVENT_TYPES = {
+  messageReceived: "message.received",
+  policyDecisionMade: "policy.decision.made",
+  routeDecisionMade: "route.decision.made",
+  agentInvocationRequested: "agent.invocation.requested",
+  agentResponseCompleted: "agent.response.completed",
+  messageSendRequested: "message.send.requested",
+  messageSent: "message.sent",
+} as const;

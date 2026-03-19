@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import { assertFirstExecutablePathChain, loadFirstExecutablePathFixtures } from "@cap/contract-harness";
-import { EventLedgerAppender, EventLedgerReader, LedgerDuplicateConflictError } from "../src";
+import {
+  EventLedgerAppender,
+  EventLedgerReader,
+  LedgerAuditExplanationError,
+  LedgerDuplicateConflictError,
+  explainFirstExecutablePath,
+} from "../src";
 
 async function loadLedger(): Promise<{ appender: EventLedgerAppender; reader: EventLedgerReader }> {
   const appender = await EventLedgerAppender.create();
@@ -98,5 +104,63 @@ describe("event ledger", () => {
     expect(correlationEvents.map((event) => event.event_id)).toEqual(replayedEvents.map((event) => event.event_id));
     expect(fetchedEvent).toEqual(replayedEvents[4]!);
     expect(timeRangeEvents.map((event) => event.event_id)).toEqual(["evt_102", "evt_103", "evt_104"]);
+  });
+
+  test("explains the frozen seven-event path from stored ledger facts alone", async () => {
+    const fixtures = await loadFirstExecutablePathFixtures();
+    const { appender, reader } = await loadLedger();
+
+    for (const fixture of fixtures) {
+      appender.append(fixture.event);
+    }
+
+    const explanation = explainFirstExecutablePath(reader.replayConversation("conv_1"));
+
+    expect(explanation).toEqual({
+      conversation_id: "conv_1",
+      correlation_id: "corr_1",
+      messageReceived: {
+        event_id: "evt_100",
+        text: "Where is my order?",
+      },
+      policyDecision: {
+        event_id: "evt_101",
+        decision: "allow",
+        policy: "default_ingress",
+      },
+      routeDecision: {
+        event_id: "evt_102",
+        route: "default_webchat_agent",
+        reason: "default_first_path_route",
+      },
+      agentInvocation: {
+        event_id: "evt_103",
+        backend: "generic-http-agent",
+        input_event_id: "evt_100",
+      },
+      agentResponse: {
+        event_id: "evt_104",
+        text: "Your order shipped yesterday.",
+      },
+      messageSendRequested: {
+        event_id: "evt_105",
+        text: "Your order shipped yesterday.",
+      },
+      messageSent: {
+        event_id: "evt_106",
+        provider_message_id: "webchat_msg_9001",
+      },
+    });
+  });
+
+  test("fails audit explanation when the stored facts do not cover the full seven-event chain", async () => {
+    const fixtures = await loadFirstExecutablePathFixtures();
+    const { appender, reader } = await loadLedger();
+
+    for (const fixture of fixtures.slice(0, 6)) {
+      appender.append(fixture.event);
+    }
+
+    expect(() => explainFirstExecutablePath(reader.replayConversation("conv_1"))).toThrow(LedgerAuditExplanationError);
   });
 });
