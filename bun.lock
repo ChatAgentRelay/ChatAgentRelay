@@ -102,6 +102,19 @@
         "typescript": "^5.8.2",
       },
     },
+    "packages/server": {
+      "name": "@cap/server",
+      "dependencies": {
+        "@cap/backend-openai": "workspace:*",
+        "@cap/channel-slack": "workspace:*",
+        "@cap/event-ledger": "workspace:*",
+        "@cap/pipeline": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.8.2",
+      },
+    },
   },
   "packages": {
     "@cap/backend-http": ["@cap/backend-http@workspace:packages/backend-http"],
@@ -121,6 +134,8 @@
     "@cap/middleware": ["@cap/middleware@workspace:packages/middleware"],
 
     "@cap/pipeline": ["@cap/pipeline@workspace:packages/pipeline"],
+
+    "@cap/server": ["@cap/server@workspace:packages/server"],
 
     "@types/bun": ["@types/bun@1.3.11", "", { "dependencies": { "bun-types": "1.3.11" } }, "sha512-5vPne5QvtpjGpsGYXiFyycfpDF2ECyPcTSsFBMa0fraoxiQyMJ3SmuQIGhzPg2WJuWxVBoxWJ2kClYTcw/4fAg=="],
 

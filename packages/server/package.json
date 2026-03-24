@@ -1,0 +1,19 @@
+{
+  "name": "@cap/server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/main.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@cap/pipeline": "workspace:*",
+    "@cap/channel-slack": "workspace:*",
+    "@cap/backend-openai": "workspace:*",
+    "@cap/event-ledger": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.8.2"
+  }
+}
