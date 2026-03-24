@@ -87,10 +87,28 @@ Additional packages should only be introduced after the validation harness miles
 
 Future package boundaries must continue to preserve CAP's core architectural ownership model from the RFCs.
 
+## Approved Channel-Side Extension
+
+`packages/channel-web-chat` is now an approved narrow channel-side package.
+
+It owns only:
+- inbound web chat input validation at the adapter boundary
+- stable idempotency key derivation from inbound delivery context
+- canonicalization of validated input into `message.received`
+- contract validation of the canonicalized output against the frozen schema layer
+
+It does not own:
+- HTTP server or transport listener
+- middleware, policy, or routing behavior
+- outbound delivery execution
+- durable persistence
+
+This package was approved as the Candidate 2 slice defined in `docs/decisions/repository-next-approved-slices.md`.
+
 ## Immediate Outcome
 
 For the current phase, repository code introduction should consist of:
 - root workspace/bootstrap files
 - `packages/contract-harness` as the completed validation-harness milestone
 - `packages/event-ledger` as a bounded in-memory append/replay/audit prototype tied to the frozen seven-event path
-- no broader package surface
+- `packages/channel-web-chat` as a narrow channel-side ingress canonicalization boundary

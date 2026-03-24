@@ -80,8 +80,9 @@ Current narrow implementation status does not remove this gate. The repository c
 - the frozen seven-event fixture baseline as a machine-readable contract corpus
 - `packages/contract-harness` as the completed validation-harness milestone
 - `packages/event-ledger` as a bounded in-memory prototype for append, replay, and audit helpers over already-canonical events
+- `packages/channel-web-chat` as a narrow channel-side ingress canonicalization boundary that stops at `message.received`
 
-This does not approve channel runtime, backend runtime, durable persistence, replay/query APIs, projections, brokers, or orchestration services.
+This does not approve backend runtime, durable persistence, replay/query APIs, projections, brokers, or orchestration services.
 
 ## Future Repository Shape Guidance
 
