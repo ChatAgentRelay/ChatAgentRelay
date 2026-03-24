@@ -1,6 +1,5 @@
 import { LedgerNotFoundError, LedgerValidationError } from "./errors";
-import { InMemoryEventLedgerStore } from "./ledger-store";
-import type { StoredCanonicalEvent, TimeRange } from "./types";
+import type { LedgerStore, StoredCanonicalEvent, TimeRange } from "./types";
 
 function compareOccurredAt(left: StoredCanonicalEvent, right: StoredCanonicalEvent): number {
   return Date.parse(left.occurred_at) - Date.parse(right.occurred_at);
@@ -40,7 +39,7 @@ function inTimeRange(event: StoredCanonicalEvent, timeRange: TimeRange | undefin
 }
 
 export class EventLedgerReader {
-  constructor(private readonly store: InMemoryEventLedgerStore) {}
+  constructor(private readonly store: LedgerStore) {}
 
   replayConversation(conversationId: string): StoredCanonicalEvent[] {
     return this.store

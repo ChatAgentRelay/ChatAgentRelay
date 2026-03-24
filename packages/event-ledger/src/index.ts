@@ -1,4 +1,6 @@
 export { EventLedgerAppender } from "./append";
+export { InMemoryEventLedgerStore } from "./ledger-store";
+export { SqliteLedgerStore } from "./sqlite-store";
 export { EventLedgerReader } from "./replay";
 export { explainFirstExecutablePath } from "./audit";
 export {
@@ -12,6 +14,7 @@ export type {
   AppendResult,
   AppendSuccess,
   AuditExplanation,
+  LedgerStore,
   StoredCanonicalEvent,
   TimeRange,
 } from "./types";

@@ -9,6 +9,12 @@ export type StoredCanonicalEvent = CanonicalEvent & {
   provider_extensions?: Record<string, unknown>;
 };
 
+export interface LedgerStore {
+  append(event: StoredCanonicalEvent): StoredCanonicalEvent | undefined;
+  getById(eventId: string): StoredCanonicalEvent | undefined;
+  getAll(): StoredCanonicalEvent[];
+}
+
 export type AppendSuccess = {
   status: "appended";
   event: StoredCanonicalEvent;

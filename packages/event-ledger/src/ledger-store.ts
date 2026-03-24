@@ -1,10 +1,10 @@
-import type { StoredCanonicalEvent } from "./types";
+import type { LedgerStore, StoredCanonicalEvent } from "./types";
 
 function cloneEvent(event: StoredCanonicalEvent): StoredCanonicalEvent {
   return structuredClone(event);
 }
 
-export class InMemoryEventLedgerStore {
+export class InMemoryEventLedgerStore implements LedgerStore {
   private readonly eventsById = new Map<string, StoredCanonicalEvent>();
   private readonly orderedEventIds: string[] = [];
 

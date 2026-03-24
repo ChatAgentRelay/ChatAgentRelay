@@ -79,7 +79,7 @@ Small exploratory prototypes may exist later, but they must not replace unresolv
 Current narrow implementation status does not remove this gate. The repository currently allows only:
 - the frozen seven-event fixture baseline as a machine-readable contract corpus
 - `packages/contract-harness` as the completed validation-harness milestone
-- `packages/event-ledger` as a bounded in-memory prototype for append, replay, and audit helpers over already-canonical events
+- `packages/event-ledger` with both in-memory and SQLite-backed durable append for already-canonical events
 - `packages/channel-web-chat` as a narrow channel-side ingress canonicalization boundary that stops at `message.received`
 - `packages/backend-http` as a narrow backend-side HTTP invocation boundary around `agent.invocation.requested` and `agent.response.completed`
 

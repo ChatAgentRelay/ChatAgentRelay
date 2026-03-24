@@ -63,12 +63,31 @@ It does not approve durable storage, external query surfaces, projections, or ru
 
 Their outputs are validation results, in-memory prototype behavior, and test assertions only.
 
+## Durable Ledger Extension
+
+`packages/event-ledger` now includes a `SqliteLedgerStore` as a durable append boundary alongside the existing `InMemoryEventLedgerStore`.
+
+The durable extension owns only:
+- SQLite-backed append of already-canonical events
+- duplicate detection at the append boundary
+- basic retrieval for replay and audit verification
+- full event fidelity across serialization/deserialization
+
+It does not own:
+- replay/query API surfaces exposed to external consumers
+- projections or read models
+- broker, queue, or orchestration services
+- production Postgres migration strategy
+
+The `LedgerStore` interface allows swapping between in-memory and durable backends.
+This extension was approved as the Candidate 4 slice defined in `docs/decisions/repository-next-approved-slices.md`.
+
 ## Explicit Deferrals
 
 The following package families are explicitly deferred and MUST NOT be introduced in this phase:
-- channel adapter packages
-- backend adapter packages
-- durable ledger packages beyond the current in-memory prototype
+- channel adapter packages beyond `packages/channel-web-chat`
+- backend adapter packages beyond `packages/backend-http`
+- external replay/query API packages
 - replay/query API packages
 - runtime orchestration packages
 - projection/read-model packages

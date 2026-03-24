@@ -2,7 +2,7 @@ import { ContractHarnessValidators, type CanonicalEvent, type ValidationIssue } 
 import { LedgerDuplicateConflictError, LedgerValidationError } from "./errors";
 import { InMemoryEventLedgerStore } from "./ledger-store";
 import { REQUIRED_LEDGER_EVENT_FIELDS } from "./constants";
-import type { AppendResult, StoredCanonicalEvent } from "./types";
+import type { AppendResult, LedgerStore, StoredCanonicalEvent } from "./types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -65,15 +65,15 @@ function areEventsEquivalent(left: StoredCanonicalEvent, right: StoredCanonicalE
 export class EventLedgerAppender {
   private constructor(
     private readonly validators: ContractHarnessValidators,
-    private readonly store: InMemoryEventLedgerStore,
+    private readonly store: LedgerStore,
   ) {}
 
-  static async create(store = new InMemoryEventLedgerStore()): Promise<EventLedgerAppender> {
+  static async create(store: LedgerStore = new InMemoryEventLedgerStore()): Promise<EventLedgerAppender> {
     const validators = await ContractHarnessValidators.create();
     return new EventLedgerAppender(validators, store);
   }
 
-  getStore(): InMemoryEventLedgerStore {
+  getStore(): LedgerStore {
     return this.store;
   }
 
