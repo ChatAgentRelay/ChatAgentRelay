@@ -14,14 +14,22 @@ The project is currently focused on:
 ├── CLAUDE.md
 ├── README.md
 ├── .gitignore
-└── docs/
-    ├── rfcs/
-    │   ├── architecture/
-    │   ├── canonical-model/
-    │   ├── adapters/
-    │   └── middleware/
-    ├── research/
-    └── decisions/
+├── package.json
+├── tsconfig.base.json
+├── docs/
+│   ├── rfcs/
+│   │   ├── architecture/
+│   │   ├── canonical-model/
+│   │   ├── adapters/
+│   │   └── middleware/
+│   ├── schemas/
+│   │   ├── canonical-model/
+│   │   └── fixtures/
+│   ├── research/
+│   └── decisions/
+└── packages/
+    ├── contract-harness/
+    └── event-ledger/
 ```
 
 ## Document Roles
@@ -42,21 +50,28 @@ The project is currently focused on:
 
 - `docs/decisions/open-questions.md`
 - `docs/decisions/technology-selection-framework.md`
+- `docs/decisions/repository-next-approved-slices.md`
 
 ## Current Maturity
 
-This repository is not yet an implementation repository.
+This repository is docs-first with a narrow implementation baseline committed.
 
 Current maturity:
 - core RFC set drafted
 - cross-cutting open questions centralized
 - technology selection framework established
-- runtime stack intentionally undecided
+- implementation bootstrap baseline: Bun runtime, TypeScript strict mode
+- frozen seven-event fixture corpus as machine-readable contract baseline
+- `packages/contract-harness` completed as validation-harness milestone
+- `packages/event-ledger` exists as bounded in-memory prototype
+- repository-level roadmap inventory in place
 
 ## Near-Term Workflow
 
+The repository is at the review gate defined in `docs/decisions/repository-next-approved-slices.md`.
+
 Recommended next steps:
-1. resolve or narrow the blocking questions in `docs/decisions/open-questions.md`
-2. evaluate implementation options using `docs/decisions/technology-selection-framework.md`
-3. record subsystem-level technology decisions
-4. only then enter v0/v1 implementation planning
+1. review the candidate direction menu in the roadmap inventory
+2. approve narrow runtime slices one at a time
+3. implement each approved slice with one feature per commit
+4. keep governing docs aligned before or alongside runtime changes

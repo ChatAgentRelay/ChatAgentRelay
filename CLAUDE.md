@@ -123,9 +123,12 @@ This workflow rule does not change the docs-first source-of-truth hierarchy and 
 ## Current Status
 
 Current repository status:
-- docs-first
-- no committed implementation baseline yet
-- technology stack not selected yet
+- docs-first with narrow implementation baseline committed
 - core RFC set drafted but still open in places
+- implementation bootstrap baseline: Bun runtime, TypeScript strict mode, monorepo `packages/` layout
+- `packages/contract-harness` is the completed validation-harness milestone
+- `packages/event-ledger` is a bounded in-memory prototype only
+- frozen seven-event fixture corpus is the machine-readable contract baseline
+- the repository is at the review gate defined in `docs/decisions/repository-next-approved-slices.md`
 
 Treat the repository as a specification workspace first, not as an implementation repo with docs attached.
