@@ -18,6 +18,8 @@
     "@cap/event-ledger": "workspace:*"
   },
   "devDependencies": {
+    "@cap/channel-slack": "workspace:*",
+    "@cap/backend-openai": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^5.8.2"
   }

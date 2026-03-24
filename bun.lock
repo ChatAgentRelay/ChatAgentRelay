@@ -98,6 +98,8 @@
         "@cap/middleware": "workspace:*",
       },
       "devDependencies": {
+        "@cap/backend-openai": "workspace:*",
+        "@cap/channel-slack": "workspace:*",
         "@types/bun": "latest",
         "typescript": "^5.8.2",
       },
