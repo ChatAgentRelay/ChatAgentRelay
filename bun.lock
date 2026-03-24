@@ -46,6 +46,16 @@
         "typescript": "^5.8.2",
       },
     },
+    "packages/middleware": {
+      "name": "@cap/middleware",
+      "dependencies": {
+        "@cap/contract-harness": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.8.2",
+      },
+    },
   },
   "packages": {
     "@cap/backend-http": ["@cap/backend-http@workspace:packages/backend-http"],
@@ -55,6 +65,8 @@
     "@cap/contract-harness": ["@cap/contract-harness@workspace:packages/contract-harness"],
 
     "@cap/event-ledger": ["@cap/event-ledger@workspace:packages/event-ledger"],
+
+    "@cap/middleware": ["@cap/middleware@workspace:packages/middleware"],
 
     "@types/bun": ["@types/bun@1.3.11", "", { "dependencies": { "bun-types": "1.3.11" } }, "sha512-5vPne5QvtpjGpsGYXiFyycfpDF2ECyPcTSsFBMa0fraoxiQyMJ3SmuQIGhzPg2WJuWxVBoxWJ2kClYTcw/4fAg=="],
 
