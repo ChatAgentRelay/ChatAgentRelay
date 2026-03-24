@@ -15,6 +15,17 @@
         "typescript": "^5.8.2",
       },
     },
+    "packages/backend-openai": {
+      "name": "@cap/backend-openai",
+      "dependencies": {
+        "@cap/backend-http": "workspace:*",
+        "@cap/contract-harness": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.8.2",
+      },
+    },
     "packages/channel-web-chat": {
       "name": "@cap/channel-web-chat",
       "dependencies": {
@@ -84,6 +95,8 @@
   },
   "packages": {
     "@cap/backend-http": ["@cap/backend-http@workspace:packages/backend-http"],
+
+    "@cap/backend-openai": ["@cap/backend-openai@workspace:packages/backend-openai"],
 
     "@cap/channel-web-chat": ["@cap/channel-web-chat@workspace:packages/channel-web-chat"],
 
