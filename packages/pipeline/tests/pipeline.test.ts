@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from "bun:test";
 import type { Server } from "bun";
-import { assertFirstExecutablePathChain } from "@cap/contract-harness";
 import { ContractHarnessValidators } from "@cap/contract-harness";
 import { SqliteLedgerStore } from "@cap/event-ledger";
+import { GenericHttpBackend } from "@cap/backend-http";
+import { WebChatIngress } from "@cap/channel-web-chat";
 import { FirstExecutablePathPipeline } from "../src/pipeline";
 import type { PipelineConfig } from "../src/types";
 import { existsSync, unlinkSync, mkdirSync } from "node:fs";
@@ -36,6 +37,7 @@ describe("first executable path pipeline (end-to-end)", () => {
   let mockServer: BunServer;
   let mockPort: number;
   let validators: ContractHarnessValidators;
+  let ingress: WebChatIngress;
 
   beforeAll(async () => {
     mkdirSync(TEST_DB_DIR, { recursive: true });
@@ -57,6 +59,7 @@ describe("first executable path pipeline (end-to-end)", () => {
     });
     mockPort = mockServer.port!;
     validators = await ContractHarnessValidators.create();
+    ingress = await WebChatIngress.create();
   });
 
   afterAll(() => {
@@ -64,19 +67,20 @@ describe("first executable path pipeline (end-to-end)", () => {
     cleanTestDb();
   });
 
-  it("runs the full seven-event happy path with in-memory ledger", async () => {
-    const config: PipelineConfig = {
+  async function makeConfig(overrides?: Partial<PipelineConfig>): Promise<PipelineConfig> {
+    return {
       middleware: {
-        route: {
-          route_id: "default_webchat_agent",
-          backend: "generic-http-agent",
-          reason: "default_first_path_route",
-        },
+        route: { route_id: "default_webchat_agent", backend: "generic-http-agent", reason: "default_first_path_route" },
       },
-      backend: { endpoint: `http://localhost:${mockPort}` },
-      sendFn: async (_text) => ({ providerMessageId: "webchat_msg_9001" }),
+      backend: await GenericHttpBackend.create({ endpoint: `http://localhost:${mockPort}` }),
+      ingress,
+      sendFn: async () => ({ providerMessageId: "webchat_msg_9001" }),
+      ...overrides,
     };
+  }
 
+  it("runs the full seven-event happy path with in-memory ledger", async () => {
+    const config = await makeConfig();
     const pipeline = await FirstExecutablePathPipeline.create(config);
     const result = await pipeline.execute(validInput());
 
@@ -95,13 +99,10 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("all seven events pass contract validation", async () => {
-    const config: PipelineConfig = {
-      middleware: {
-        route: { route_id: "r1", backend: "b1", reason: "test" },
-      },
-      backend: { endpoint: `http://localhost:${mockPort}` },
+    const config = await makeConfig({
+      middleware: { route: { route_id: "r1", backend: "b1", reason: "test" } },
       sendFn: async () => ({ providerMessageId: "msg_001" }),
-    };
+    });
 
     const pipeline = await FirstExecutablePathPipeline.create(config);
     const result = await pipeline.execute(validInput());
@@ -113,13 +114,10 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("maintains causal chain across all seven events", async () => {
-    const config: PipelineConfig = {
-      middleware: {
-        route: { route_id: "r1", backend: "b1" },
-      },
-      backend: { endpoint: `http://localhost:${mockPort}` },
+    const config = await makeConfig({
+      middleware: { route: { route_id: "r1", backend: "b1" } },
       sendFn: async () => ({ providerMessageId: "msg_001" }),
-    };
+    });
 
     const pipeline = await FirstExecutablePathPipeline.create(config);
     const result = await pipeline.execute(validInput());
@@ -132,13 +130,10 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("shares correlation_id across all seven events", async () => {
-    const config: PipelineConfig = {
-      middleware: {
-        route: { route_id: "r1", backend: "b1" },
-      },
-      backend: { endpoint: `http://localhost:${mockPort}` },
+    const config = await makeConfig({
+      middleware: { route: { route_id: "r1", backend: "b1" } },
       sendFn: async () => ({ providerMessageId: "msg_001" }),
-    };
+    });
 
     const pipeline = await FirstExecutablePathPipeline.create(config);
     const result = await pipeline.execute(validInput());
@@ -150,14 +145,7 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("returns correct explanation summary", async () => {
-    const config: PipelineConfig = {
-      middleware: {
-        route: { route_id: "default_webchat_agent", backend: "generic-http-agent", reason: "default_first_path_route" },
-      },
-      backend: { endpoint: `http://localhost:${mockPort}` },
-      sendFn: async () => ({ providerMessageId: "webchat_msg_9001" }),
-    };
-
+    const config = await makeConfig();
     const pipeline = await FirstExecutablePathPipeline.create(config);
     const result = await pipeline.execute(validInput());
 
@@ -169,13 +157,10 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("appends all seven events to ledger and replays them", async () => {
-    const config: PipelineConfig = {
-      middleware: {
-        route: { route_id: "r1", backend: "b1" },
-      },
-      backend: { endpoint: `http://localhost:${mockPort}` },
+    const config = await makeConfig({
+      middleware: { route: { route_id: "r1", backend: "b1" } },
       sendFn: async () => ({ providerMessageId: "msg_001" }),
-    };
+    });
 
     const pipeline = await FirstExecutablePathPipeline.create(config);
     const result = await pipeline.execute(validInput());
@@ -192,14 +177,11 @@ describe("first executable path pipeline (end-to-end)", () => {
     cleanTestDb();
     const store = new SqliteLedgerStore(TEST_DB_PATH);
     try {
-      const config: PipelineConfig = {
-        middleware: {
-          route: { route_id: "r1", backend: "b1" },
-        },
-        backend: { endpoint: `http://localhost:${mockPort}` },
+      const config = await makeConfig({
+        middleware: { route: { route_id: "r1", backend: "b1" } },
         sendFn: async () => ({ providerMessageId: "msg_001" }),
         ledgerStore: store,
-      };
+      });
 
       const pipeline = await FirstExecutablePathPipeline.create(config);
       const result = await pipeline.execute(validInput());
@@ -214,26 +196,21 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("fails gracefully when backend is down", async () => {
-    const config: PipelineConfig = {
-      middleware: {
-        route: { route_id: "r1", backend: "b1" },
-      },
-      backend: { endpoint: "http://localhost:1/down" },
+    const config = await makeConfig({
+      backend: await GenericHttpBackend.create({ endpoint: "http://localhost:1/down" }),
+      middleware: { route: { route_id: "r1", backend: "b1" } },
       sendFn: async () => ({ providerMessageId: "msg_001" }),
-    };
+    });
 
     const pipeline = await FirstExecutablePathPipeline.create(config);
     await expect(pipeline.execute(validInput())).rejects.toThrow("Backend invocation failed");
   });
 
   it("fails gracefully with invalid input", async () => {
-    const config: PipelineConfig = {
-      middleware: {
-        route: { route_id: "r1", backend: "b1" },
-      },
-      backend: { endpoint: `http://localhost:${mockPort}` },
+    const config = await makeConfig({
+      middleware: { route: { route_id: "r1", backend: "b1" } },
       sendFn: async () => ({ providerMessageId: "msg_001" }),
-    };
+    });
 
     const pipeline = await FirstExecutablePathPipeline.create(config);
     await expect(pipeline.execute({ text: "" })).rejects.toThrow("Ingress failed");

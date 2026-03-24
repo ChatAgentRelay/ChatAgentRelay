@@ -1,17 +1,15 @@
 import type { CanonicalEvent } from "@cap/contract-harness";
-import { WebChatIngress } from "@cap/channel-web-chat";
 import { MiddlewarePipeline } from "@cap/middleware";
-import { GenericHttpBackend } from "@cap/backend-http";
 import { DeliveryOrchestrator } from "@cap/delivery";
 import { EventLedgerAppender, EventLedgerReader, InMemoryEventLedgerStore } from "@cap/event-ledger";
 import type { SendFn } from "@cap/delivery";
-import type { PipelineConfig, PipelineResult } from "./types";
+import type { BackendAdapter, ChannelIngress, PipelineConfig, PipelineResult } from "./types";
 
 export class FirstExecutablePathPipeline {
   private constructor(
-    private readonly ingress: WebChatIngress,
+    private readonly ingress: ChannelIngress,
     private readonly middleware: MiddlewarePipeline,
-    private readonly backend: GenericHttpBackend,
+    private readonly backend: BackendAdapter,
     private readonly delivery: DeliveryOrchestrator,
     private readonly appender: EventLedgerAppender,
     private readonly reader: EventLedgerReader,
@@ -20,16 +18,14 @@ export class FirstExecutablePathPipeline {
 
   static async create(config: PipelineConfig): Promise<FirstExecutablePathPipeline> {
     const store = config.ledgerStore ?? new InMemoryEventLedgerStore();
-    const [ingress, middleware, backend, delivery, appender] = await Promise.all([
-      WebChatIngress.create(),
+    const [middleware, delivery, appender] = await Promise.all([
       MiddlewarePipeline.create(config.middleware),
-      GenericHttpBackend.create(config.backend),
       DeliveryOrchestrator.create(),
       EventLedgerAppender.create(store),
     ]);
     const reader = new EventLedgerReader(store);
     return new FirstExecutablePathPipeline(
-      ingress, middleware, backend, delivery, appender, reader, config.sendFn,
+      config.ingress, middleware, config.backend, delivery, appender, reader, config.sendFn,
     );
   }
 

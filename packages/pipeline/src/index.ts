@@ -1,2 +1,2 @@
 export { FirstExecutablePathPipeline } from "./pipeline";
-export type { PipelineConfig, PipelineResult } from "./types";
+export type { BackendAdapter, ChannelIngress, PipelineConfig, PipelineResult } from "./types";
