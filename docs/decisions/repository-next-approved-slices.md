@@ -44,18 +44,21 @@ When documents disagree, `docs/rfcs/` remain normative over `docs/decisions/`, a
 
 ## Current Position: Past The Initial Review Gate
 
-The repository has moved past the initial review gate. The complete first executable path is implemented across seven packages.
+The repository has moved past the initial review gate. The complete first executable path is implemented across ten packages with real Slack + OpenAI integration.
 
 The current repository state is:
 - the frozen seven-event fixture baseline is complete
 - `packages/contract-harness` is the completed validation-harness milestone and remains the contract-consumption boundary
 - `packages/event-ledger` provides both in-memory and SQLite-backed durable append via the `LedgerStore` interface
 - `packages/channel-web-chat` canonicalizes inbound web chat input into contract-valid `message.received` events
+- `packages/channel-slack` canonicalizes Slack Socket Mode events and sends via `chat.postMessage`
 - `packages/middleware` produces `policy.decision.made`, `route.decision.made`, and `agent.invocation.requested`
 - `packages/backend-http` invokes a generic HTTP backend and maps responses into contract-valid `agent.response.completed` events
+- `packages/backend-openai` invokes OpenAI Chat Completions API and maps responses into contract-valid events
 - `packages/delivery` orchestrates `message.send.requested` and `message.sent`
-- `packages/pipeline` wires all boundary packages into the end-to-end seven-event chain
-- review-gate alignment and implementation-evidence linking are complete
+- `packages/pipeline` wires all boundary packages with pluggable `BackendAdapter` and `ChannelIngress` interfaces
+- `packages/server` is the runtime entry point for Slack + OpenAI + Pipeline + SQLite Ledger
+- 110 tests across 10 packages verify the complete chain
 
 One approved feature per commit remains workflow discipline.
 
@@ -182,6 +185,55 @@ Completed facts:
 Primary evidence:
 - `packages/pipeline/src/pipeline.ts`
 - `packages/pipeline/tests/pipeline.test.ts`
+
+### 10. Pipeline adapter abstraction
+Completed facts:
+- `packages/pipeline` now defines `BackendAdapter` and `ChannelIngress` interfaces
+- any channel adapter or backend adapter can be injected without modifying the pipeline
+- `GenericHttpBackend`, `WebChatIngress`, `OpenAIBackend`, and `SlackIngress` all satisfy these interfaces
+
+Primary evidence:
+- `packages/pipeline/src/types.ts` (BackendAdapter, ChannelIngress interfaces)
+
+### 11. Slack channel adapter
+Completed facts:
+- `packages/channel-slack` canonicalizes Slack Socket Mode message events into contract-valid `message.received` events
+- sends responses via Slack `chat.postMessage` REST API
+- manages Socket Mode WebSocket connection using native WebSocket (Bun-compatible)
+- preserves Slack metadata in `provider_extensions` and filters bot messages
+
+Primary evidence:
+- `packages/channel-slack/src/slack-ingress.ts`
+- `packages/channel-slack/src/slack-sender.ts`
+- `packages/channel-slack/src/slack-socket.ts`
+
+### 12. OpenAI backend adapter
+Completed facts:
+- `packages/backend-openai` converts `InvocationContext` into OpenAI Chat Completions requests
+- maps responses into contract-valid `agent.response.completed` events
+- preserves OpenAI metadata (model, tokens, finish_reason) in `provider_extensions`
+- handles rate limits, HTTP errors, empty responses, and network failures
+
+Primary evidence:
+- `packages/backend-openai/src/openai-backend.ts`
+
+### 13. Server entry point
+Completed facts:
+- `packages/server` wires Slack + OpenAI + Pipeline + SQLite Ledger into a runnable process
+- loads configuration from environment variables
+- includes `.env.example` template
+
+Primary evidence:
+- `packages/server/src/main.ts`
+- `packages/server/src/config.ts`
+
+### 14. Slack -> OpenAI end-to-end integration tests
+Completed facts:
+- 8 integration tests verify the complete Slack -> Pipeline -> OpenAI -> Slack send flow
+- tests cover contract validation, causal chain, provider metadata, delivery, and SQLite persistence
+
+Primary evidence:
+- `packages/pipeline/tests/slack-openai-integration.test.ts`
 
 ## Completed Docs-Only Review-Gate Record
 

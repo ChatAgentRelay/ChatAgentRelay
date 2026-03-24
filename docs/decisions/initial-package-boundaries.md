@@ -6,7 +6,7 @@ It exists to prevent premature package sprawl before the contract boundary has b
 
 ## Decision Status
 
-Decision made: **the currently approved code package set covers the complete first executable path: `packages/contract-harness`, `packages/event-ledger`, `packages/channel-web-chat`, `packages/middleware`, `packages/backend-http`, `packages/delivery`, and `packages/pipeline`**.
+Decision made: **the currently approved code package set covers the complete first executable path with real Slack + OpenAI integration: `packages/contract-harness`, `packages/event-ledger`, `packages/channel-web-chat`, `packages/channel-slack`, `packages/middleware`, `packages/backend-http`, `packages/backend-openai`, `packages/delivery`, `packages/pipeline`, and `packages/server`**.
 
 ## Why This Boundary Exists
 
@@ -150,18 +150,63 @@ It does not own:
 
 ## Approved Pipeline Extension
 
-`packages/pipeline` is an approved narrow end-to-end orchestration package.
+`packages/pipeline` is an approved end-to-end orchestration package with pluggable adapters.
 
 It owns only:
+- `BackendAdapter` and `ChannelIngress` interfaces for pluggable channel and backend implementations
 - wiring ingress, middleware, backend, delivery, and ledger into a single execute flow
-- producing the complete seven-event happy-path chain from raw web chat input
+- producing the complete seven-event happy-path chain from any channel input
 - appending all events to a provided `LedgerStore` for replay and audit
 - exposing replay by conversation id
 
 It does not own:
 - error recovery or partial pipeline execution
-- multi-channel or multi-backend pipeline variants
 - external API exposure or HTTP server concerns
+
+## Approved Slack Channel Extension
+
+`packages/channel-slack` is an approved channel adapter for Slack.
+
+It owns only:
+- canonicalizing Slack Socket Mode message events into contract-valid `message.received` events
+- Slack metadata preservation in `provider_extensions` (channel_id, ts, team_id, thread_ts)
+- sending messages via Slack `chat.postMessage` REST API
+- Socket Mode WebSocket connection management (using native WebSocket, Bun-compatible)
+
+It does not own:
+- Slack app lifecycle management
+- rich content types (blocks, attachments)
+- Slack-specific slash commands or interactive components
+
+## Approved OpenAI Backend Extension
+
+`packages/backend-openai` is an approved backend adapter for OpenAI.
+
+It owns only:
+- converting `InvocationContext` into OpenAI Chat Completions API requests
+- mapping OpenAI responses into contract-valid `agent.response.completed` events
+- OpenAI metadata preservation in `provider_extensions` (model, token usage, finish_reason)
+- structured error handling for rate limits, HTTP errors, and empty responses
+
+It does not own:
+- streaming (SSE) response handling
+- tool/function calling
+- conversation history management
+- OpenAI Assistants API or other non-Chat-Completions endpoints
+
+## Approved Server Extension
+
+`packages/server` is an approved runtime entry point.
+
+It owns only:
+- loading configuration from environment variables
+- wiring Slack channel adapter, OpenAI backend, pipeline, and SQLite ledger
+- graceful shutdown handling
+
+It does not own:
+- HTTP API surfaces
+- multi-tenant routing
+- deployment or infrastructure concerns
 
 ## Immediate Outcome
 
@@ -170,7 +215,10 @@ For the current phase, repository code introduction consists of:
 - `packages/contract-harness` as the contract validation baseline
 - `packages/event-ledger` with in-memory and SQLite-backed durable append
 - `packages/channel-web-chat` as web chat ingress canonicalization boundary
+- `packages/channel-slack` as Slack Socket Mode channel adapter
 - `packages/middleware` as policy, routing, and dispatch middleware
 - `packages/backend-http` as generic HTTP backend invocation boundary
+- `packages/backend-openai` as OpenAI Chat Completions backend adapter
 - `packages/delivery` as delivery orchestration boundary
-- `packages/pipeline` as end-to-end first executable path orchestration
+- `packages/pipeline` as end-to-end orchestration with pluggable adapters
+- `packages/server` as runtime entry point for Slack + OpenAI integration

@@ -31,10 +31,13 @@ The project is currently focused on:
     ├── contract-harness/
     ├── event-ledger/
     ├── channel-web-chat/
+    ├── channel-slack/
     ├── middleware/
     ├── backend-http/
+    ├── backend-openai/
     ├── delivery/
-    └── pipeline/
+    ├── pipeline/
+    └── server/
 ```
 
 ## Document Roles
@@ -59,7 +62,7 @@ The project is currently focused on:
 
 ## Current Maturity
 
-This repository is docs-first with a complete first executable path implementation.
+This repository is docs-first with a complete first executable path and real Slack + OpenAI integration.
 
 Current maturity:
 - core RFC set drafted
@@ -67,8 +70,9 @@ Current maturity:
 - technology selection framework established
 - implementation bootstrap baseline: Bun runtime, TypeScript strict mode
 - frozen seven-event fixture corpus as machine-readable contract baseline
-- complete seven-event happy path implemented across seven packages
-- 79 tests verify contract compliance, causal linkage, and end-to-end behavior
+- complete seven-event happy path with pluggable channel and backend adapters
+- Slack Socket Mode channel adapter and OpenAI Chat Completions backend
+- 110 tests across 10 packages verify contract compliance and end-to-end behavior
 
 ## Package Overview
 
@@ -77,16 +81,34 @@ Current maturity:
 | `@cap/contract-harness` | Schema loading and contract validation |
 | `@cap/event-ledger` | Append, replay, audit with in-memory and SQLite backends |
 | `@cap/channel-web-chat` | Web chat ingress canonicalization |
+| `@cap/channel-slack` | Slack Socket Mode ingress + chat.postMessage delivery |
 | `@cap/middleware` | Policy, routing, and dispatch |
 | `@cap/backend-http` | Generic HTTP backend invocation |
+| `@cap/backend-openai` | OpenAI Chat Completions API integration |
 | `@cap/delivery` | Delivery orchestration (send request + send completion) |
-| `@cap/pipeline` | End-to-end first executable path orchestration |
+| `@cap/pipeline` | End-to-end pipeline with pluggable adapters |
+| `@cap/server` | Runtime entry point: Slack + OpenAI + Pipeline + SQLite |
+
+## Quick Start
+
+```bash
+# Install dependencies
+bun install
+
+# Run all tests
+bun run test
+
+# Run the Slack + OpenAI server (requires .env configuration)
+cd packages/server
+cp .env.example .env  # edit with your tokens
+bun run start
+```
 
 ## Near-Term Workflow
 
-The first executable path is complete. Recommended next steps:
+The first executable path with real integration is complete. Recommended next steps:
 1. extend coverage for error paths, deny decisions, and retries
 2. add streaming delta support for backend adapters
-3. add additional channel adapters beyond web chat
+3. add additional channel adapters (Discord, Teams, etc.)
 4. expose replay/query API surfaces for external consumers
 5. keep governing docs aligned before or alongside runtime changes

@@ -80,10 +80,13 @@ The current approved package set is:
 - `packages/contract-harness` as the contract validation baseline
 - `packages/event-ledger` with in-memory and SQLite-backed durable append via `LedgerStore` interface
 - `packages/channel-web-chat` for web chat ingress canonicalization to `message.received`
+- `packages/channel-slack` for Slack Socket Mode ingress and `chat.postMessage` delivery
 - `packages/middleware` for policy, routing, and dispatch (produces `policy.decision.made`, `route.decision.made`, `agent.invocation.requested`)
 - `packages/backend-http` for generic HTTP backend invocation and response mapping
+- `packages/backend-openai` for OpenAI Chat Completions API integration
 - `packages/delivery` for delivery orchestration (produces `message.send.requested`, `message.sent`)
-- `packages/pipeline` for end-to-end first executable path orchestration
+- `packages/pipeline` for end-to-end first executable path orchestration (supports pluggable channel and backend adapters)
+- `packages/server` as the runtime entry point wiring Slack + OpenAI + Pipeline + SQLite Ledger
 
 This does not approve replay/query API surfaces for external consumers, projections, brokers, or orchestration services beyond the first happy path.
 
@@ -127,12 +130,13 @@ This workflow rule does not change the docs-first source-of-truth hierarchy and 
 ## Current Status
 
 Current repository status:
-- docs-first with a complete first executable path implementation
+- docs-first with a complete first executable path and real integration
 - core RFC set drafted but still open in places
 - implementation bootstrap baseline: Bun runtime, TypeScript strict mode, monorepo `packages/` layout
-- seven packages implement the complete happy-path pipeline: ingress, middleware, backend, delivery, ledger, and end-to-end orchestration
+- ten packages implement the complete happy-path pipeline with Slack and OpenAI integration
 - frozen seven-event fixture corpus remains the machine-readable contract baseline
 - all canonical events are validated against the frozen schema layer at each boundary
-- 79 tests across 7 packages verify contract compliance, causal linkage, and end-to-end behavior
+- 110 tests across 10 packages verify contract compliance, causal linkage, and end-to-end behavior
+- real-world integration: Slack Socket Mode channel adapter + OpenAI Chat Completions backend
 
 The repository remains docs-first in its source-of-truth hierarchy. RFCs govern; implementation follows.
