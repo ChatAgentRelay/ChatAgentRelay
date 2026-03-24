@@ -26,6 +26,16 @@
         "typescript": "^5.8.2",
       },
     },
+    "packages/channel-slack": {
+      "name": "@cap/channel-slack",
+      "dependencies": {
+        "@cap/contract-harness": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.8.2",
+      },
+    },
     "packages/channel-web-chat": {
       "name": "@cap/channel-web-chat",
       "dependencies": {
@@ -97,6 +107,8 @@
     "@cap/backend-http": ["@cap/backend-http@workspace:packages/backend-http"],
 
     "@cap/backend-openai": ["@cap/backend-openai@workspace:packages/backend-openai"],
+
+    "@cap/channel-slack": ["@cap/channel-slack@workspace:packages/channel-slack"],
 
     "@cap/channel-web-chat": ["@cap/channel-web-chat@workspace:packages/channel-web-chat"],
 
