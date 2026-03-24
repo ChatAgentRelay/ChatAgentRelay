@@ -31,7 +31,10 @@ The project is currently focused on:
     ├── contract-harness/
     ├── event-ledger/
     ├── channel-web-chat/
-    └── backend-http/
+    ├── middleware/
+    ├── backend-http/
+    ├── delivery/
+    └── pipeline/
 ```
 
 ## Document Roles
@@ -56,7 +59,7 @@ The project is currently focused on:
 
 ## Current Maturity
 
-This repository is docs-first with a narrow implementation baseline committed.
+This repository is docs-first with a complete first executable path implementation.
 
 Current maturity:
 - core RFC set drafted
@@ -64,18 +67,26 @@ Current maturity:
 - technology selection framework established
 - implementation bootstrap baseline: Bun runtime, TypeScript strict mode
 - frozen seven-event fixture corpus as machine-readable contract baseline
-- `packages/contract-harness` completed as validation-harness milestone
-- `packages/event-ledger` with in-memory and SQLite-backed durable append
-- `packages/channel-web-chat` as web chat ingress canonicalization boundary
-- `packages/backend-http` as generic HTTP backend invocation boundary
-- repository-level roadmap inventory in place
+- complete seven-event happy path implemented across seven packages
+- 79 tests verify contract compliance, causal linkage, and end-to-end behavior
+
+## Package Overview
+
+| Package | Role |
+|---------|------|
+| `@cap/contract-harness` | Schema loading and contract validation |
+| `@cap/event-ledger` | Append, replay, audit with in-memory and SQLite backends |
+| `@cap/channel-web-chat` | Web chat ingress canonicalization |
+| `@cap/middleware` | Policy, routing, and dispatch |
+| `@cap/backend-http` | Generic HTTP backend invocation |
+| `@cap/delivery` | Delivery orchestration (send request + send completion) |
+| `@cap/pipeline` | End-to-end first executable path orchestration |
 
 ## Near-Term Workflow
 
-The repository is at the review gate defined in `docs/decisions/repository-next-approved-slices.md`.
-
-Recommended next steps:
-1. review the candidate direction menu in the roadmap inventory
-2. approve narrow runtime slices one at a time
-3. implement each approved slice with one feature per commit
-4. keep governing docs aligned before or alongside runtime changes
+The first executable path is complete. Recommended next steps:
+1. extend coverage for error paths, deny decisions, and retries
+2. add streaming delta support for backend adapters
+3. add additional channel adapters beyond web chat
+4. expose replay/query API surfaces for external consumers
+5. keep governing docs aligned before or alongside runtime changes

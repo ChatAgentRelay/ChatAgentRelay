@@ -17,8 +17,7 @@ Use this document as a repository-wide roadmap navigation entry for later approv
 
 Its job is to make the following easier to see in one place:
 - what minimum system boundary CAP is currently converging toward
-- what narrow baseline and closure work is already complete
-- why the repository is still at a review gate
+- what narrow baseline and first executable path work is already complete
 - what candidate directions are available for later exact-slice approval discussion
 - how those candidate directions relate to each other without implying default sequencing
 
@@ -45,16 +44,18 @@ When documents disagree, `docs/rfcs/` remain normative over `docs/decisions/`, a
 
 ## Current Position: Past The Initial Review Gate
 
-The repository has moved past the initial review gate. Candidates 1–4 from the original menu have been implemented and committed.
+The repository has moved past the initial review gate. The complete first executable path is implemented across seven packages.
 
 The current repository state is:
 - the frozen seven-event fixture baseline is complete
 - `packages/contract-harness` is the completed validation-harness milestone and remains the contract-consumption boundary
 - `packages/event-ledger` provides both in-memory and SQLite-backed durable append via the `LedgerStore` interface
 - `packages/channel-web-chat` canonicalizes inbound web chat input into contract-valid `message.received` events
+- `packages/middleware` produces `policy.decision.made`, `route.decision.made`, and `agent.invocation.requested`
 - `packages/backend-http` invokes a generic HTTP backend and maps responses into contract-valid `agent.response.completed` events
+- `packages/delivery` orchestrates `message.send.requested` and `message.sent`
+- `packages/pipeline` wires all boundary packages into the end-to-end seven-event chain
 - review-gate alignment and implementation-evidence linking are complete
-- middleware, delivery, and end-to-end pipeline work is the current implementation frontier
 
 One approved feature per commit remains workflow discipline.
 
@@ -148,6 +149,40 @@ Primary evidence:
 - `packages/backend-http/src/invoke.ts`
 - `packages/backend-http/src/map-response.ts`
 
+### 7. Middleware pipeline (policy, routing, dispatch)
+Completed facts:
+- `packages/middleware` produces `policy.decision.made`, `route.decision.made`, and `agent.invocation.requested` from `message.received`
+- all three events are contract-validated against the frozen schema layer
+- causal linkage is message.received -> policy -> route -> invocation
+- policy id and route configuration are externally provided
+
+Primary evidence:
+- `packages/middleware/src/middleware.ts`
+- `packages/middleware/tests/middleware.test.ts`
+
+### 8. Delivery orchestration (send request and send completion)
+Completed facts:
+- `packages/delivery` produces `message.send.requested` and `message.sent` from `agent.response.completed`
+- both events are contract-validated against the frozen schema layer
+- causal linkage is agent.response.completed -> send.requested -> sent
+- send function is provided externally as a dependency injection
+
+Primary evidence:
+- `packages/delivery/src/delivery.ts`
+- `packages/delivery/tests/delivery.test.ts`
+
+### 9. End-to-end pipeline orchestration
+Completed facts:
+- `packages/pipeline` wires ingress, middleware, backend, delivery, and ledger into a single execute flow
+- produces the complete seven-event chain from raw web chat input
+- all events are appended to a `LedgerStore` and available for replay
+- works with both in-memory and SQLite durable backends
+- 9 end-to-end tests verify the complete happy path
+
+Primary evidence:
+- `packages/pipeline/src/pipeline.ts`
+- `packages/pipeline/tests/pipeline.test.ts`
+
 ## Completed Docs-Only Review-Gate Record
 
 The following docs-only closure work is now complete:
@@ -234,7 +269,7 @@ Two adjacent slices in the same group may still require separate approval and ma
 
 ### Repository-level curation
 
-#### Candidate 1 — tighten repository-level roadmap inventory
+#### Candidate 1 — tighten repository-level roadmap inventory [COMPLETED]
 Relationship to current baseline:
 - repository-level curation
 - directly adjacent to the current review-gate baseline because it only improves how the repository-wide inventory is read
@@ -276,7 +311,7 @@ Commit shape:
 
 ### Channel-side candidate paths
 
-#### Candidate 2 — web chat ingress canonicalization runtime
+#### Candidate 2 — web chat ingress canonicalization runtime [COMPLETED]
 Relationship to current baseline:
 - channel-side
 - adjacent to the current baseline because it would consume the existing canonical event contracts and stop at `message.received`
@@ -314,7 +349,7 @@ Commit shape:
 
 ### Backend-side candidate paths
 
-#### Candidate 3 — generic backend HTTP invocation runtime
+#### Candidate 3 — generic backend HTTP invocation runtime [COMPLETED]
 Relationship to current baseline:
 - backend-side
 - adjacent to the current baseline because it would operate around `agent.invocation.requested` and `agent.response.completed`
@@ -351,7 +386,7 @@ Commit shape:
 
 ### Ledger-side candidate paths
 
-#### Candidate 4 — durable append-only ledger persistence boundary
+#### Candidate 4 — durable append-only ledger persistence boundary [COMPLETED]
 Relationship to current baseline:
 - ledger-side
 - adjacent to the existing bounded in-memory prototype, but not implied by that prototype
@@ -388,21 +423,23 @@ Commit shape:
 ## Boundary Rules For Any Later Approval
 
 Any later approved slice must preserve all of the following:
-- the completed validation-harness milestone remains the contract-consumption boundary already recorded in `packages/contract-harness`
-- `packages/event-ledger` remains described as a bounded in-memory prototype unless a later exact slice explicitly approves a narrower durable change
-- review-gate docs remain records of current state, not runtime start signals
+- `packages/contract-harness` remains the contract validation baseline
+- `packages/event-ledger` provides both in-memory and durable append via the `LedgerStore` interface
+- the seven approved packages form the first executable path; further packages require explicit approval
 - one approved feature per commit remains workflow discipline, not scope approval
 - candidate-path grouping and adjacency remain navigation aids, not sequencing commitments
 
 ## Non-Approval Reminder
 
-This inventory does not approve:
-- web ingress runtime
-- backend HTTP runtime
-- durable persistence
-- replay/query APIs
+Candidates 1–4 and the middleware/delivery/pipeline extensions are now completed.
+
+The following areas remain deferred:
+- replay/query API surfaces for external consumers
 - projections or read models
 - brokers, queues, or orchestration services
+- deny-path and error-path handling beyond graceful failure
+- streaming delta support
+- multi-channel or multi-backend runtime variants
 
 Those areas remain deferred until an exact later slice is explicitly approved.
 

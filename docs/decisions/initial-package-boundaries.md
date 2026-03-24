@@ -6,62 +6,42 @@ It exists to prevent premature package sprawl before the contract boundary has b
 
 ## Decision Status
 
-Decision made: **the currently approved code package set is `packages/contract-harness`, `packages/event-ledger` (with durable SQLite backend), `packages/channel-web-chat`, and `packages/backend-http`**.
+Decision made: **the currently approved code package set covers the complete first executable path: `packages/contract-harness`, `packages/event-ledger`, `packages/channel-web-chat`, `packages/middleware`, `packages/backend-http`, `packages/delivery`, and `packages/pipeline`**.
 
 ## Why This Boundary Exists
 
-The repository is moving from docs-first convergence into implementation readiness, not into full runtime construction.
+This document prevents premature package sprawl by recording what each package owns and what remains deferred.
 
-That means the currently approved narrow package set should:
-- consume the frozen contract corpus
-- prove schema-loading and validation behavior
-- prove a bounded in-memory append/replay/audit prototype against the frozen seven-event path
-- remain independent from runtime subsystem choices that are not yet approved to start
+The approved seven-package set implements the complete first executable path (happy path only) while keeping broader runtime concerns deferred.
 
-These packages are therefore narrow contract and prototype consumers, not approved runtime subsystems.
-
-## Initial Package Set
-
-The allowed initial package set is:
-- `packages/contract-harness`
-- `packages/event-ledger`
-
-No broader runtime package surface should be introduced in this phase.
-
-## Responsibilities of the Current Package Set
+## Foundation Package Set
 
 `packages/contract-harness` owns only:
 - loading canonical schema artifacts from `docs/schemas/`
 - deterministic specialized-schema dispatch for the frozen seven-event chain
-- envelope-first validation
-- specialized validation
+- envelope-first and specialized validation
 - fixture loading for the first executable path
 - chain-level invariant checks
-- Bun tests for happy-path and explicit failure-path contract checks
-
-It exists to consume and verify the frozen contract corpus.
 
 `packages/event-ledger` owns only:
-- in-memory append behavior for already-canonical events
-- duplicate and idempotency checks at the prototype boundary
-- replay helpers over in-memory stored facts
+- append behavior for already-canonical events via the `LedgerStore` interface
+- in-memory and SQLite-backed durable append implementations
+- duplicate and idempotency checks at the append boundary
+- replay helpers over stored facts
 - audit explanation helpers derived from the frozen seven-event chain
-- Bun tests proving the bounded prototype against the frozen fixture path
 
-It does not approve durable storage, external query surfaces, projections, or runtime orchestration.
+It does not own external query API surfaces, projections, or runtime orchestration.
 
-## Why These Are Not Runtime Subsystems
+## Boundary Constraints
 
-`packages/contract-harness` and `packages/event-ledger` do not own:
-- transport behavior
-- middleware orchestration
-- backend invocation
-- durable ledger persistence
-- replay endpoints or query APIs
-- read models
+The following areas remain outside the approved package set:
+- replay/query API surfaces exposed to external consumers
+- projections or read models
+- brokers, queues, or orchestration services beyond the first happy path
+- deny-path handling or policy evaluation logic
+- retry, dead-letter, or delivery recovery flows
+- streaming delta support
 - deployment surfaces
-
-Their outputs are validation results, in-memory prototype behavior, and test assertions only.
 
 ## Durable Ledger Extension
 
@@ -84,25 +64,17 @@ This extension was approved as the Candidate 4 slice defined in `docs/decisions/
 
 ## Explicit Deferrals
 
-The following package families are explicitly deferred and MUST NOT be introduced in this phase:
+The following package families are explicitly deferred and MUST NOT be introduced without explicit approval:
 - channel adapter packages beyond `packages/channel-web-chat`
 - backend adapter packages beyond `packages/backend-http`
-- external replay/query API packages
-- replay/query API packages
-- runtime orchestration packages
+- replay/query API packages for external consumers
+- runtime orchestration packages beyond `packages/pipeline`
 - projection/read-model packages
 - infrastructure/deployment packages beyond local readiness needs
 
-Examples of deferred package shapes include, but are not limited to:
-- `packages/channel-*`
-- `packages/backend-*`
-- `packages/ledger-*`
-- `packages/replay-*`
-- `packages/runtime-*`
-
 ## Package Growth Rule
 
-Additional packages should only be introduced after the validation harness milestone is complete and a follow-on implementation slice has been explicitly approved.
+Additional packages should only be introduced after a follow-on implementation slice has been explicitly approved.
 
 Future package boundaries must continue to preserve CAP's core architectural ownership model from the RFCs.
 
@@ -144,11 +116,61 @@ It does not own:
 
 This package was approved as the Candidate 3 slice defined in `docs/decisions/repository-next-approved-slices.md`.
 
+## Approved Middleware Extension
+
+`packages/middleware` is an approved narrow middleware package.
+
+It owns only:
+- producing `policy.decision.made` events with a configurable policy id and an allow decision
+- producing `route.decision.made` events with a configurable route and reason
+- producing `agent.invocation.requested` events with backend and input event reference
+- causal linkage: message.received -> policy -> route -> invocation
+- contract validation of all three outputs against the frozen schema layer
+
+It does not own:
+- deny-path handling or policy evaluation logic
+- multi-backend routing strategies
+- load balancing or failover
+- persistent policy or route configuration stores
+
+## Approved Delivery Extension
+
+`packages/delivery` is an approved narrow delivery package.
+
+It owns only:
+- producing `message.send.requested` from `agent.response.completed`
+- invoking a provided send function and producing `message.sent` on completion
+- causal linkage: agent.response.completed -> send.requested -> sent
+- contract validation of both outputs against the frozen schema layer
+
+It does not own:
+- retry, dead-letter, or delivery recovery flows
+- multi-channel delivery fanout
+- delivery status tracking beyond the initial sent acknowledgement
+
+## Approved Pipeline Extension
+
+`packages/pipeline` is an approved narrow end-to-end orchestration package.
+
+It owns only:
+- wiring ingress, middleware, backend, delivery, and ledger into a single execute flow
+- producing the complete seven-event happy-path chain from raw web chat input
+- appending all events to a provided `LedgerStore` for replay and audit
+- exposing replay by conversation id
+
+It does not own:
+- error recovery or partial pipeline execution
+- multi-channel or multi-backend pipeline variants
+- external API exposure or HTTP server concerns
+
 ## Immediate Outcome
 
-For the current phase, repository code introduction should consist of:
+For the current phase, repository code introduction consists of:
 - root workspace/bootstrap files
-- `packages/contract-harness` as the completed validation-harness milestone
-- `packages/event-ledger` as a bounded in-memory append/replay/audit prototype tied to the frozen seven-event path
-- `packages/channel-web-chat` as a narrow channel-side ingress canonicalization boundary
-- `packages/backend-http` as a narrow backend-side HTTP invocation boundary
+- `packages/contract-harness` as the contract validation baseline
+- `packages/event-ledger` with in-memory and SQLite-backed durable append
+- `packages/channel-web-chat` as web chat ingress canonicalization boundary
+- `packages/middleware` as policy, routing, and dispatch middleware
+- `packages/backend-http` as generic HTTP backend invocation boundary
+- `packages/delivery` as delivery orchestration boundary
+- `packages/pipeline` as end-to-end first executable path orchestration

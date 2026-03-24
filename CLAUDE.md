@@ -11,7 +11,7 @@ CAP is being defined as a chat-platform <-> agent middleware with:
 - backend agent adapters
 - an append-only ledger with replay and auditability
 
-At this stage, the repository exists to clarify architecture, contracts, and decision boundaries before significant implementation work begins.
+The repository uses a docs-first approach where RFCs govern architecture and the implementation follows approved narrow slices. The complete first executable path (seven-event happy path) is now implemented.
 
 ## Source-of-Truth Hierarchy
 
@@ -67,29 +67,31 @@ Research documents MUST NOT be treated as normative requirements unless their co
 
 ## Implementation Gate
 
-Do not begin broad implementation work until all of the following are true:
-- the minimum kernel is defined tightly enough to execute
-- v0/v1 blocking open questions are centralized and visible
+The initial implementation gate has been satisfied:
+- the minimum kernel is defined (seven-event first executable path)
+- blocking open questions are centralized in `docs/decisions/`
 - a technology selection framework exists for major subsystems
 - repository governance files are in place
-- git has been initialized for clean baseline tracking
+- Bun runtime, TypeScript strict mode, monorepo layout established
 
-Small exploratory prototypes may exist later, but they must not replace unresolved RFC work.
+The repository has moved past the initial review gate and now has a complete first executable path implementation.
 
-Current narrow implementation status does not remove this gate. The repository currently allows only:
-- the frozen seven-event fixture baseline as a machine-readable contract corpus
-- `packages/contract-harness` as the completed validation-harness milestone
-- `packages/event-ledger` with both in-memory and SQLite-backed durable append for already-canonical events
-- `packages/channel-web-chat` as a narrow channel-side ingress canonicalization boundary that stops at `message.received`
-- `packages/backend-http` as a narrow backend-side HTTP invocation boundary around `agent.invocation.requested` and `agent.response.completed`
+The current approved package set is:
+- `packages/contract-harness` as the contract validation baseline
+- `packages/event-ledger` with in-memory and SQLite-backed durable append via `LedgerStore` interface
+- `packages/channel-web-chat` for web chat ingress canonicalization to `message.received`
+- `packages/middleware` for policy, routing, and dispatch (produces `policy.decision.made`, `route.decision.made`, `agent.invocation.requested`)
+- `packages/backend-http` for generic HTTP backend invocation and response mapping
+- `packages/delivery` for delivery orchestration (produces `message.send.requested`, `message.sent`)
+- `packages/pipeline` for end-to-end first executable path orchestration
 
-This does not approve durable persistence, replay/query APIs, projections, brokers, or orchestration services.
+This does not approve replay/query API surfaces for external consumers, projections, brokers, or orchestration services beyond the first happy path.
 
 ## Future Repository Shape Guidance
 
-Language and framework choices are intentionally not fixed yet.
+The bootstrap baseline uses Bun runtime and TypeScript strict mode. Framework choices for higher-level concerns (HTTP server, deployment) are not yet fixed.
 
-When code is introduced later:
+When extending the codebase:
 - create code directories separately from RFC directories
 - keep normative specifications under `docs/rfcs/`
 - ensure code layout follows the core CAP constraints rather than reshaping the protocol to fit a framework
@@ -125,12 +127,12 @@ This workflow rule does not change the docs-first source-of-truth hierarchy and 
 ## Current Status
 
 Current repository status:
-- docs-first with narrow implementation baseline committed
+- docs-first with a complete first executable path implementation
 - core RFC set drafted but still open in places
 - implementation bootstrap baseline: Bun runtime, TypeScript strict mode, monorepo `packages/` layout
-- `packages/contract-harness` is the completed validation-harness milestone
-- `packages/event-ledger` is a bounded in-memory prototype only
-- frozen seven-event fixture corpus is the machine-readable contract baseline
-- the repository is at the review gate defined in `docs/decisions/repository-next-approved-slices.md`
+- seven packages implement the complete happy-path pipeline: ingress, middleware, backend, delivery, ledger, and end-to-end orchestration
+- frozen seven-event fixture corpus remains the machine-readable contract baseline
+- all canonical events are validated against the frozen schema layer at each boundary
+- 79 tests across 7 packages verify contract compliance, causal linkage, and end-to-end behavior
 
-Treat the repository as a specification workspace first, not as an implementation repo with docs attached.
+The repository remains docs-first in its source-of-truth hierarchy. RFCs govern; implementation follows.
