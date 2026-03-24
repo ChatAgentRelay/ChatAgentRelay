@@ -105,6 +105,26 @@ It does not own:
 
 This package was approved as the Candidate 2 slice defined in `docs/decisions/repository-next-approved-slices.md`.
 
+## Approved Backend-Side Extension
+
+`packages/backend-http` is now an approved narrow backend-side package.
+
+It owns only:
+- constructing backend HTTP requests from `agent.invocation.requested` events
+- invoking a generic HTTP backend endpoint
+- mapping completed responses into `agent.response.completed` events
+- contract validation of the mapped output against the frozen schema layer
+- structured error reporting for backend failures
+
+It does not own:
+- streaming delta support
+- tool event handling
+- async callback mode
+- cancellation
+- framework-specific backend bindings
+
+This package was approved as the Candidate 3 slice defined in `docs/decisions/repository-next-approved-slices.md`.
+
 ## Immediate Outcome
 
 For the current phase, repository code introduction should consist of:
@@ -112,3 +132,4 @@ For the current phase, repository code introduction should consist of:
 - `packages/contract-harness` as the completed validation-harness milestone
 - `packages/event-ledger` as a bounded in-memory append/replay/audit prototype tied to the frozen seven-event path
 - `packages/channel-web-chat` as a narrow channel-side ingress canonicalization boundary
+- `packages/backend-http` as a narrow backend-side HTTP invocation boundary

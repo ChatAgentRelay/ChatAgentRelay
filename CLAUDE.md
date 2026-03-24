@@ -81,8 +81,9 @@ Current narrow implementation status does not remove this gate. The repository c
 - `packages/contract-harness` as the completed validation-harness milestone
 - `packages/event-ledger` as a bounded in-memory prototype for append, replay, and audit helpers over already-canonical events
 - `packages/channel-web-chat` as a narrow channel-side ingress canonicalization boundary that stops at `message.received`
+- `packages/backend-http` as a narrow backend-side HTTP invocation boundary around `agent.invocation.requested` and `agent.response.completed`
 
-This does not approve backend runtime, durable persistence, replay/query APIs, projections, brokers, or orchestration services.
+This does not approve durable persistence, replay/query APIs, projections, brokers, or orchestration services.
 
 ## Future Repository Shape Guidance
 

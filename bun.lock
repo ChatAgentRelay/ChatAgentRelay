@@ -5,6 +5,16 @@
     "": {
       "name": "cap",
     },
+    "packages/backend-http": {
+      "name": "@cap/backend-http",
+      "dependencies": {
+        "@cap/contract-harness": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.8.2",
+      },
+    },
     "packages/channel-web-chat": {
       "name": "@cap/channel-web-chat",
       "dependencies": {
@@ -38,6 +48,8 @@
     },
   },
   "packages": {
+    "@cap/backend-http": ["@cap/backend-http@workspace:packages/backend-http"],
+
     "@cap/channel-web-chat": ["@cap/channel-web-chat@workspace:packages/channel-web-chat"],
 
     "@cap/contract-harness": ["@cap/contract-harness@workspace:packages/contract-harness"],
