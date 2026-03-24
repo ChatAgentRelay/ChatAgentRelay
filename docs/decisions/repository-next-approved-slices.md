@@ -43,21 +43,20 @@ That minimum direction is still centered on:
 This inventory does not replace the source-of-truth hierarchy.
 When documents disagree, `docs/rfcs/` remain normative over `docs/decisions/`, and this file remains repository-level planning inventory rather than protocol authority.
 
-## Current Position: Still At The Review Gate
+## Current Position: Past The Initial Review Gate
 
-The repository is still docs-first and still at the current review gate.
-
-That remains true because the completed work so far establishes a machine-consumable baseline and narrow prototype evidence, but it does not by itself approve broader runtime expansion.
+The repository has moved past the initial review gate. Candidates 1–4 from the original menu have been implemented and committed.
 
 The current repository state is:
 - the frozen seven-event fixture baseline is complete
 - `packages/contract-harness` is the completed validation-harness milestone and remains the contract-consumption boundary
-- `packages/event-ledger` exists only as a bounded in-memory prototype for append, replay, and audit helpers over already-canonical events
-- review-gate alignment and implementation-evidence linking are complete as docs-only closure work
-- runtime work remains deferred unless a later exact slice is explicitly approved
+- `packages/event-ledger` provides both in-memory and SQLite-backed durable append via the `LedgerStore` interface
+- `packages/channel-web-chat` canonicalizes inbound web chat input into contract-valid `message.received` events
+- `packages/backend-http` invokes a generic HTTP backend and maps responses into contract-valid `agent.response.completed` events
+- review-gate alignment and implementation-evidence linking are complete
+- middleware, delivery, and end-to-end pipeline work is the current implementation frontier
 
-One approved feature per commit remains workflow discipline only.
-It does not approve scope by itself.
+One approved feature per commit remains workflow discipline.
 
 ## Completed Narrow Baseline Slices
 
@@ -93,22 +92,22 @@ Primary evidence:
 `packages/contract-harness` remains the completed validation-harness milestone.
 It does not approve broader runtime work.
 
-### 3. Bounded in-memory ledger prototype
+### 3. Event ledger with durable append boundary
 Completed facts:
-- `packages/event-ledger` can append already-canonical events in memory
-- it enforces duplicate/idempotency behavior only at the bounded in-memory prototype boundary
-- it provides replay helpers over in-memory stored facts
-- it provides audit explanation helpers over the frozen seven-event chain
+- `packages/event-ledger` provides a `LedgerStore` interface with two implementations
+- `InMemoryEventLedgerStore` for tests and lightweight use
+- `SqliteLedgerStore` for durable append with WAL mode, indexed columns, and full JSON serialization
+- `EventLedgerAppender` and `EventLedgerReader` accept any `LedgerStore` implementation
+- duplicate/idempotency enforcement, replay helpers, and audit explanation are proven over both backends
 
 Primary evidence:
+- `packages/event-ledger/src/types.ts` (LedgerStore interface)
+- `packages/event-ledger/src/ledger-store.ts` (in-memory)
+- `packages/event-ledger/src/sqlite-store.ts` (durable)
 - `packages/event-ledger/src/append.ts`
-- `packages/event-ledger/src/ledger-store.ts`
 - `packages/event-ledger/src/replay.ts`
 - `packages/event-ledger/src/audit.ts`
 - `docs/decisions/initial-package-boundaries.md`
-
-This package remains a bounded in-memory prototype.
-It is not durable runtime infrastructure.
 
 ### 4. Governance baseline
 Completed facts:
@@ -124,6 +123,30 @@ Primary evidence:
 - `SECURITY.md`
 - `CLAUDE.md`
 - `docs/decisions/implementation-bootstrap-baseline.md`
+
+### 5. Web chat ingress canonicalization boundary
+Completed facts:
+- `packages/channel-web-chat` validates inbound web chat input at the adapter boundary
+- derives a stable idempotency key from tenant + channel instance + client message id
+- canonicalizes validated input into contract-valid `message.received` events
+- performs envelope-first and specialized validation on the canonicalized output
+
+Primary evidence:
+- `packages/channel-web-chat/src/validate-input.ts`
+- `packages/channel-web-chat/src/idempotency.ts`
+- `packages/channel-web-chat/src/canonicalize.ts`
+
+### 6. Generic HTTP backend invocation boundary
+Completed facts:
+- `packages/backend-http` constructs backend HTTP requests from `agent.invocation.requested`
+- invokes a generic HTTP endpoint and handles timeouts, HTTP errors, and invalid responses
+- maps completed responses into contract-valid `agent.response.completed` events
+- preserves correlation chain, trace context, and backend metadata in provider_extensions
+
+Primary evidence:
+- `packages/backend-http/src/build-request.ts`
+- `packages/backend-http/src/invoke.ts`
+- `packages/backend-http/src/map-response.ts`
 
 ## Completed Docs-Only Review-Gate Record
 
@@ -174,13 +197,9 @@ It does not guarantee the order in which any later slice will be proposed or app
 ## Deferred Runtime-Adjacent Work
 
 The following work remains deferred unless a later narrow slice is explicitly approved:
-- web chat ingress runtime
-- middleware / policy / route runtime
-- backend HTTP runtime
-- durable append-only ledger persistence
-- replay/query API surfaces
-- duplicate-ingress runtime handling
-- structured runtime error handling beyond the current prototype boundary
+- replay/query API surfaces exposed to external consumers
+- duplicate-ingress runtime handling at transport level
+- structured runtime error handling beyond the current boundary packages
 - deny-path runtime handling
 - retry, dead-letter, or delivery recovery flows
 - projections or read models
@@ -188,6 +207,7 @@ The following work remains deferred unless a later narrow slice is explicitly ap
 - streaming delta support
 - tool or handoff event support
 - attachments, rich text, or rich media support
+- production Postgres migration strategy (SQLite serves as narrow durable prototype)
 
 Nothing in this document should be read as approval to begin those surfaces now.
 

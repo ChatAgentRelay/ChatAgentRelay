@@ -29,7 +29,9 @@ The project is currently focused on:
 │   └── decisions/
 └── packages/
     ├── contract-harness/
-    └── event-ledger/
+    ├── event-ledger/
+    ├── channel-web-chat/
+    └── backend-http/
 ```
 
 ## Document Roles
@@ -63,7 +65,9 @@ Current maturity:
 - implementation bootstrap baseline: Bun runtime, TypeScript strict mode
 - frozen seven-event fixture corpus as machine-readable contract baseline
 - `packages/contract-harness` completed as validation-harness milestone
-- `packages/event-ledger` exists as bounded in-memory prototype
+- `packages/event-ledger` with in-memory and SQLite-backed durable append
+- `packages/channel-web-chat` as web chat ingress canonicalization boundary
+- `packages/backend-http` as generic HTTP backend invocation boundary
 - repository-level roadmap inventory in place
 
 ## Near-Term Workflow

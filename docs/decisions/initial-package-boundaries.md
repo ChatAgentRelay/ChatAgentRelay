@@ -6,7 +6,7 @@ It exists to prevent premature package sprawl before the contract boundary has b
 
 ## Decision Status
 
-Decision made: **the currently approved narrow code package set is `packages/contract-harness` plus one bounded in-memory prototype package: `packages/event-ledger`**.
+Decision made: **the currently approved code package set is `packages/contract-harness`, `packages/event-ledger` (with durable SQLite backend), `packages/channel-web-chat`, and `packages/backend-http`**.
 
 ## Why This Boundary Exists
 
