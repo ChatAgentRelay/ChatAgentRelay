@@ -43,6 +43,8 @@ const SELECT_ALL = "SELECT event_json FROM canonical_events ORDER BY occurred_at
 
 const SELECT_BY_CONVERSATION = "SELECT event_json FROM canonical_events WHERE conversation_id = $conversation_id ORDER BY occurred_at ASC, rowid ASC";
 
+const SELECT_BY_CORRELATION = "SELECT event_json FROM canonical_events WHERE correlation_id = $correlation_id ORDER BY occurred_at ASC, rowid ASC";
+
 type EventRow = { event_json: string };
 
 export class SqliteLedgerStore implements LedgerStore {
@@ -51,6 +53,7 @@ export class SqliteLedgerStore implements LedgerStore {
   private readonly selectByIdStmt: ReturnType<Database["prepare"]>;
   private readonly selectAllStmt: ReturnType<Database["prepare"]>;
   private readonly selectByConversationStmt: ReturnType<Database["prepare"]>;
+  private readonly selectByCorrelationStmt: ReturnType<Database["prepare"]>;
 
   constructor(path: string = ":memory:") {
     this.db = new Database(path);
@@ -64,6 +67,7 @@ export class SqliteLedgerStore implements LedgerStore {
     this.selectByIdStmt = this.db.prepare(SELECT_BY_ID);
     this.selectAllStmt = this.db.prepare(SELECT_ALL);
     this.selectByConversationStmt = this.db.prepare(SELECT_BY_CONVERSATION);
+    this.selectByCorrelationStmt = this.db.prepare(SELECT_BY_CORRELATION);
   }
 
   append(event: StoredCanonicalEvent): StoredCanonicalEvent | undefined {
@@ -105,6 +109,11 @@ export class SqliteLedgerStore implements LedgerStore {
 
   getByConversationId(conversationId: string): StoredCanonicalEvent[] {
     const rows = this.selectByConversationStmt.all({ $conversation_id: conversationId }) as EventRow[];
+    return rows.map((row) => JSON.parse(row.event_json) as StoredCanonicalEvent);
+  }
+
+  getByCorrelationId(correlationId: string): StoredCanonicalEvent[] {
+    const rows = this.selectByCorrelationStmt.all({ $correlation_id: correlationId }) as EventRow[];
     return rows.map((row) => JSON.parse(row.event_json) as StoredCanonicalEvent);
   }
 

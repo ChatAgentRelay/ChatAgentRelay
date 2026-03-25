@@ -36,4 +36,8 @@ export class InMemoryEventLedgerStore implements LedgerStore {
   getByConversationId(conversationId: string): StoredCanonicalEvent[] {
     return this.getAll().filter((event) => event.conversation_id === conversationId);
   }
+
+  getByCorrelationId(correlationId: string): StoredCanonicalEvent[] {
+    return this.getAll().filter((event) => event.correlation_id === correlationId);
+  }
 }

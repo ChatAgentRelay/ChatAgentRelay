@@ -5,6 +5,7 @@ import { OpenAIBackend } from "@cap/backend-openai";
 import { SqliteLedgerStore } from "@cap/event-ledger";
 import { loadConfig } from "./config";
 import { logger } from "./logger";
+import { startApiServer } from "./api";
 
 async function main() {
   const config = loadConfig();
@@ -103,6 +104,8 @@ async function main() {
     },
   });
 
+  const apiServer = startApiServer({ port: config.cap.apiPort, ledgerStore });
+
   logger.info("Connecting to Slack Socket Mode");
   await socket.connect();
   logger.info("Connected, listening for messages");
@@ -110,6 +113,7 @@ async function main() {
   process.on("SIGINT", () => {
     logger.info("Shutting down (SIGINT)");
     socket.disconnect();
+    apiServer.stop(true);
     ledgerStore.close();
     process.exit(0);
   });
@@ -117,6 +121,7 @@ async function main() {
   process.on("SIGTERM", () => {
     logger.info("Shutting down (SIGTERM)");
     socket.disconnect();
+    apiServer.stop(true);
     ledgerStore.close();
     process.exit(0);
   });

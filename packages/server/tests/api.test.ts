@@ -1,0 +1,107 @@
+import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import type { Server } from "bun";
+import { InMemoryEventLedgerStore } from "@cap/event-ledger";
+import type { StoredCanonicalEvent } from "@cap/event-ledger";
+import { startApiServer } from "../src/api";
+
+type BunServer = Server<unknown>;
+
+function makeEvent(overrides: Partial<StoredCanonicalEvent> = {}): StoredCanonicalEvent {
+  return {
+    event_id: `evt_${crypto.randomUUID()}`,
+    schema_version: "v1alpha1",
+    event_type: "message.received",
+    tenant_id: "t1",
+    workspace_id: "ws1",
+    channel: "test",
+    channel_instance_id: "test_ch",
+    conversation_id: "conv_1",
+    session_id: "sess_1",
+    correlation_id: "corr_1",
+    occurred_at: new Date().toISOString(),
+    actor_type: "end_user",
+    payload: { text: "hello" },
+    ...overrides,
+  };
+}
+
+describe("replay/query API", () => {
+  let server: BunServer;
+  let store: InMemoryEventLedgerStore;
+  let baseUrl: string;
+  let event1: StoredCanonicalEvent;
+  let event2: StoredCanonicalEvent;
+  let event3: StoredCanonicalEvent;
+
+  beforeAll(() => {
+    store = new InMemoryEventLedgerStore();
+    event1 = makeEvent({ conversation_id: "conv_A", correlation_id: "corr_X" });
+    event2 = makeEvent({ conversation_id: "conv_A", correlation_id: "corr_X", event_type: "agent.response.completed" });
+    event3 = makeEvent({ conversation_id: "conv_B", correlation_id: "corr_Y" });
+    store.append(event1);
+    store.append(event2);
+    store.append(event3);
+
+    server = startApiServer({ port: 0, ledgerStore: store });
+    baseUrl = `http://localhost:${server.port}`;
+  });
+
+  afterAll(() => {
+    server.stop(true);
+  });
+
+  it("GET /api/health returns ok", async () => {
+    const res = await fetch(`${baseUrl}/api/health`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.status).toBe("ok");
+    expect(body.timestamp).toBeDefined();
+  });
+
+  it("GET /api/conversations/:id/events returns events by conversation", async () => {
+    const res = await fetch(`${baseUrl}/api/conversations/conv_A/events`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.conversation_id).toBe("conv_A");
+    expect(body.count).toBe(2);
+    expect(body.events).toHaveLength(2);
+    expect(body.events[0].event_id).toBe(event1.event_id);
+    expect(body.events[1].event_id).toBe(event2.event_id);
+  });
+
+  it("GET /api/conversations/:id/events returns empty for unknown id", async () => {
+    const res = await fetch(`${baseUrl}/api/conversations/conv_NONE/events`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.count).toBe(0);
+    expect(body.events).toHaveLength(0);
+  });
+
+  it("GET /api/correlations/:id/events returns events by correlation", async () => {
+    const res = await fetch(`${baseUrl}/api/correlations/corr_X/events`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.correlation_id).toBe("corr_X");
+    expect(body.count).toBe(2);
+  });
+
+  it("GET /api/events/:id returns a single event", async () => {
+    const res = await fetch(`${baseUrl}/api/events/${event1.event_id}`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.event_id).toBe(event1.event_id);
+    expect(body.event_type).toBe("message.received");
+  });
+
+  it("GET /api/events/:id returns 404 for unknown event", async () => {
+    const res = await fetch(`${baseUrl}/api/events/evt_nonexistent`);
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toBe("Event not found");
+  });
+
+  it("GET /unknown returns 404", async () => {
+    const res = await fetch(`${baseUrl}/api/nope`);
+    expect(res.status).toBe(404);
+  });
+});

@@ -16,6 +16,7 @@ export type ServerConfig = {
     sqlitePath: string;
     streaming: boolean;
     streamingIntervalMs: number;
+    apiPort: number;
   };
 };
 
@@ -46,6 +47,7 @@ export function loadConfig(): ServerConfig {
       sqlitePath: process.env["CAP_SQLITE_PATH"] ?? "./cap-ledger.db",
       streaming: process.env["CAP_STREAMING"] !== "false",
       streamingIntervalMs: Number(process.env["CAP_STREAMING_INTERVAL_MS"] ?? "800"),
+      apiPort: Number(process.env["CAP_API_PORT"] ?? "3000"),
     },
   };
 }
