@@ -1,41 +1,56 @@
-# Security Policy
+# Security
 
-## Current repository state
+CAP is **pre-v1 software**. Interfaces, behavior, and security posture may change without notice. Reports are still welcome and help improve the project.
 
-This repository currently contains:
-- architecture and decision documents
-- machine-readable schema artifacts
-- completed validation-harness code for contract consumption
-- a bounded in-memory event-ledger prototype for append, replay, and audit helpers
+## How to report a vulnerability
 
-It does not yet include the broader CAP runtime surfaces such as production channel adapters, backend integrations, durable ledger persistence, replay/query APIs, or orchestration services.
+Send email to **security@openclaw.dev** (placeholder address). Do not file public issues or discuss the vulnerability in public channels until we have coordinated a disclosure.
 
-## Scope of current security review
+If you believe you have found active exploitation or an imminent risk, say so clearly in the subject line.
 
-At this stage, security concerns are most likely to involve:
-- schema correctness and validation behavior
-- fixture and contract integrity
-- repository governance and contribution flow
-- early local tooling and package configuration
-- bounded prototype behavior around append, replay, audit, and duplicate handling
+## What to include in your report
 
-Security-sensitive provider integrations and production runtime operations are not yet in scope for this repository phase.
+Please include as much of the following as you can:
 
-## Reporting a vulnerability or security concern
+- A clear description of the issue and why you think it is a security problem
+- Affected component (repository area, package, or subsystem) and version or commit if known
+- Steps to reproduce, or proof-of-concept details, with minimal necessary information
+- Potential impact (confidentiality, integrity, availability) if you can assess it
+- Whether you believe the issue is already public or actively exploited
 
-If you discover a vulnerability or security concern, please report it privately to the project maintainers instead of opening a public issue with exploit details.
+Encrypted email is not required unless we publish a PGP key; if we do, prefer that channel for sensitive material.
 
-If a private reporting channel is added later, update this file to point to it explicitly.
-Until then, use the repository maintainer contact path and provide:
-- a description of the issue
-- affected files or package paths
-- impact assessment
-- reproduction steps if relevant
+## Response timeline
 
-## Disclosure guidance
+These are goals, not guarantees; severity and maintainer availability may adjust timing.
 
-Please avoid public disclosure of sensitive details until maintainers have had a chance to review and respond.
+- **Within 48 hours:** We aim to acknowledge receipt of your report.
+- **Within 7 days:** We aim to provide an initial assessment (valid issue, needs more information, duplicate, or out of scope) and next steps when possible.
 
-## Future updates
+We will keep you reasonably informed as the issue is triaged and addressed.
 
-This policy should be expanded once CAP begins to include real runtime code, external integrations, or deployable services.
+## Scope
+
+**In scope** (examples):
+
+- Security flaws in this repository’s code, build, or documented default configurations shipped here
+- Issues that could lead to unauthorized access, data exposure, or unsafe execution in supported use of CAP components
+
+**Typically out of scope** (examples):
+
+- Social engineering or physical attacks
+- Issues in third-party services or dependencies unless they manifest as a defect in how this project uses them
+- Theoretical problems without a plausible exploit path
+- Denial-of-service that requires overwhelming resources in ways we do not intend to mitigate in pre-v1 software
+
+If you are unsure, report anyway; we can clarify scope in our response.
+
+## Disclosure policy
+
+We follow **coordinated disclosure**:
+
+- Please give us a reasonable time to investigate and prepare a fix before public disclosure.
+- We ask that you do not publish details until we agree on a disclosure date, or until we confirm we will not fix the issue, or until a mutually agreed timeout if we cannot respond.
+- We will credit reporters who wish to be named, unless they prefer to remain anonymous.
+
+Thank you for helping keep CAP and its users safer.
