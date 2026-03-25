@@ -4,14 +4,18 @@ import type { SlackSocketEvent, SlackMessageEvent } from "@cap/channel-slack";
 import { OpenAIBackend } from "@cap/backend-openai";
 import { SqliteLedgerStore } from "@cap/event-ledger";
 import { loadConfig } from "./config";
+import { logger } from "./logger";
 
 async function main() {
   const config = loadConfig();
 
-  console.log("[CAP] Starting server...");
-  console.log(`[CAP] Tenant: ${config.cap.tenantId}, Workspace: ${config.cap.workspaceId}`);
-  console.log(`[CAP] OpenAI model: ${config.openai.model}${config.openai.baseUrl ? `, base URL: ${config.openai.baseUrl}` : ""}`);
-  console.log(`[CAP] SQLite path: ${config.cap.sqlitePath}`);
+  logger.info("Starting server", {
+    tenant_id: config.cap.tenantId,
+    workspace_id: config.cap.workspaceId,
+    openai_model: config.openai.model,
+    base_url: config.openai.baseUrl,
+    sqlite_path: config.cap.sqlitePath,
+  });
 
   const ledgerStore = new SqliteLedgerStore(config.cap.sqlitePath);
   const ingress = await SlackIngress.create(config.cap.tenantId, config.cap.workspaceId);
@@ -33,7 +37,12 @@ async function main() {
       if (msgEvent.subtype !== undefined) return;
       if (msgEvent.bot_id !== undefined) return;
 
-      console.log(`[CAP] Received message from ${event.user} in ${event.channel}: ${event.text}`);
+      const startTime = Date.now();
+      logger.info("Message received", {
+        user: event.user,
+        channel: event.channel,
+        text_preview: event.text?.slice(0, 80),
+      });
 
       try {
         const sendFn = sender.createSendFn(event.channel, event.thread_ts);
@@ -53,37 +62,43 @@ async function main() {
         });
 
         const result = await pipelineInstance.execute(event);
+        const correlationId = result.events[0]?.correlation_id ?? "unknown";
 
-        console.log(`[CAP] Pipeline completed: ${result.events.length} events`);
-        console.log(`[CAP] Response: ${result.explanation.backendResponse.slice(0, 100)}`);
+        logger.info("Pipeline completed", {
+          correlation_id: correlationId,
+          event_count: result.events.length,
+          response_preview: result.explanation.backendResponse.slice(0, 100),
+          duration_ms: Date.now() - startTime,
+        });
       } catch (error) {
-        console.error(`[CAP] Pipeline error:`, error instanceof Error ? error.message : error);
-        if (error instanceof Error && error.stack) {
-          console.error(`[CAP] Stack:`, error.stack);
-        }
+        logger.error("Pipeline failed", {
+          error_message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          duration_ms: Date.now() - startTime,
+        });
       }
     },
     onError: (error) => {
-      console.error(`[CAP] Socket error:`, error.message);
+      logger.error("Socket error", { error_message: error.message });
     },
     onReconnect: (attempt) => {
-      console.log(`[CAP] Reconnecting to Slack (attempt ${attempt})...`);
+      logger.warn("Reconnecting to Slack", { attempt });
     },
   });
 
-  console.log("[CAP] Connecting to Slack Socket Mode...");
+  logger.info("Connecting to Slack Socket Mode");
   await socket.connect();
-  console.log("[CAP] Connected! Listening for messages...");
+  logger.info("Connected, listening for messages");
 
   process.on("SIGINT", () => {
-    console.log("\n[CAP] Shutting down...");
+    logger.info("Shutting down (SIGINT)");
     socket.disconnect();
     ledgerStore.close();
     process.exit(0);
   });
 
   process.on("SIGTERM", () => {
-    console.log("\n[CAP] Shutting down...");
+    logger.info("Shutting down (SIGTERM)");
     socket.disconnect();
     ledgerStore.close();
     process.exit(0);
@@ -91,6 +106,9 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("[CAP] Fatal error:", error);
+  logger.error("Fatal error", {
+    error_message: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined,
+  });
   process.exit(1);
 });
