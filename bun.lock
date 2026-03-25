@@ -5,6 +5,20 @@
     "": {
       "name": "cap",
     },
+    "packages/adapter-conformance": {
+      "name": "@cap/adapter-conformance",
+      "dependencies": {
+        "@cap/backend-http": "workspace:*",
+        "@cap/backend-openai": "workspace:*",
+        "@cap/channel-slack": "workspace:*",
+        "@cap/channel-web-chat": "workspace:*",
+        "@cap/contract-harness": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.8.2",
+      },
+    },
     "packages/backend-http": {
       "name": "@cap/backend-http",
       "dependencies": {
@@ -119,6 +133,8 @@
     },
   },
   "packages": {
+    "@cap/adapter-conformance": ["@cap/adapter-conformance@workspace:packages/adapter-conformance"],
+
     "@cap/backend-http": ["@cap/backend-http@workspace:packages/backend-http"],
 
     "@cap/backend-openai": ["@cap/backend-openai@workspace:packages/backend-openai"],

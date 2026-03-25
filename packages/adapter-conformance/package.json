@@ -1,0 +1,23 @@
+{
+  "name": "@cap/adapter-conformance",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@cap/contract-harness": "workspace:*",
+    "@cap/backend-http": "workspace:*",
+    "@cap/backend-openai": "workspace:*",
+    "@cap/channel-web-chat": "workspace:*",
+    "@cap/channel-slack": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.8.2"
+  }
+}
