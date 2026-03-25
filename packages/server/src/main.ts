@@ -3,6 +3,7 @@ import { SlackIngress, SlackSender, SlackSocketConnection } from "@cap/channel-s
 import type { SlackSocketEvent, SlackMessageEvent } from "@cap/channel-slack";
 import { OpenAIBackend } from "@cap/backend-openai";
 import { SqliteLedgerStore } from "@cap/event-ledger";
+import { loadPolicyConfig, createPolicyFn } from "@cap/middleware";
 import { loadConfig } from "./config";
 import { logger } from "./logger";
 import { startApiServer } from "./api";
@@ -17,6 +18,14 @@ async function main() {
     base_url: config.openai.baseUrl,
     sqlite_path: config.cap.sqlitePath,
   });
+
+  const policySource = config.cap.policyConfig;
+  const policyConfig = loadPolicyConfig(policySource);
+  const policyFn = policyConfig.rules.length > 0 ? createPolicyFn(policyConfig) : undefined;
+
+  if (policyFn) {
+    logger.info("Policy engine loaded", { rule_count: policyConfig.rules.length });
+  }
 
   const ledgerStore = new SqliteLedgerStore(config.cap.sqlitePath);
   const ingress = await SlackIngress.create(config.cap.tenantId, config.cap.workspaceId);
@@ -66,6 +75,8 @@ async function main() {
 
         const pipelineInstance = await FirstExecutablePathPipeline.create({
           middleware: {
+            policyId: "configurable_policy",
+            policyFn,
             route: {
               route_id: config.cap.routeId,
               backend: "openai",

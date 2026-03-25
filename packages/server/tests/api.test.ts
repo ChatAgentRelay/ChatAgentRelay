@@ -25,6 +25,11 @@ function makeEvent(overrides: Partial<StoredCanonicalEvent> = {}): StoredCanonic
   };
 }
 
+async function getJson(url: string): Promise<Record<string, unknown>> {
+  const res = await fetch(url);
+  return (await res.json()) as Record<string, unknown>;
+}
+
 describe("replay/query API", () => {
   let server: BunServer;
   let store: InMemoryEventLedgerStore;
@@ -53,51 +58,52 @@ describe("replay/query API", () => {
   it("GET /api/health returns ok", async () => {
     const res = await fetch(`${baseUrl}/api/health`);
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.status).toBe("ok");
-    expect(body.timestamp).toBeDefined();
+    const body = await getJson(`${baseUrl}/api/health`);
+    expect(body["status"]).toBe("ok");
+    expect(body["timestamp"]).toBeDefined();
   });
 
   it("GET /api/conversations/:id/events returns events by conversation", async () => {
     const res = await fetch(`${baseUrl}/api/conversations/conv_A/events`);
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.conversation_id).toBe("conv_A");
-    expect(body.count).toBe(2);
-    expect(body.events).toHaveLength(2);
-    expect(body.events[0].event_id).toBe(event1.event_id);
-    expect(body.events[1].event_id).toBe(event2.event_id);
+    const body = await getJson(`${baseUrl}/api/conversations/conv_A/events`);
+    expect(body["conversation_id"]).toBe("conv_A");
+    expect(body["count"]).toBe(2);
+    expect(body["events"]).toHaveLength(2);
+    const events = body["events"] as Array<{ event_id: string }>;
+    expect(events[0]!.event_id).toBe(event1.event_id);
+    expect(events[1]!.event_id).toBe(event2.event_id);
   });
 
   it("GET /api/conversations/:id/events returns empty for unknown id", async () => {
     const res = await fetch(`${baseUrl}/api/conversations/conv_NONE/events`);
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.count).toBe(0);
-    expect(body.events).toHaveLength(0);
+    const body = await getJson(`${baseUrl}/api/conversations/conv_NONE/events`);
+    expect(body["count"]).toBe(0);
+    expect(body["events"]).toHaveLength(0);
   });
 
   it("GET /api/correlations/:id/events returns events by correlation", async () => {
     const res = await fetch(`${baseUrl}/api/correlations/corr_X/events`);
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.correlation_id).toBe("corr_X");
-    expect(body.count).toBe(2);
+    const body = await getJson(`${baseUrl}/api/correlations/corr_X/events`);
+    expect(body["correlation_id"]).toBe("corr_X");
+    expect(body["count"]).toBe(2);
   });
 
   it("GET /api/events/:id returns a single event", async () => {
     const res = await fetch(`${baseUrl}/api/events/${event1.event_id}`);
     expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(body.event_id).toBe(event1.event_id);
-    expect(body.event_type).toBe("message.received");
+    const body = await getJson(`${baseUrl}/api/events/${event1.event_id}`);
+    expect(body["event_id"]).toBe(event1.event_id);
+    expect(body["event_type"]).toBe("message.received");
   });
 
   it("GET /api/events/:id returns 404 for unknown event", async () => {
     const res = await fetch(`${baseUrl}/api/events/evt_nonexistent`);
     expect(res.status).toBe(404);
-    const body = await res.json();
-    expect(body.error).toBe("Event not found");
+    const body = await getJson(`${baseUrl}/api/events/evt_nonexistent`);
+    expect(body["error"]).toBe("Event not found");
   });
 
   it("GET /unknown returns 404", async () => {
@@ -106,12 +112,10 @@ describe("replay/query API", () => {
   });
 
   it("GET /api/conversations/:id/audit returns structured audit explanation", async () => {
-    const res = await fetch(`${baseUrl}/api/conversations/conv_A/audit`);
-    expect(res.status).toBe(200);
-    const body = await res.json() as { conversation_id: string; total_events: number; turns: unknown[] };
-    expect(body.conversation_id).toBe("conv_A");
-    expect(body.total_events).toBe(2);
-    expect(body.turns).toHaveLength(1);
+    const body = await getJson(`${baseUrl}/api/conversations/conv_A/audit`);
+    expect(body["conversation_id"]).toBe("conv_A");
+    expect(body["total_events"]).toBe(2);
+    expect(body["turns"]).toHaveLength(1);
   });
 
   it("GET /api/conversations/:id/audit returns 404 for empty conversation", async () => {
@@ -134,11 +138,10 @@ describe("replay/query API", () => {
     store.append(blockedEvent);
     store.append(blockEvent);
 
-    const res = await fetch(`${baseUrl}/api/conversations/conv_C/audit`);
-    expect(res.status).toBe(200);
-    const body = await res.json() as { turns: Array<{ blocked: boolean; block_reason: string; block_stage: string }> };
-    expect(body.turns[0]!.blocked).toBe(true);
-    expect(body.turns[0]!.block_reason).toBe("spam_detected");
-    expect(body.turns[0]!.block_stage).toBe("governance");
+    const body = await getJson(`${baseUrl}/api/conversations/conv_C/audit`);
+    const turns = body["turns"] as Array<{ blocked: boolean; block_reason: string; block_stage: string }>;
+    expect(turns[0]!.blocked).toBe(true);
+    expect(turns[0]!.block_reason).toBe("spam_detected");
+    expect(turns[0]!.block_stage).toBe("governance");
   });
 });

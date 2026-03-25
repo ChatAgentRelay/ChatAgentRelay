@@ -124,6 +124,7 @@
         "@cap/backend-openai": "workspace:*",
         "@cap/channel-slack": "workspace:*",
         "@cap/event-ledger": "workspace:*",
+        "@cap/middleware": "workspace:*",
         "@cap/pipeline": "workspace:*",
       },
       "devDependencies": {

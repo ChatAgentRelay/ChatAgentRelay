@@ -11,7 +11,8 @@
     "@cap/pipeline": "workspace:*",
     "@cap/channel-slack": "workspace:*",
     "@cap/backend-openai": "workspace:*",
-    "@cap/event-ledger": "workspace:*"
+    "@cap/event-ledger": "workspace:*",
+    "@cap/middleware": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",

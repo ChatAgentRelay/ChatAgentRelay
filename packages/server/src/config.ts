@@ -17,8 +17,22 @@ export type ServerConfig = {
     streaming: boolean;
     streamingIntervalMs: number;
     apiPort: number;
+    policyConfig?: string | undefined;
   };
 };
+
+function loadPolicySource(): string | undefined {
+  const inline = process.env["CAP_POLICY_CONFIG"];
+  if (inline) return inline;
+
+  const filePath = process.env["CAP_POLICY_FILE"];
+  if (filePath) {
+    const fs = require("fs") as typeof import("fs");
+    return fs.readFileSync(filePath, "utf-8");
+  }
+
+  return undefined;
+}
 
 function requireEnv(key: string): string {
   const value = process.env[key];
@@ -48,6 +62,7 @@ export function loadConfig(): ServerConfig {
       streaming: process.env["CAP_STREAMING"] !== "false",
       streamingIntervalMs: Number(process.env["CAP_STREAMING_INTERVAL_MS"] ?? "800"),
       apiPort: Number(process.env["CAP_API_PORT"] ?? "3000"),
+      policyConfig: loadPolicySource(),
     },
   };
 }
