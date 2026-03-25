@@ -37,17 +37,19 @@ This document centralizes cross-cutting questions that matter for v0/v1 planning
 
 ## v1 Scope Boundary Questions
 
-### 4. First real channel for v1
+### 4. First real channel for v1 [PARTIALLY RESOLVED]
 - Question: Should the first production-grade channel target be `web chat` or `Slack`?
-- Why it matters: This choice shapes ingress/egress complexity, capability needs, delivery callbacks, and the first contract test surface.
+- Resolution: Both are now implemented. `packages/channel-web-chat` provides web chat ingress canonicalization; `packages/channel-slack` provides Slack Socket Mode ingress and `chat.postMessage` delivery. Slack is the first channel with a working end-to-end integration.
+- Remaining: additional channel adapters (Discord, Teams, etc.) are deferred.
 - Relevant RFC constraints:
   - `docs/rfcs/adapters/channel-adapter-contract.md`
   - `docs/rfcs/middleware/routing-middleware-governance.md`
   - `docs/rfcs/architecture/reference-architecture.md`
 
-### 5. First real backend adapter set
+### 5. First real backend adapter set [PARTIALLY RESOLVED]
 - Question: Should v1 implement only a generic HTTP/streaming backend adapter, or also include one framework-specific adapter?
-- Why it matters: This determines how strongly v1 proves runtime portability versus keeping the first implementation narrower.
+- Resolution: Both are now implemented. `packages/backend-http` provides generic HTTP backend invocation; `packages/backend-openai` provides OpenAI Chat Completions API integration. This proves runtime portability via the `BackendAdapter` interface.
+- Remaining: streaming (SSE) support, tool/function calling, and additional provider adapters are deferred.
 - Relevant RFC constraints:
   - `docs/rfcs/adapters/backend-agent-adapter-contract.md`
   - `docs/rfcs/architecture/reference-architecture.md`

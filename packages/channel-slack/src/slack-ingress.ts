@@ -36,6 +36,10 @@ export class SlackIngress {
       return { ok: false, error: { code: "unsupported_subtype", message: `Unsupported message subtype: ${raw.subtype}` } };
     }
 
+    if (raw.bot_id !== undefined) {
+      return { ok: false, error: { code: "bot_message", message: `Ignoring bot message from bot_id: ${raw.bot_id}` } };
+    }
+
     if (!raw.text || raw.text.trim().length === 0) {
       return { ok: false, error: { code: "empty_text", message: "Message text is empty" } };
     }

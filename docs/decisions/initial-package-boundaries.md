@@ -12,7 +12,7 @@ Decision made: **the currently approved code package set covers the complete fir
 
 This document prevents premature package sprawl by recording what each package owns and what remains deferred.
 
-The approved seven-package set implements the complete first executable path (happy path only) while keeping broader runtime concerns deferred.
+The approved ten-package set implements the complete first executable path (happy path only) with real Slack + OpenAI integration while keeping broader runtime concerns deferred.
 
 ## Foundation Package Set
 
@@ -65,10 +65,10 @@ This extension was approved as the Candidate 4 slice defined in `docs/decisions/
 ## Explicit Deferrals
 
 The following package families are explicitly deferred and MUST NOT be introduced without explicit approval:
-- channel adapter packages beyond `packages/channel-web-chat`
-- backend adapter packages beyond `packages/backend-http`
+- channel adapter packages beyond `packages/channel-web-chat` and `packages/channel-slack`
+- backend adapter packages beyond `packages/backend-http` and `packages/backend-openai`
 - replay/query API packages for external consumers
-- runtime orchestration packages beyond `packages/pipeline`
+- runtime orchestration packages beyond `packages/pipeline` and `packages/server`
 - projection/read-model packages
 - infrastructure/deployment packages beyond local readiness needs
 

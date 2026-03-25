@@ -20,7 +20,8 @@ export class OpenAIBackend {
     this.apiKey = config.apiKey;
     this.model = config.model ?? DEFAULT_MODEL;
     this.systemPrompt = config.systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
-    this.baseUrl = config.baseUrl ?? DEFAULT_BASE_URL;
+    const raw = config.baseUrl ?? DEFAULT_BASE_URL;
+    this.baseUrl = raw.replace(/\/+$/, "").endsWith("/v1") ? raw.replace(/\/+$/, "") : `${raw.replace(/\/+$/, "")}/v1`;
     this.timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.validators = validators;
   }

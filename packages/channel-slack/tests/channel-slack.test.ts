@@ -136,6 +136,14 @@ describe("Slack ingress", () => {
     expect(result.error.code).toBe("empty_text");
   });
 
+  it("rejects messages with bot_id (prevents self-loop)", () => {
+    const botMsg = { ...sampleSlackEvent(), bot_id: "B0ANKM0JA8L" };
+    const result = ingress.canonicalize(botMsg);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("bot_message");
+  });
+
   it("rejects null input", () => {
     const result = ingress.canonicalize(null);
     expect(result.ok).toBe(false);

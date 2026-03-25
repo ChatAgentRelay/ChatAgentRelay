@@ -7,6 +7,7 @@ export type ServerConfig = {
     apiKey: string;
     model: string;
     systemPrompt: string;
+    baseUrl?: string | undefined;
   };
   cap: {
     tenantId: string;
@@ -34,6 +35,7 @@ export function loadConfig(): ServerConfig {
       apiKey: requireEnv("OPENAI_API_KEY"),
       model: process.env["OPENAI_MODEL"] ?? "gpt-4o-mini",
       systemPrompt: process.env["OPENAI_SYSTEM_PROMPT"] ?? "You are a helpful assistant.",
+      baseUrl: process.env["OPENAI_BASE_URL"],
     },
     cap: {
       tenantId: process.env["CAP_TENANT_ID"] ?? "default_tenant",

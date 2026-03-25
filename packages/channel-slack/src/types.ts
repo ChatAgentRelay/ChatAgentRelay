@@ -15,6 +15,8 @@ export type SlackMessageEvent = {
   team?: string | undefined;
   channel_type?: string | undefined;
   thread_ts?: string | undefined;
+  bot_id?: string | undefined;
+  bot_profile?: Record<string, unknown> | undefined;
 };
 
 export type SlackSocketEvent = {

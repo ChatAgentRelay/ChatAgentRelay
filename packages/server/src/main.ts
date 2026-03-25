@@ -10,7 +10,7 @@ async function main() {
 
   console.log("[CAP] Starting server...");
   console.log(`[CAP] Tenant: ${config.cap.tenantId}, Workspace: ${config.cap.workspaceId}`);
-  console.log(`[CAP] OpenAI model: ${config.openai.model}`);
+  console.log(`[CAP] OpenAI model: ${config.openai.model}${config.openai.baseUrl ? `, base URL: ${config.openai.baseUrl}` : ""}`);
   console.log(`[CAP] SQLite path: ${config.cap.sqlitePath}`);
 
   const ledgerStore = new SqliteLedgerStore(config.cap.sqlitePath);
@@ -19,36 +19,26 @@ async function main() {
     apiKey: config.openai.apiKey,
     model: config.openai.model,
     systemPrompt: config.openai.systemPrompt,
+    baseUrl: config.openai.baseUrl,
   });
   const sender = new SlackSender({ botToken: config.slack.botToken });
-
-  const pipeline = await FirstExecutablePathPipeline.create({
-    middleware: {
-      route: {
-        route_id: config.cap.routeId,
-        backend: "openai",
-        reason: "default_slack_route",
-      },
-    },
-    backend,
-    ingress,
-    sendFn: async () => ({ providerMessageId: "pending" }),
-    ledgerStore,
-  });
 
   const socket = new SlackSocketConnection({
     appToken: config.slack.appToken,
     onMessage: async (socketEvent: SlackSocketEvent) => {
       const event = socketEvent.payload.event;
       if (event.type !== "message") return;
-      if ((event as SlackMessageEvent).subtype !== undefined) return;
+
+      const msgEvent = event as SlackMessageEvent;
+      if (msgEvent.subtype !== undefined) return;
+      if (msgEvent.bot_id !== undefined) return;
 
       console.log(`[CAP] Received message from ${event.user} in ${event.channel}: ${event.text}`);
 
       try {
         const sendFn = sender.createSendFn(event.channel, event.thread_ts);
 
-        const localPipeline = await FirstExecutablePathPipeline.create({
+        const pipelineInstance = await FirstExecutablePathPipeline.create({
           middleware: {
             route: {
               route_id: config.cap.routeId,
@@ -62,16 +52,22 @@ async function main() {
           ledgerStore,
         });
 
-        const result = await localPipeline.execute(event);
+        const result = await pipelineInstance.execute(event);
 
         console.log(`[CAP] Pipeline completed: ${result.events.length} events`);
         console.log(`[CAP] Response: ${result.explanation.backendResponse.slice(0, 100)}`);
       } catch (error) {
         console.error(`[CAP] Pipeline error:`, error instanceof Error ? error.message : error);
+        if (error instanceof Error && error.stack) {
+          console.error(`[CAP] Stack:`, error.stack);
+        }
       }
     },
     onError: (error) => {
       console.error(`[CAP] Socket error:`, error.message);
+    },
+    onReconnect: (attempt) => {
+      console.log(`[CAP] Reconnecting to Slack (attempt ${attempt})...`);
     },
   });
 
