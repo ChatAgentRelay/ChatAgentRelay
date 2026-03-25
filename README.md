@@ -1,5 +1,10 @@
 # CAP
 
+[![CI](https://github.com/anthropics/cap/actions/workflows/ci.yml/badge.svg)](https://github.com/anthropics/cap/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-200%20pass-brightgreen)](packages/)
+[![Bun](https://img.shields.io/badge/runtime-Bun-f9f1e1?logo=bun)](https://bun.sh)
+
 CAP is an open-source framework for the layer between chat platforms and agents.
 
 As projects like Open SWE show, bringing agent workflows into tools like Slack is a natural starting point: users are already there, collaboration is already there, and lightweight remote agent interaction fits naturally into existing messaging environments.

@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck all packages
+        run: |
+          for pkg in packages/*/; do
+            if [ -f "$pkg/tsconfig.json" ]; then
+              echo "==> Typechecking $pkg"
+              cd "$pkg"
+              bunx tsc --noEmit
+              cd -
+            fi
+          done
+
+      - name: Run tests
+        run: bun test --recursive
+
+      - name: Verify test count
+        run: |
+          output=$(bun test --recursive 2>&1)
+          echo "$output"
+          if echo "$output" | grep -q "fail"; then
+            if ! echo "$output" | grep -q "0 fail"; then
+              echo "FAIL: Tests failed"
+              exit 1
+            fi
+          fi
+
+  build-and-release:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+
+      - name: Build binaries
+        run: CAP_VERSION="${GITHUB_REF_NAME#v}" bash scripts/build.sh
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: dist/*
+
+      - name: Publish to npm (dry-run)
+        run: npm publish --dry-run
+
+      # Uncomment to enable npm publishing:
+      # - name: Publish to npm
+      #   run: |
+      #     echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > .npmrc
+      #     npm publish --dry-run
