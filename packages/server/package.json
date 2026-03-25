@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "start": "bun run src/main.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "bun test"
   },
   "dependencies": {
     "@cap/pipeline": "workspace:*",
