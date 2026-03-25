@@ -1,105 +1,84 @@
 # Contributing to CAP
 
-Thanks for contributing.
+Thank you for your interest in contributing to CAP.
 
-CAP is currently a docs-first, RFC-first repository moving into a narrowly scoped implementation-readiness phase.
+## Development Setup
 
-## Source of truth
+```bash
+git clone https://github.com/your-org/cap.git
+cd cap
+bun install
+```
 
-When artifacts disagree, use this precedence order:
-1. `docs/rfcs/`
-2. `docs/decisions/`
-3. `README.md`
-4. `docs/research/`
+## Running Tests
 
-For machine-readable contract work:
-- `docs/schemas/` is the authoritative schema layer
-- implementation code must consume that layer rather than replace it
+```bash
+# All tests
+bun test --recursive
 
-## Current repository stage
+# Single package
+bun test packages/pipeline
 
-The repository is not open for broad runtime implementation yet.
+# With watch mode
+bun test --watch packages/middleware
+```
 
-The current implementation-readiness baseline is limited to:
-- the frozen seven-event fixture baseline under `docs/schemas/fixtures/first-executable-path/`
-- the completed validation harness described in `docs/decisions/first-executable-path-validation-harness-scope.md`
-- the bounded in-memory ledger prototype described in `docs/decisions/initial-package-boundaries.md`
+## Type Checking
 
-The governing decision documents for this phase are:
-- `docs/decisions/implementation-bootstrap-baseline.md`
-- `docs/decisions/first-executable-path-validation-harness-scope.md`
-- `docs/decisions/initial-package-boundaries.md`
-- `docs/decisions/first-executable-path-next-implementation-step.md`
-- `docs/decisions/first-executable-path-implementation-checklist.md`
+```bash
+# All packages
+cd packages/<name> && bunx tsc --noEmit
 
-That means the allowed current code packages are:
-- `packages/contract-harness`
-- `packages/event-ledger`
+# Or from root
+bun run typecheck
+```
 
-## Before changing code
+## Project Structure
 
-If a proposed change affects architecture meaning, contract shape, or implementation boundaries:
-- update the relevant RFCs and/or decision documents first
-- update schema artifacts under `docs/schemas/` when machine-readable contract shape changes
-- then update dependent code
+- `docs/rfcs/` — normative architecture specifications (source of truth)
+- `docs/schemas/` — JSON Schema contract layer (frozen fixture baseline)
+- `docs/decisions/` — open questions, technology selection, ADRs
+- `packages/` — implementation packages
 
-Code should follow the docs and schema layer.
-Code should not become a competing source of truth.
+## Contribution Guidelines
 
-## Scope discipline
+### Code
 
-In the current phase, contributors should avoid starting:
-- channel runtime implementation
-- backend runtime implementation
-- ledger persistence or migrations
-- replay/query APIs
-- projections or read models
-- brokers, queues, or orchestration services
-- additional runtime packages beyond the approved current package boundary
+- TypeScript strict mode is enforced across all packages
+- All canonical events must validate against the frozen schema layer
+- New adapters should pass the `@cap/adapter-conformance` test suite
+- Avoid comments that merely narrate what code does — only explain non-obvious intent
+- Each PR should have a clear, narrow scope
 
-If a change appears to require any of the above, stop at the review gate and update the governing docs before proceeding.
+### Documentation
 
-## Development baseline
+- RFCs use RFC 2119 keywords (MUST, SHOULD, MAY) precisely
+- New architectural changes must be reflected in RFCs before or alongside implementation
+- English is the primary language for all normative documents
 
-The current implementation-readiness baseline uses:
-- Bun for runtime, package management, and tests
-- strict TypeScript configuration at the repository root
-- a monorepo `packages/` layout
+### Commits
 
-Keep new tooling lightweight unless the repository decisions explicitly require more.
+- Keep each commit narrowly scoped to a single feature or fix
+- Write commit messages that explain "why" rather than "what"
+- Run `bun test --recursive` before committing
 
-## Pull request guidance
+### Adding a New Adapter
 
-When submitting a change:
-- explain which governing docs it follows
-- call out any RFC, decision, or schema updates included
-- keep changes narrowly scoped to the currently approved slice
+1. Create a new package under `packages/`
+2. Implement the `ChannelIngress` or `BackendAdapter` interface
+3. Add conformance tests using `@cap/adapter-conformance`
+4. Add unit tests for adapter-specific behavior
+5. Update `docs/decisions/initial-package-boundaries.md` if adding a new approved package
 
-## Post-harness review gate
+### Pull Requests
 
-After the validation-harness milestone is complete, work must stop at the review gate defined in `docs/decisions/first-executable-path-validation-harness-scope.md`.
+- All PRs run CI automatically (test + typecheck)
+- PRs should include tests for new functionality
+- PRs that change architecture should reference or update the relevant RFC
 
-That review must confirm:
-- the schema layer is consumable as code-facing input
-- the frozen seven-event chain works as a machine-readable baseline
-- `packages/contract-harness` satisfies the validation-harness milestone
-- `packages/event-ledger` remains only a bounded in-memory prototype for append, replay, and audit helpers over already-canonical events
-- no RFC, decision, or schema corrections are required before any runtime slice is discussed
+## Architecture Resources
 
-Passing this review gate does not itself approve channel runtime work, backend runtime work, ledger persistence, replay APIs, projections, brokers, orchestration services, or broader package expansion.
-
-## Commit workflow after the next commit
-
-After the next commit, each future approved feature should land as its own commit.
-
-That means contributors should:
-- keep each feature commit narrowly scoped
-- avoid bundling unrelated work into the same commit
-- keep commit granularity aligned to the currently approved slice
-- treat this workflow rule as a repository-governance rule, not as approval for broader runtime implementation
-
-This commit workflow does not change the docs-first source-of-truth hierarchy. RFCs, decisions, schemas, and approved scope boundaries still govern what work is allowed.
-
-## Questions and proposals
-
-If you want to broaden scope, start by proposing the change in the appropriate decision or RFC document rather than introducing the runtime surface first.
+- [Reference Architecture](docs/rfcs/architecture/reference-architecture.md)
+- [Channel Adapter Interface Spec](docs/rfcs/adapters/channel-adapter-interface-spec.md)
+- [Backend Adapter Interface Spec](docs/rfcs/adapters/backend-adapter-interface-spec.md)
+- [Getting Started Guide](docs/getting-started.md)
