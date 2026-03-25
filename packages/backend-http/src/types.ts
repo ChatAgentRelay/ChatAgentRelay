@@ -5,12 +5,18 @@ export type BackendConfig = {
   timeoutMs?: number;
 };
 
+export type ConversationTurn = {
+  role: "user" | "assistant";
+  content: string;
+};
+
 export type InvocationContext = {
   invocationEvent: CanonicalEvent;
   messageText: string;
   route?: { route_id: string; reason: string } | undefined;
   policy?: { policy_id: string; decision: string } | undefined;
   backendSessionHandle?: string | undefined;
+  conversationHistory?: ConversationTurn[] | undefined;
 };
 
 export type BackendInvocationRequest = {

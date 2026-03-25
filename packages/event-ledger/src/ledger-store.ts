@@ -32,4 +32,8 @@ export class InMemoryEventLedgerStore implements LedgerStore {
       .filter((event): event is StoredCanonicalEvent => event !== undefined)
       .map(cloneEvent);
   }
+
+  getByConversationId(conversationId: string): StoredCanonicalEvent[] {
+    return this.getAll().filter((event) => event.conversation_id === conversationId);
+  }
 }

@@ -1,8 +1,10 @@
 import type { CanonicalEvent } from "@cap/contract-harness";
 import { ContractHarnessValidators } from "@cap/contract-harness";
+import type { ConversationTurn } from "@cap/backend-http";
 import { MiddlewarePipeline } from "@cap/middleware";
 import { DeliveryOrchestrator } from "@cap/delivery";
 import { EventLedgerAppender, EventLedgerReader, InMemoryEventLedgerStore } from "@cap/event-ledger";
+import type { LedgerStore } from "@cap/event-ledger";
 import type { BackendAdapter, ChannelIngress, PipelineConfig, PipelineResult } from "./types";
 
 function deriveBlockedEvent(
@@ -38,6 +40,7 @@ export class FirstExecutablePathPipeline {
     private readonly delivery: DeliveryOrchestrator,
     private readonly appender: EventLedgerAppender,
     private readonly reader: EventLedgerReader,
+    private readonly store: LedgerStore,
     private readonly sendFn: (text: string) => Promise<{ providerMessageId: string }>,
     private readonly validators: ContractHarnessValidators,
   ) {}
@@ -52,8 +55,21 @@ export class FirstExecutablePathPipeline {
     ]);
     const reader = new EventLedgerReader(store);
     return new FirstExecutablePathPipeline(
-      config.ingress, middleware, config.backend, delivery, appender, reader, config.sendFn, validators,
+      config.ingress, middleware, config.backend, delivery, appender, reader, store, config.sendFn, validators,
     );
+  }
+
+  private buildConversationHistory(conversationId: string): ConversationTurn[] {
+    const events = this.store.getByConversationId(conversationId);
+    const turns: ConversationTurn[] = [];
+    for (const event of events) {
+      if (event.event_type === "message.received" && typeof event.payload["text"] === "string") {
+        turns.push({ role: "user", content: event.payload["text"] });
+      } else if (event.event_type === "agent.response.completed" && typeof event.payload["text"] === "string") {
+        turns.push({ role: "assistant", content: event.payload["text"] });
+      }
+    }
+    return turns;
   }
 
   async execute(rawInput: unknown): Promise<PipelineResult> {
@@ -69,9 +85,12 @@ export class FirstExecutablePathPipeline {
     this.appendToLedger(mwResult.routeEvent);
     this.appendToLedger(mwResult.invocationEvent);
 
+    const conversationHistory = this.buildConversationHistory(messageReceived.conversation_id);
+
     const backendResult = await this.backend.invoke({
       invocationEvent: mwResult.invocationEvent,
       messageText: messageReceived.payload["text"] as string,
+      conversationHistory,
       route: {
         route_id: mwResult.routeEvent.payload["route"] as string,
         reason: mwResult.routeEvent.payload["reason"] as string,

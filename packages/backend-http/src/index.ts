@@ -7,6 +7,7 @@ export type {
   BackendErrorResponse,
   BackendInvocationRequest,
   BackendResponse,
+  ConversationTurn,
   InvocationContext,
   InvocationFailure,
   InvocationResult,

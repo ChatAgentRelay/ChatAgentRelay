@@ -34,12 +34,21 @@ export class OpenAIBackend {
   async invoke(context: InvocationContext): Promise<InvocationResult> {
     const requestId = `req_${crypto.randomUUID()}`;
 
+    const messages: OpenAIChatRequest["messages"] = [
+      { role: "system", content: this.systemPrompt },
+    ];
+
+    if (context.conversationHistory) {
+      for (const turn of context.conversationHistory) {
+        messages.push({ role: turn.role, content: turn.content });
+      }
+    }
+
+    messages.push({ role: "user", content: context.messageText });
+
     const chatRequest: OpenAIChatRequest = {
       model: this.model,
-      messages: [
-        { role: "system", content: this.systemPrompt },
-        { role: "user", content: context.messageText },
-      ],
+      messages,
     };
 
     let rawResponse: Response;

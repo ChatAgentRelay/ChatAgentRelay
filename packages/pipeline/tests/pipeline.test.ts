@@ -249,4 +249,36 @@ describe("first executable path pipeline (end-to-end)", () => {
     const pipeline = await FirstExecutablePathPipeline.create(config);
     await expect(pipeline.execute({ text: "" })).rejects.toThrow("Ingress failed");
   });
+
+  it("builds conversation history from ledger for multi-turn context", async () => {
+    const { InMemoryEventLedgerStore } = await import("@cap/event-ledger");
+    const sharedStore = new InMemoryEventLedgerStore();
+
+    const firstInput = validInput();
+    const config = await makeConfig({ ledgerStore: sharedStore });
+    const pipeline1 = await FirstExecutablePathPipeline.create(config);
+    const result1 = await pipeline1.execute(firstInput);
+    expect(result1.events).toHaveLength(7);
+
+    const conversationId = result1.events[0]!.conversation_id;
+
+    const secondInput = {
+      ...firstInput,
+      client_message_id: "web_msg_002",
+      text: "What is the tracking number?",
+      conversation_id: conversationId,
+      session_id: result1.events[0]!.session_id,
+    };
+
+    const config2 = await makeConfig({ ledgerStore: sharedStore });
+    const pipeline2 = await FirstExecutablePathPipeline.create(config2);
+    const result2 = await pipeline2.execute(secondInput);
+    expect(result2.events).toHaveLength(7);
+
+    const stored = sharedStore.getByConversationId(conversationId);
+    const userMsgs = stored.filter((e) => e.event_type === "message.received");
+    const assistantMsgs = stored.filter((e) => e.event_type === "agent.response.completed");
+    expect(userMsgs.length).toBeGreaterThanOrEqual(2);
+    expect(assistantMsgs.length).toBeGreaterThanOrEqual(2);
+  });
 });

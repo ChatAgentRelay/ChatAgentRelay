@@ -13,6 +13,7 @@ export interface LedgerStore {
   append(event: StoredCanonicalEvent): StoredCanonicalEvent | undefined;
   getById(eventId: string): StoredCanonicalEvent | undefined;
   getAll(): StoredCanonicalEvent[];
+  getByConversationId(conversationId: string): StoredCanonicalEvent[];
 }
 
 export type AppendSuccess = {
