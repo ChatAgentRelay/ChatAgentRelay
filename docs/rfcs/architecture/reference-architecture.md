@@ -20,12 +20,12 @@ This RFC defines the recommended reference architecture for CAP.
 
 `Channel Adapter -> Canonical Event Schema -> Middleware/Governance Pipeline -> Routing Layer -> Backend Agent Adapter -> Delivery Layer -> Event Ledger / Audit / Replay / Observability`
 
-这是本项目的唯一推荐参考架构。
+This is the sole recommended reference architecture for this project.
 
 ## 4. Minimum Kernel and Versioned Roadmap
 
 ### Minimum Kernel
-CAP 的最小内核应收敛为 6 个必须组件：
+The minimum kernel for CAP SHOULD converge on six required components:
 1. one channel adapter
 2. one canonical event ledger
 3. one middleware / policy stage
@@ -44,14 +44,14 @@ A system that cannot complete this loop is not yet CAP.
 ## 5. Logical Components
 
 ### 1. Control Plane
-职责：
-- tenant / workspace / channel / credential 管理
-- policy / route / quota 配置
+Responsibilities:
+- tenant / workspace / channel / credential management
+- policy / route / quota configuration
 - adapter / backend registration
 - audit access control
 
 ### 2. Gateway / Data Plane
-职责：
+Responsibilities:
 - ingress / egress adapters
 - canonicalization
 - middleware execution
@@ -59,13 +59,13 @@ A system that cannot complete this loop is not yet CAP.
 - delivery orchestration
 
 ### 3. Agent Adapter Layer
-职责：
+Responsibilities:
 - HTTP / streaming / MCP / A2A / framework runtime adapters
 - runtime session mapping
 - tool / handoff / error event mapping
 
 ### 4. Event Ledger
-职责：
+Responsibilities:
 - append-only event store
 - replay / audit / history
 - conversation state reconstruction inputs
@@ -80,13 +80,13 @@ Companion stores:
 - projections for queue / assignment / latest delivery / latest handoff state
 
 ### 5. Identity & Handoff Services
-职责：
+Responsibilities:
 - external identity mapping
 - queue / assignment / operator ownership projection
 - handoff lifecycle projection
 
 ### 6. Observability
-职责：
+Responsibilities:
 - structured logs
 - traces
 - metrics
@@ -265,13 +265,13 @@ Important distinction:
 
 ## Build-vs-Adopt
 
-- **Gateway / control plane**：自研；参考 OpenClaw
-- **Canonical protocol / event schema**：自研；参考 Bot Framework + Rasa
-- **Channel adapter SDK / contract**：自研；参考 Bot Framework + opsdroid + Omni
-- **Backend agent adapter contract**：自研；参考 Agent Kernel
-- **Event ledger / replay / audit**：自研逻辑，底层存储实现单独选型，不在本 RFC 中预设为某个数据库
-- **企业运营 / inbox / handoff 经验**：借鉴 Chatwoot / Chaskiq，不直接照搬产品模型
-- **完整现成底座复用**：当前不建议直接选单一项目作为基础底座
+- **Gateway / control plane**: build in-house; reference OpenClaw
+- **Canonical protocol / event schema**: build in-house; reference Bot Framework + Rasa
+- **Channel adapter SDK / contract**: build in-house; reference Bot Framework + opsdroid + Omni
+- **Backend agent adapter contract**: build in-house; reference Agent Kernel
+- **Event ledger / replay / audit**: in-house logic; underlying storage is selected separately — this RFC does not prescribe a specific database
+- **Enterprise operations / inbox / handoff experience**: draw on Chatwoot / Chaskiq; do not copy their product model wholesale
+- **Reuse of a complete off-the-shelf foundation**: not currently recommended; selecting a single project as the base foundation is premature
 
 ## Recommended v1 Scope
 
@@ -314,6 +314,6 @@ The architecture SHOULD:
 
 ## 13. Final Decision
 
-本项目的实现路线应收敛为：
+The implementation path for this project SHOULD converge to:
 
-**组合借鉴多个项目的架构模式，自研中间层。**
+**Combine architectural patterns from multiple projects and build the middleware layer in-house.**

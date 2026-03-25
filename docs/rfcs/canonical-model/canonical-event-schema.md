@@ -15,9 +15,9 @@ This RFC defines the CAP canonical event envelope as the protocol center of grav
 
 ## 2. Purpose
 
-本文件定义平台内部唯一的系统事实来源：**canonical event envelope**。
+This document defines the platform's single source of system truth: the **canonical event envelope**.
 
-所有 channel adapter、backend agent adapter、routing、governance、audit、replay、delivery、handoff 都必须围绕该模型工作。
+All channel adapters, backend agent adapters, routing, governance, audit, replay, delivery, and handoff MUST operate around this model.
 
 ## 3. Normative Language
 
@@ -29,12 +29,12 @@ This RFC defines the canonical event envelope for CAP. It is the source of truth
 
 ## 5. Design Principles
 
-- 事件是 **append-only、可回放** 的
-- 平台内部路由 / 审计 / 策略都只基于 canonical event 运作
-- conversation state 通过 event ledger 重建，而不是作为唯一真相直接覆盖存储
-- 渠道差异通过 `provider_extensions` 保留，不强行压平
-- 交付语义采用 **at-least-once + idempotency**，而不是 exactly-once
-- REST / WebSocket / MCP / RPC 都只是同一 canonical model 的绑定，而不是独立协议
+- Events are **append-only and replayable**
+- All internal routing, audit, and policy decisions operate solely on canonical events
+- Conversation state is reconstructed from the event ledger, not overwritten as a mutable store
+- Channel differences are preserved via `provider_extensions`, not forcefully flattened
+- Delivery semantics use **at-least-once + idempotency**, not exactly-once
+- REST / WebSocket / MCP / RPC are all bindings of the same canonical model, not independent protocols
 
 ## 6. Minimal Kernel Relevance
 
@@ -165,20 +165,20 @@ Allowed values:
 
 ## Metadata Layers
 
-为避免配置、绑定信息与事件事实混淆，平台应维持三层元数据边界：
+To avoid conflating configuration and binding information with event facts, the platform SHOULD maintain three metadata boundary layers:
 
 1. **Channel Instance Metadata**
-   - 作用域：`channel_instance_id`
-   - 示例：provider 名称、tenant-scoped credentials、默认 rate limit、默认 delivery config
+   - Scope: `channel_instance_id`
+   - Examples: provider name, tenant-scoped credentials, default rate limit, default delivery config
 2. **Conversation / Route Binding Metadata**
-   - 作用域：某个 conversation / thread / route binding
-   - 示例：persona、locale、visibility override、handoff policy、segment tags
+   - Scope: a specific conversation / thread / route binding
+   - Examples: persona, locale, visibility override, handoff policy, segment tags
 3. **Event-Level Provider Metadata**
-   - 作用域：单条 canonical event
-   - 位置：`provider_extensions`
-   - 示例：provider message id、provider event type、native receipt fields、callback payload 摘要
+   - Scope: a single canonical event
+   - Location: `provider_extensions`
+   - Examples: provider message id, provider event type, native receipt fields, callback payload digest
 
-协议层 MUST NOT 混淆这三层；event ledger 只保存事件事实与必要引用，不把所有静态配置复制进每条事件。
+The protocol layer MUST NOT conflate these three layers; the event ledger stores only event facts and necessary references, without copying all static configuration into every event.
 
 ## Payload Conventions
 
@@ -259,19 +259,19 @@ Identity-related payloads should use one of:
 - `challenge_sent`
 - `rejected`
 
-平台 MAY 提供 identity resolution pipeline，但 MUST 把最终结果写成 canonical events 供 audit / replay 使用。
+The platform MAY provide an identity resolution pipeline, but MUST write final results as canonical events for audit / replay use.
 
 ## Blocked and Rejected Event Semantics
 
-以下情况不应静默丢弃，而应进入 ledger：
+The following situations SHOULD NOT be silently discarded; they SHOULD enter the ledger:
 - policy deny
 - dedupe / idempotency rejection
 - invalid state transition
 - chain-depth / recursion protection
 - provider capability rejection
 
-建议统一使用：
-- 原始触发事件 + `policy.decision.made` / `event.blocked`
+Recommended unified approach:
+- original triggering event + `policy.decision.made` / `event.blocked`
 - `payload.reason`
 - `payload.block_stage`
 - `payload.retryable`
@@ -464,9 +464,9 @@ Adds optional extensions for:
 
 ## 9. Non-Goals
 
-- 不试图在 v1 中完全统一所有 provider-native feature
-- 不承诺 exactly-once delivery
-- 不把 UI 私有状态视为协议事实来源
+- Does not attempt to fully unify all provider-native features in v1
+- Does not promise exactly-once delivery
+- Does not treat UI-private state as a protocol source of truth
 
 ## 10. Conformance
 

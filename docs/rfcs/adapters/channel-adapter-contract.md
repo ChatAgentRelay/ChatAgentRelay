@@ -14,7 +14,7 @@ This RFC defines the contract between provider-native chat transports and the CA
 
 ## 2. Purpose
 
-定义聊天平台适配器如何将 provider-native ingress / egress 绑定到 canonical event schema。
+This RFC defines how chat platform adapters bind provider-native ingress / egress to the canonical event schema.
 
 ## 3. Normative Language
 
@@ -33,20 +33,20 @@ Adapters MAY support richer features later, but MUST preserve canonical semantic
 
 ## 5. Responsibilities
 
-Channel adapter 负责：
-- 接收入站 webhook / polling / socket 事件
-- 校验签名、token 或来源
-- 幂等去重
-- 将 provider-native payload 转换为 canonical event
-- 发送出站消息 / 更新 / 删除（若 provider 支持）
-- 回传 delivery status / failure reason
-- 维护 provider-native extension 到 `provider_extensions`
+The channel adapter is responsible for:
+- receiving inbound webhook / polling / socket events
+- verifying signatures, tokens, or origin
+- idempotent deduplication
+- converting provider-native payloads to canonical events
+- sending outbound messages / updates / deletes (if the provider supports them)
+- reporting delivery status / failure reasons
+- maintaining provider-native extensions in `provider_extensions`
 
-Adapter **不负责**：
+The adapter is **not** responsible for:
 - route decision
 - policy decision
 - tenant-level business governance
-- canonical conversation identity 的最终归属
+- ultimate ownership of canonical conversation identity
 
 ## Lifecycle
 
@@ -61,10 +61,10 @@ Required lifecycle operations:
 
 ## Capability Model
 
-平台应显式区分：
-- **channel type**：如 `slack`、`whatsapp`、`webchat`
-- **provider**：如官方 API、BSP、第三方 SDK、bridge service
-- **channel instance**：某租户下的一组 credentials + config + provider binding
+The platform SHOULD explicitly distinguish:
+- **channel type**: e.g. `slack`, `whatsapp`, `webchat`
+- **provider**: e.g. official API, BSP, third-party SDK, bridge service
+- **channel instance**: a set of credentials + config + provider binding under a tenant
 
 `describeCapabilities()` should declare support for:
 - `text`
@@ -130,7 +130,7 @@ Egress must:
 
 ## Capability Fallback and Transcoding
 
-当目标渠道不支持 canonical payload 中的某类能力时，adapter 或 delivery layer 必须执行明确的 fallback / transcoding。
+When the target channel does not support a capability in the canonical payload, the adapter or delivery layer MUST perform explicit fallback / transcoding.
 
 Recommended defaults:
 - rich text -> plain text
@@ -221,9 +221,9 @@ Each adapter must provide:
 
 ## Ownership Boundary
 
-- **adapter** 负责 `translate`
-- **middleware core** 负责 `decide / enforce / record`
-- **delivery orchestration** 负责 retry / dead-letter policy
+- **adapter** is responsible for `translate`
+- **middleware core** is responsible for `decide / enforce / record`
+- **delivery orchestration** is responsible for retry / dead-letter policy
 
 ## 6. Versioning and Phases
 
@@ -257,9 +257,9 @@ v1 channel work should include:
 - at least one concrete ingress shape
 - at least one concrete outbound delivery path
 
-具体选择哪个 channel/provider，以及是否同时做多个 adapter，应由单独的 implementation decision 决定，而不是由本 RFC 预设。
+Which channel/provider to choose and whether to implement multiple adapters concurrently SHOULD be decided by a separate implementation decision, not prescribed by this RFC.
 
-v1 adapter 目标不是覆盖全部 provider feature，而是验证：
+The v1 adapter goal is not to cover all provider features, but to validate:
 - canonical ingress/egress shape
 - idempotency
 - capability declaration

@@ -14,7 +14,7 @@ This RFC defines the ordered processing pipeline and governance responsibilities
 
 ## 2. Purpose
 
-定义中间层固定处理流水线，以及企业可落地的治理边界。
+This RFC defines the middleware layer's fixed processing pipeline and governance boundaries that enterprises can operationalize.
 
 ## 3. Normative Language
 
@@ -35,18 +35,18 @@ The minimum kernel explicitly excludes, for v0/v1, full CRM-like inbox behavior,
 
 ## 5. Ordered Processing Pipeline
 
-1. 接收入站渠道事件
-2. 校验签名 / 来源鉴权
-3. 幂等与重复 webhook 去重
-4. 标准化为 canonical event
-5. 补齐 tenant / identity / conversation / trace 上下文
-6. 执行治理与策略中间件
-7. 生成 route decision
-8. 进入 backend agent adapter 或 human queue
-9. 处理流式回复 / tool 事件 / error 事件
-10. 转换为出站渠道动作
-11. 执行 delivery / retry / dead-letter 逻辑
-12. 记录 event ledger / trace / audit / metrics
+1. Receive inbound channel events
+2. Verify signatures / source authentication
+3. Idempotency and deduplication of duplicate webhooks
+4. Normalize to canonical events
+5. Enrich tenant / identity / conversation / trace context
+6. Execute governance and policy middleware
+7. Produce route decision
+8. Enter backend agent adapter or human queue
+9. Handle streaming replies / tool events / error events
+10. Translate to outbound channel actions
+11. Execute delivery / retry / dead-letter logic
+12. Record event ledger / trace / audit / metrics
 
 ### Pipeline Diagram
 ```mermaid
@@ -186,11 +186,11 @@ Idempotency checks should happen inside the same serialized processing scope use
 
 ## Protocol Trace vs Canonical Event
 
-平台应区分两类记录：
-- **canonical event**：业务与治理事实，用于 routing / policy / replay / audit
-- **protocol trace**：transport / provider 层交互事实，用于调试、运维、取证
+The platform SHOULD distinguish two classes of record:
+- **canonical event**: business and governance facts, used for routing / policy / replay / audit
+- **protocol trace**: transport / provider-layer interaction facts, used for debugging, operations, and forensic analysis
 
-Protocol trace 可以先于 conversation resolution 到达，必要时可先缓冲，再在 conversation 上下文建立后关联。协议层不应把所有 trace 原文直接塞进 canonical event。
+Protocol trace MAY arrive before conversation resolution; when necessary it MAY be buffered first and then correlated after conversation context is established. The protocol layer SHOULD NOT embed raw trace payloads wholesale into canonical events.
 
 ## Audit Minimum Fields
 
@@ -217,10 +217,10 @@ Every auditable decision should capture at least:
 
 ## Ownership Boundary
 
-- **adapters** 负责 `translate`
-- **middleware core** 负责 `decide / enforce / record`
-- **backend adapters** 负责 runtime invocation
-- **operator / inbox** 只是 handoff 的消费界面，不是核心状态来源
+- **adapters** are responsible for `translate`
+- **middleware core** is responsible for `decide / enforce / record`
+- **backend adapters** are responsible for runtime invocation
+- **operator / inbox** is only the consumption surface for handoff, not the source of core state
 
 ## 6. Versioning and Delivery Phases
 

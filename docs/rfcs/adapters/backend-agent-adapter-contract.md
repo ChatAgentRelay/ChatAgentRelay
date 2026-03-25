@@ -14,7 +14,7 @@ This RFC defines the backend-facing contract that allows CAP to integrate multip
 
 ## 2. Purpose
 
-定义 middleware 与任意 Agent / workflow runtime 之间的稳定边界。
+This RFC defines the stable boundary between middleware and arbitrary Agent / workflow runtimes.
 
 ## 3. Normative Language
 
@@ -32,21 +32,21 @@ Streaming, tool events, cancellation, and handoff signaling SHOULD be designed i
 
 ## 5. Goals
 
-- 支持多种 backend runtime
-- 隔离 framework-specific objects
-- 保持 session / streaming / tool call / error / handoff 的统一语义
-- 保证 trace / correlation / idempotency 在边界两侧可透传
+- Support multiple backend runtimes
+- Isolate framework-specific objects
+- Preserve unified semantics for session / streaming / tool call / error / handoff
+- Ensure trace / correlation / idempotency can pass through on both sides of the boundary
 
 ## Non-Goals
 
-- 不要求所有 backend 采用同一种运行时
-- 不要求 backend 暴露相同的内部 memory / tool engine
-- 不要求 platform core 理解 backend 私有对象
+- Not require all backends to use the same runtime
+- Not require backends to expose the same internal memory / tool engine
+- Not require the platform core to understand backend-private objects
 
 ## Required Operations
 
 ### `describeCapabilities()`
-返回 backend adapter 支持的能力：
+Returns the capabilities supported by the backend adapter:
 - sync response
 - async callback
 - streaming
@@ -56,17 +56,17 @@ Streaming, tool events, cancellation, and handoff signaling SHOULD be designed i
 - human handoff signaling
 
 ### `createOrResumeSession(request)`
-作用：
-- 在 backend runtime 中建立或恢复 backend session
-- 将 platform conversation / session 与 backend session 建立映射
+Purpose:
+- Establish or resume a backend session in the backend runtime
+- Map platform conversation / session to backend session
 
 Rules:
-- backend session 与 platform `conversation_id` / `session_id` 必须分层，不可混淆
-- adapter 负责 runtime mapping
-- middleware core 负责 canonical conversation identity
+- Backend session and platform `conversation_id` / `session_id` MUST be kept distinct; they MUST NOT be conflated
+- The adapter is responsible for runtime mapping
+- The middleware core is responsible for canonical conversation identity
 
 ### `handleEvent(event)`
-接收 canonical event 并进行处理。
+Receives a canonical event and processes it.
 
 Input:
 - canonical event envelope
@@ -218,9 +218,9 @@ Adapter maps between them.
 
 ## Ownership Boundary
 
-- **backend adapter** 负责 runtime invocation 与 runtime-object mapping
-- **middleware core** 负责 canonical conversation identity、routing、governance、recording
-- **backend runtime** 不应成为 audit / replay 的唯一真相来源
+- **backend adapter** is responsible for runtime invocation and runtime-object mapping
+- **middleware core** is responsible for canonical conversation identity, routing, governance, and recording
+- **backend runtime** MUST NOT be the sole source of truth for audit / replay
 
 ## 6. Versioning and Phases
 
@@ -250,9 +250,9 @@ Adapter maps between them.
 
 v1 backend work should include at least one real adapter path that can validate the contract.
 
-具体采用 generic binding、framework-specific binding，还是两者组合，应由单独的 implementation decision 决定，而不是由本 RFC 预设。
+Whether to use generic binding, framework-specific binding, or a combination SHOULD be decided by a separate implementation decision, not prescribed by this RFC.
 
-目标是先验证：
+The goal is first to validate:
 - sync + streaming response
 - session mapping
 - tool event mapping
