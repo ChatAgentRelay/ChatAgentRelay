@@ -24,4 +24,9 @@ export const SPECIALIZED_SCHEMA_PATHS: Record<FirstExecutablePathEventType, stri
   "message.sent": "docs/schemas/canonical-model/events/messaging/message-sent.schema.json",
 };
 
+export const EXTENDED_SCHEMA_PATHS: Record<string, string> = {
+  ...SPECIALIZED_SCHEMA_PATHS,
+  "event.blocked": "docs/schemas/canonical-model/events/error/event-blocked.schema.json",
+};
+
 export const FIXTURE_DIR_PATH = "docs/schemas/fixtures/first-executable-path";

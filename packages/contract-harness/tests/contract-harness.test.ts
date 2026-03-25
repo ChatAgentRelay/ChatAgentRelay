@@ -9,10 +9,14 @@ import {
 } from "../src";
 
 describe("contract harness", () => {
-  test("loads specialized schemas for the frozen seven-event chain", async () => {
+  test("loads specialized schemas for all known event types", async () => {
     const specializedSchemas = await loadSpecializedSchemas();
+    const keys = Object.keys(specializedSchemas);
 
-    expect(Object.keys(specializedSchemas)).toEqual([...FIRST_EXECUTABLE_PATH_EVENT_ORDER]);
+    for (const eventType of FIRST_EXECUTABLE_PATH_EVENT_ORDER) {
+      expect(keys).toContain(eventType);
+    }
+    expect(keys).toContain("event.blocked");
   });
 
   test("validates every happy-path fixture envelope-first and specialized-second", async () => {

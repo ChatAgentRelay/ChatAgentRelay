@@ -1,5 +1,5 @@
 import { readFile } from "node:fs/promises";
-import { ENVELOPE_SCHEMA_PATH, SPECIALIZED_SCHEMA_PATHS } from "./constants";
+import { ENVELOPE_SCHEMA_PATH, EXTENDED_SCHEMA_PATHS } from "./constants";
 import { resolveRepoPath } from "./paths";
 
 export type JsonSchema = Record<string, unknown>;
@@ -17,7 +17,7 @@ export async function loadEnvelopeSchema(): Promise<JsonSchema> {
 
 export async function loadSpecializedSchemas(): Promise<Record<string, JsonSchema>> {
   const entries = await Promise.all(
-    Object.entries(SPECIALIZED_SCHEMA_PATHS).map(async ([eventType, schemaPath]) => {
+    Object.entries(EXTENDED_SCHEMA_PATHS).map(async ([eventType, schemaPath]) => {
       const schema = await readJsonFile<JsonSchema>(schemaPath);
       return [eventType, schema] as const;
     }),

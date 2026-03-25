@@ -23,6 +23,8 @@ export type PipelineConfig = {
 
 export type PipelineResult = {
   events: CanonicalEvent[];
+  blocked?: boolean | undefined;
+  blockReason?: string | undefined;
   explanation: {
     inboundText: string;
     policyDecision: string;

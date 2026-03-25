@@ -195,7 +195,7 @@ describe("first executable path pipeline (end-to-end)", () => {
     }
   });
 
-  it("fails gracefully when backend is down", async () => {
+  it("produces event.blocked when backend is down", async () => {
     const config = await makeConfig({
       backend: await GenericHttpBackend.create({ endpoint: "http://localhost:1/down" }),
       middleware: { route: { route_id: "r1", backend: "b1" } },
@@ -203,7 +203,41 @@ describe("first executable path pipeline (end-to-end)", () => {
     });
 
     const pipeline = await FirstExecutablePathPipeline.create(config);
-    await expect(pipeline.execute(validInput())).rejects.toThrow("Backend invocation failed");
+    const result = await pipeline.execute(validInput());
+
+    expect(result.blocked).toBe(true);
+    expect(result.blockReason).toBeDefined();
+    expect(result.events).toHaveLength(5);
+
+    const blockedEvent = result.events[4]!;
+    expect(blockedEvent.event_type).toBe("event.blocked");
+    expect(blockedEvent.payload["block_stage"]).toBe("backend_invocation");
+    expect(blockedEvent.payload["retryable"]).toBe(true);
+
+    const v = validators.validateEvent(blockedEvent);
+    expect(v.ok).toBe(true);
+  });
+
+  it("produces event.blocked when delivery fails", async () => {
+    const config = await makeConfig({
+      middleware: { route: { route_id: "r1", backend: "b1" } },
+      sendFn: async () => { throw new Error("Slack API unreachable"); },
+    });
+
+    const pipeline = await FirstExecutablePathPipeline.create(config);
+    const result = await pipeline.execute(validInput());
+
+    expect(result.blocked).toBe(true);
+    expect(result.blockReason).toBe("Slack API unreachable");
+    expect(result.events).toHaveLength(6);
+
+    const blockedEvent = result.events[5]!;
+    expect(blockedEvent.event_type).toBe("event.blocked");
+    expect(blockedEvent.payload["block_stage"]).toBe("delivery");
+    expect(blockedEvent.payload["retryable"]).toBe(false);
+
+    const v = validators.validateEvent(blockedEvent);
+    expect(v.ok).toBe(true);
   });
 
   it("fails gracefully with invalid input", async () => {
