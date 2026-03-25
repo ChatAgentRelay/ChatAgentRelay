@@ -7,6 +7,9 @@
   ],
   "scripts": {
     "typecheck": "bun run --filter './packages/*' typecheck",
-    "test": "bun run --filter './packages/*' test"
+    "test": "bun run --filter './packages/*' test",
+    "lint": "bunx @biomejs/biome check .",
+    "lint:fix": "bunx @biomejs/biome check --write .",
+    "format": "bunx @biomejs/biome format --write ."
   }
 }
