@@ -6,6 +6,7 @@
     "packages/*"
   ],
   "scripts": {
+    "build": "bash scripts/build.sh",
     "typecheck": "bun run --filter './packages/*' typecheck",
     "test": "bun run --filter './packages/*' test",
     "lint": "bunx @biomejs/biome check .",

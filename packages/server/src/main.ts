@@ -11,7 +11,7 @@ import { validateConfig, formatConfigErrors } from "./validate-config";
 
 const DRAIN_TIMEOUT_MS = 30_000;
 
-async function main() {
+export async function main() {
   const config = loadConfig();
 
   const configErrors = validateConfig(config);
@@ -182,11 +182,3 @@ async function main() {
   process.on("SIGINT", () => { shutdown("SIGINT"); });
   process.on("SIGTERM", () => { shutdown("SIGTERM"); });
 }
-
-main().catch((error) => {
-  logger.error("Fatal error", {
-    error_message: error instanceof Error ? error.message : String(error),
-    stack: error instanceof Error ? error.stack : undefined,
-  });
-  process.exit(1);
-});
