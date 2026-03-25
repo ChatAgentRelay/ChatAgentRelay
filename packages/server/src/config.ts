@@ -14,6 +14,8 @@ export type ServerConfig = {
     workspaceId: string;
     routeId: string;
     sqlitePath: string;
+    streaming: boolean;
+    streamingIntervalMs: number;
   };
 };
 
@@ -42,6 +44,8 @@ export function loadConfig(): ServerConfig {
       workspaceId: process.env["CAP_WORKSPACE_ID"] ?? "default_workspace",
       routeId: process.env["CAP_ROUTE_ID"] ?? "openai_agent",
       sqlitePath: process.env["CAP_SQLITE_PATH"] ?? "./cap-ledger.db",
+      streaming: process.env["CAP_STREAMING"] !== "false",
+      streamingIntervalMs: Number(process.env["CAP_STREAMING_INTERVAL_MS"] ?? "800"),
     },
   };
 }

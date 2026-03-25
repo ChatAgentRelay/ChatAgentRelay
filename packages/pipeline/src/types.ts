@@ -7,11 +7,21 @@ import type { LedgerStore } from "@cap/event-ledger";
 
 export interface BackendAdapter {
   invoke(context: InvocationContext): Promise<InvocationResult>;
+  invokeStreaming?(context: InvocationContext): AsyncGenerator<string, InvocationResult>;
 }
 
 export interface ChannelIngress {
   canonicalize(raw: unknown): CanonicalizationResult;
 }
+
+export type StreamingUpdateFn = (text: string) => Promise<void>;
+
+export type StreamingOptions = {
+  enabled: boolean;
+  updateIntervalMs?: number | undefined;
+  postInitial: (placeholder: string) => Promise<{ providerMessageId: string }>;
+  updateMessage: StreamingUpdateFn;
+};
 
 export type PipelineConfig = {
   middleware: MiddlewareConfig;
@@ -20,6 +30,7 @@ export type PipelineConfig = {
   sendFn: SendFn;
   ledgerStore?: LedgerStore | undefined;
   retryConfig?: RetryConfig | undefined;
+  streaming?: StreamingOptions | undefined;
 };
 
 export type PipelineResult = {

@@ -47,6 +47,22 @@ async function main() {
       try {
         const sendFn = sender.createSendFn(event.channel, event.thread_ts);
 
+        let streamingMessageTs: string | undefined;
+        const streamingOptions = config.cap.streaming ? {
+          enabled: true,
+          updateIntervalMs: config.cap.streamingIntervalMs,
+          postInitial: async (placeholder: string) => {
+            const result = await sender.send(event.channel, placeholder, event.thread_ts);
+            streamingMessageTs = result.providerMessageId;
+            return result;
+          },
+          updateMessage: async (text: string) => {
+            if (streamingMessageTs) {
+              await sender.update(event.channel, streamingMessageTs, text);
+            }
+          },
+        } : undefined;
+
         const pipelineInstance = await FirstExecutablePathPipeline.create({
           middleware: {
             route: {
@@ -59,6 +75,7 @@ async function main() {
           ingress,
           sendFn,
           ledgerStore,
+          streaming: streamingOptions,
         });
 
         const result = await pipelineInstance.execute(event);

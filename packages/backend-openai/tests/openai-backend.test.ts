@@ -228,4 +228,49 @@ describe("OpenAI backend", () => {
     expect(result.error.code).toBe("backend_unavailable");
     expect(result.error.retryable).toBe(true);
   });
+
+  it("streams response chunks via invokeStreaming", async () => {
+    const chunks = [
+      'data: {"id":"chatcmpl-1","object":"chat.completion.chunk","created":1710000000,"model":"gpt-4o-mini","choices":[{"index":0,"delta":{"role":"assistant","content":"Your "},"finish_reason":null}]}\n\n',
+      'data: {"id":"chatcmpl-1","object":"chat.completion.chunk","created":1710000000,"model":"gpt-4o-mini","choices":[{"index":0,"delta":{"content":"order "},"finish_reason":null}]}\n\n',
+      'data: {"id":"chatcmpl-1","object":"chat.completion.chunk","created":1710000000,"model":"gpt-4o-mini","choices":[{"index":0,"delta":{"content":"shipped."},"finish_reason":"stop"}]}\n\n',
+      "data: [DONE]\n\n",
+    ];
+
+    startMock(() => new Response(
+      new ReadableStream({
+        async start(controller) {
+          for (const chunk of chunks) {
+            controller.enqueue(new TextEncoder().encode(chunk));
+            await new Promise((r) => setTimeout(r, 10));
+          }
+          controller.close();
+        },
+      }),
+      { headers: { "Content-Type": "text/event-stream" } },
+    ));
+
+    const backend = await OpenAIBackend.create({
+      apiKey: "test-key",
+      baseUrl: `http://localhost:${mockPort}`,
+    });
+
+    const generator = backend.invokeStreaming(sampleContext());
+    const deltas: string[] = [];
+
+    let finalResult;
+    while (true) {
+      const { done, value } = await generator.next();
+      if (done) {
+        finalResult = value;
+        break;
+      }
+      deltas.push(value);
+    }
+
+    expect(deltas).toEqual(["Your ", "order ", "shipped."]);
+    expect(finalResult.ok).toBe(true);
+    if (!finalResult.ok) return;
+    expect(finalResult.event.payload["text"]).toBe("Your order shipped.");
+  });
 });

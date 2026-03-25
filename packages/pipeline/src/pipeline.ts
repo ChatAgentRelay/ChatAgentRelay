@@ -5,7 +5,7 @@ import { MiddlewarePipeline } from "@cap/middleware";
 import { DeliveryOrchestrator } from "@cap/delivery";
 import { EventLedgerAppender, EventLedgerReader, InMemoryEventLedgerStore } from "@cap/event-ledger";
 import type { LedgerStore } from "@cap/event-ledger";
-import type { BackendAdapter, ChannelIngress, PipelineConfig, PipelineResult } from "./types";
+import type { BackendAdapter, ChannelIngress, PipelineConfig, PipelineResult, StreamingOptions } from "./types";
 
 function deriveBlockedEvent(
   source: CanonicalEvent,
@@ -43,6 +43,7 @@ export class FirstExecutablePathPipeline {
     private readonly store: LedgerStore,
     private readonly sendFn: (text: string) => Promise<{ providerMessageId: string }>,
     private readonly validators: ContractHarnessValidators,
+    private readonly streaming?: StreamingOptions | undefined,
   ) {}
 
   static async create(config: PipelineConfig): Promise<FirstExecutablePathPipeline> {
@@ -55,7 +56,7 @@ export class FirstExecutablePathPipeline {
     ]);
     const reader = new EventLedgerReader(store);
     return new FirstExecutablePathPipeline(
-      config.ingress, middleware, config.backend, delivery, appender, reader, store, config.sendFn, validators,
+      config.ingress, middleware, config.backend, delivery, appender, reader, store, config.sendFn, validators, config.streaming,
     );
   }
 
@@ -112,7 +113,7 @@ export class FirstExecutablePathPipeline {
 
     const conversationHistory = this.buildConversationHistory(messageReceived.conversation_id);
 
-    const backendResult = await this.backend.invoke({
+    const invocationContext = {
       invocationEvent: mwResult.invocationEvent,
       messageText: messageReceived.payload["text"] as string,
       conversationHistory,
@@ -124,7 +125,11 @@ export class FirstExecutablePathPipeline {
         policy_id: mwResult.policyEvent.payload["policy"] as string,
         decision: mwResult.policyEvent.payload["decision"] as string,
       },
-    });
+    };
+
+    const backendResult = this.streaming?.enabled && this.backend.invokeStreaming
+      ? await this.invokeWithStreaming(invocationContext)
+      : await this.backend.invoke(invocationContext);
 
     if (!backendResult.ok) {
       const blocked = deriveBlockedEvent(
@@ -221,6 +226,36 @@ export class FirstExecutablePathPipeline {
 
   replayConversation(conversationId: string) {
     return this.reader.replayConversation(conversationId);
+  }
+
+  private async invokeWithStreaming(context: import("@cap/backend-http").InvocationContext): Promise<import("@cap/backend-http").InvocationResult> {
+    const generator = this.backend.invokeStreaming!(context);
+    const updateIntervalMs = this.streaming?.updateIntervalMs ?? 800;
+
+    const initialResult = await this.streaming!.postInitial("...");
+    const messageTs = initialResult.providerMessageId;
+
+    let accumulated = "";
+    let lastUpdateTime = Date.now();
+
+    while (true) {
+      const { done, value } = await generator.next();
+      if (done) {
+        if (accumulated) {
+          try { await this.streaming!.updateMessage(accumulated); } catch { /* best-effort final update */ }
+        }
+        return value;
+      }
+
+      accumulated += value;
+      const now = Date.now();
+      if (now - lastUpdateTime >= updateIntervalMs && messageTs) {
+        try {
+          await this.streaming!.updateMessage(accumulated);
+          lastUpdateTime = now;
+        } catch { /* best-effort update, continue streaming */ }
+      }
+    }
   }
 
   private validateAndAppend(event: CanonicalEvent): void {

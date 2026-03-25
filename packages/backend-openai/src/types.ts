@@ -14,6 +14,20 @@ export type OpenAIChatMessage = {
 export type OpenAIChatRequest = {
   model: string;
   messages: OpenAIChatMessage[];
+  stream?: boolean | undefined;
+};
+
+export type OpenAIStreamDelta = {
+  id: string;
+  object: string;
+  created: number;
+  model: string;
+  choices: Array<{
+    index: number;
+    delta: { role?: string; content?: string };
+    finish_reason: string | null;
+  }>;
+  usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
 };
 
 export type OpenAIChatChoice = {

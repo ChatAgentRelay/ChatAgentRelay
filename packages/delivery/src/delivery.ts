@@ -47,8 +47,10 @@ function deriveEvent(
   return event;
 }
 
+type ResolvedRetryConfig = { maxRetries: number; baseDelayMs: number };
+
 export class DeliveryOrchestrator {
-  private readonly retryConfig: Required<RetryConfig>;
+  private readonly retryConfig: ResolvedRetryConfig;
 
   private constructor(
     private readonly validators: ContractHarnessValidators,

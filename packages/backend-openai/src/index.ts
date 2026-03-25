@@ -1,2 +1,2 @@
 export { OpenAIBackend } from "./openai-backend";
-export type { OpenAIBackendConfig, OpenAIChatResponse } from "./types";
+export type { OpenAIBackendConfig, OpenAIChatResponse, OpenAIStreamDelta } from "./types";

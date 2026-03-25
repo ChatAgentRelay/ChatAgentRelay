@@ -36,6 +36,22 @@ export class SlackSender {
     return { providerMessageId: body.ts ?? "unknown" };
   }
 
+  async update(channelId: string, messageTs: string, text: string): Promise<void> {
+    const payload = { channel: channelId, ts: messageTs, text };
+    const response = await fetch(`${SLACK_API_BASE}/chat.update`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${this.botToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+    const body = (await response.json()) as SlackPostMessageResponse;
+    if (!body.ok) {
+      throw new Error(`Slack chat.update failed: ${body.error ?? "unknown error"}`);
+    }
+  }
+
   createSendFn(channelId: string, threadTs?: string): (text: string) => Promise<{ providerMessageId: string }> {
     return (text: string) => this.send(channelId, text, threadTs);
   }
