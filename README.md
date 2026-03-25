@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/anthropics/cap/actions/workflows/ci.yml/badge.svg)](https://github.com/anthropics/cap/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-200%20pass-brightgreen)](packages/)
+[![Tests](https://img.shields.io/badge/tests-210%20pass-brightgreen)](packages/)
 [![Bun](https://img.shields.io/badge/runtime-Bun-f9f1e1?logo=bun)](https://bun.sh)
 
 CAP is an open-source framework for the layer between chat platforms and agents.
@@ -72,7 +72,7 @@ CAP exists to make that layer explicit and reusable. It provides a canonical eve
 # Install dependencies
 bun install
 
-# Run all tests (200 tests across 11 packages)
+# Run all tests (210 tests across 12 packages)
 bun test --recursive
 
 # Run the Slack + OpenAI server
@@ -92,7 +92,7 @@ curl http://localhost:3000/api/events/<id>
 
 ## Current Maturity
 
-200 tests across 11 packages verify contract compliance, causal linkage, error paths, and end-to-end behavior:
+210 tests across 12 packages verify contract compliance, causal linkage, error paths, and end-to-end behavior:
 
 - frozen seven-event fixture corpus as machine-readable contract baseline
 - complete happy path + error path (`event.blocked`) + deny path (governance short-circuit)
@@ -103,14 +103,40 @@ curl http://localhost:3000/api/events/<id>
 - conformance test suite validating all 4 adapters
 - structured JSONL logging with correlation tracking
 
-## Architecture
+## Documentation
 
-See [docs/rfcs/architecture/reference-architecture.md](docs/rfcs/architecture/reference-architecture.md) for the full reference architecture.
+| Document | Description |
+|----------|-------------|
+| [Getting Started](docs/getting-started.md) | Setup guide for Slack + OpenAI |
+| [Architecture Overview](docs/architecture.md) | Diagrams and system design |
+| [API Reference](docs/api-reference.md) | All HTTP endpoints |
+| [Reference Architecture RFC](docs/rfcs/architecture/reference-architecture.md) | Normative architecture spec |
+| [Channel Adapter Spec](docs/rfcs/adapters/channel-adapter-interface-spec.md) | ChannelIngress interface |
+| [Backend Adapter Spec](docs/rfcs/adapters/backend-adapter-interface-spec.md) | BackendAdapter interface |
 
-### Adapter Interface Specs
+## Examples
 
-- [Channel Adapter Interface Spec](docs/rfcs/adapters/channel-adapter-interface-spec.md)
-- [Backend Adapter Interface Spec](docs/rfcs/adapters/backend-adapter-interface-spec.md)
+- [Custom Channel Adapter](examples/custom-channel-adapter/) — Skeleton Discord adapter showing the `ChannelIngress` pattern with conformance tests
+
+## Docker
+
+```bash
+# Build and run with Docker Compose
+docker compose up -d
+
+# Or build the image directly
+docker build -t cap-server .
+docker run --env-file packages/server/.env -p 3000:3000 cap-server
+```
+
+## CLI
+
+```bash
+cap-server --help          # Show usage
+cap-server --version       # Show version
+cap-server --check-config  # Validate config and exit
+cap-server --dry-run       # Check connectivity and exit
+```
 
 ## Contributing
 
@@ -118,4 +144,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-See [LICENSE](LICENSE).
+[MIT](LICENSE)
