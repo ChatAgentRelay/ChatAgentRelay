@@ -1,0 +1,17 @@
+{
+  "name": "@cap/example-custom-channel-adapter",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@cap/adapter-conformance": "workspace:*",
+    "@cap/contract-harness": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.8.2"
+  }
+}

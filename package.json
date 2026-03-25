@@ -3,7 +3,8 @@
   "private": true,
   "packageManager": "bun@1.2.22",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "examples/*"
   ],
   "scripts": {
     "build": "bash scripts/build.sh",

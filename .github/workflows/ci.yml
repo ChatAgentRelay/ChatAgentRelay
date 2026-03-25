@@ -30,16 +30,8 @@ jobs:
             fi
           done
 
-      - name: Run tests
-        run: bun test --recursive
+      - name: Run tests with coverage
+        run: bun test --recursive --coverage
 
-      - name: Verify test count
-        run: |
-          output=$(bun test --recursive 2>&1)
-          echo "$output"
-          if echo "$output" | grep -q "fail"; then
-            if ! echo "$output" | grep -q "0 fail"; then
-              echo "FAIL: Tests failed"
-              exit 1
-            fi
-          fi
+      - name: Lint check
+        run: bunx @biomejs/biome check . || true

@@ -5,6 +5,17 @@
     "": {
       "name": "cap",
     },
+    "examples/custom-channel-adapter": {
+      "name": "@cap/example-custom-channel-adapter",
+      "dependencies": {
+        "@cap/adapter-conformance": "workspace:*",
+        "@cap/contract-harness": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.8.2",
+      },
+    },
     "packages/adapter-conformance": {
       "name": "@cap/adapter-conformance",
       "dependencies": {
@@ -149,6 +160,8 @@
     "@cap/delivery": ["@cap/delivery@workspace:packages/delivery"],
 
     "@cap/event-ledger": ["@cap/event-ledger@workspace:packages/event-ledger"],
+
+    "@cap/example-custom-channel-adapter": ["@cap/example-custom-channel-adapter@workspace:examples/custom-channel-adapter"],
 
     "@cap/middleware": ["@cap/middleware@workspace:packages/middleware"],
 

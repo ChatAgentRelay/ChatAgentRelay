@@ -1,0 +1,15 @@
+---
+description: Testing conventions for CAP
+globs: **/tests/**
+alwaysApply: false
+---
+
+# Testing Conventions
+
+- Use bun:test (describe, it, expect, beforeAll, afterAll)
+- Test files go in tests/ directory alongside src/
+- New adapters MUST pass conformance tests from @cap/adapter-conformance
+- All canonical events must validate against JSON Schema via ContractHarnessValidators
+- Mock external services with Bun.serve() on port 0 for random port assignment
+- Never use real API keys in tests
+- Test both success and error paths
