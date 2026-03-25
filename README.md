@@ -67,7 +67,7 @@ CAP exists to make that layer explicit and reusable. It provides a canonical eve
 # Install dependencies
 bun install
 
-# Run all tests (163 tests across 11 packages)
+# Run all tests (200 tests across 11 packages)
 bun test --recursive
 
 # Run the Slack + OpenAI server
@@ -87,7 +87,7 @@ curl http://localhost:3000/api/events/<id>
 
 ## Current Maturity
 
-163 tests across 11 packages verify contract compliance, causal linkage, error paths, and end-to-end behavior:
+200 tests across 11 packages verify contract compliance, causal linkage, error paths, and end-to-end behavior:
 
 - frozen seven-event fixture corpus as machine-readable contract baseline
 - complete happy path + error path (`event.blocked`) + deny path (governance short-circuit)

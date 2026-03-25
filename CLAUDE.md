@@ -70,19 +70,19 @@ The repository has a complete first executable path and hardened feature set:
 
 - `packages/contract-harness` — contract validation baseline (8 event types including `event.blocked`)
 - `packages/event-ledger` — in-memory and SQLite-backed durable append via `LedgerStore` interface, with `getByConversationId` and `getByCorrelationId`
-- `packages/channel-web-chat` — web chat ingress canonicalization
+- `packages/channel-web-chat` — web chat ingress canonicalization + HTTP transport with CORS
 - `packages/channel-slack` — Slack Socket Mode ingress, `chat.postMessage` delivery, `chat.update` for streaming
-- `packages/middleware` — policy (allow/deny via `policyFn`), routing, dispatch
+- `packages/middleware` — policy (allow/deny via `policyFn`), configurable keyword/regex policy engine, routing, dispatch
 - `packages/backend-http` — generic HTTP backend invocation and response mapping
 - `packages/backend-openai` — OpenAI Chat Completions + SSE streaming via `invokeStreaming()`
 - `packages/delivery` — delivery orchestration with retry (exponential backoff) and `DeliveryExhaustedError`
 - `packages/pipeline` — end-to-end orchestration with error paths (`event.blocked`), deny path, conversation context, streaming
-- `packages/server` — runtime entry point with Slack + OpenAI + HTTP API + SQLite + structured logging
+- `packages/server` — runtime entry point with Slack + OpenAI + HTTP API + SQLite + structured logging + config validation + graceful shutdown
 - `packages/adapter-conformance` — reusable conformance test suite for channel and backend adapters
 
 ### Test Coverage
 
-163 tests across 13 test files verify:
+200 tests across 16 test files verify:
 - contract compliance and schema validation
 - causal linkage and correlation propagation
 - error path (`event.blocked` on backend/delivery failure)
@@ -92,6 +92,10 @@ The repository has a complete first executable path and hardened feature set:
 - streaming delta handling
 - replay/query HTTP API
 - adapter conformance (all 4 adapters pass)
+- configurable policy engine (keyword/regex rules)
+- config validation with actionable error messages
+- WebChat HTTP transport with CORS
+- audit explanation API
 
 ## Implementation Structure
 
