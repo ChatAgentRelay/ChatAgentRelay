@@ -1,2 +1,2 @@
 export { MiddlewarePipeline } from "./middleware";
-export type { MiddlewareConfig, MiddlewareResult, RouteConfig } from "./types";
+export type { MiddlewareConfig, MiddlewareResult, MiddlewareAllowResult, MiddlewareDenyResult, RouteConfig, PolicyFn, PolicyDecision } from "./types";

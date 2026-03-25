@@ -82,6 +82,31 @@ export class FirstExecutablePathPipeline {
 
     const mwResult = this.middleware.process(messageReceived);
     this.appendToLedger(mwResult.policyEvent);
+
+    if (!mwResult.allowed) {
+      const blocked = deriveBlockedEvent(
+        messageReceived,
+        mwResult.policyEvent.event_id,
+        mwResult.denyReason,
+        "governance",
+        false,
+      );
+      this.validateAndAppend(blocked);
+
+      return {
+        events: [messageReceived, mwResult.policyEvent, blocked],
+        blocked: true,
+        blockReason: mwResult.denyReason,
+        explanation: {
+          inboundText: messageReceived.payload["text"] as string,
+          policyDecision: "deny",
+          selectedRoute: "",
+          backendResponse: "",
+          providerMessageId: "",
+        },
+      };
+    }
+
     this.appendToLedger(mwResult.routeEvent);
     this.appendToLedger(mwResult.invocationEvent);
 

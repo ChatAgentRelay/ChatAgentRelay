@@ -42,16 +42,29 @@ export class MiddlewarePipeline {
       throw new Error(`Expected message.received, got ${messageReceived.event_type}`);
     }
 
+    const policyDecision = this.config.policyFn
+      ? this.config.policyFn(messageReceived)
+      : { decision: "allow" as const };
+
     const policyEvent = deriveEvent(
       messageReceived,
       messageReceived.event_id,
       "policy.decision.made",
       {
         policy: this.config.policyId ?? "default_ingress",
-        decision: "allow",
+        decision: policyDecision.decision,
+        ...(policyDecision.reason !== undefined ? { reason: policyDecision.reason } : {}),
       },
     );
     this.assertValid(policyEvent);
+
+    if (policyDecision.decision === "deny") {
+      return {
+        allowed: false,
+        policyEvent,
+        denyReason: policyDecision.reason ?? "policy_deny",
+      };
+    }
 
     const routeEvent = deriveEvent(
       messageReceived,
@@ -75,7 +88,7 @@ export class MiddlewarePipeline {
     );
     this.assertValid(invocationEvent);
 
-    return { policyEvent, routeEvent, invocationEvent };
+    return { allowed: true, policyEvent, routeEvent, invocationEvent };
   }
 
   private assertValid(event: CanonicalEvent): void {

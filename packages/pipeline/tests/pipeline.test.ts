@@ -281,4 +281,29 @@ describe("first executable path pipeline (end-to-end)", () => {
     expect(userMsgs.length).toBeGreaterThanOrEqual(2);
     expect(assistantMsgs.length).toBeGreaterThanOrEqual(2);
   });
+
+  it("short-circuits with event.blocked when policy denies", async () => {
+    const config = await makeConfig({
+      middleware: {
+        policyId: "content_filter",
+        policyFn: () => ({ decision: "deny", reason: "spam_detected" }),
+        route: { route_id: "r1", backend: "b1" },
+      },
+    });
+
+    const pipeline = await FirstExecutablePathPipeline.create(config);
+    const result = await pipeline.execute(validInput());
+
+    expect(result.blocked).toBe(true);
+    expect(result.blockReason).toBe("spam_detected");
+    expect(result.events).toHaveLength(3);
+    expect(result.events[0]!.event_type).toBe("message.received");
+    expect(result.events[1]!.event_type).toBe("policy.decision.made");
+    expect(result.events[1]!.payload["decision"]).toBe("deny");
+    expect(result.events[2]!.event_type).toBe("event.blocked");
+    expect(result.events[2]!.payload["block_stage"]).toBe("governance");
+
+    const v = validators.validateEvent(result.events[2]!);
+    expect(v.ok).toBe(true);
+  });
 });
