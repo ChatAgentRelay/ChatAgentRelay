@@ -7,11 +7,18 @@ import { loadPolicyConfig, createPolicyFn } from "@cap/middleware";
 import { loadConfig } from "./config";
 import { logger } from "./logger";
 import { startApiServer } from "./api";
+import { validateConfig, formatConfigErrors } from "./validate-config";
 
 const DRAIN_TIMEOUT_MS = 30_000;
 
 async function main() {
   const config = loadConfig();
+
+  const configErrors = validateConfig(config);
+  if (configErrors.length > 0) {
+    process.stderr.write(formatConfigErrors(configErrors));
+    process.exit(1);
+  }
 
   logger.info("Starting server", {
     tenant_id: config.cap.tenantId,
