@@ -1,7 +1,11 @@
 {
   "name": "@cap/server",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "cap-server": "src/cli.ts"
+  },
   "scripts": {
     "start": "bun run src/cli.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
