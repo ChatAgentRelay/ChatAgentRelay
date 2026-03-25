@@ -37,6 +37,12 @@ coverage/
 .nuxt/
 .bun/
 
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+
 # General build and temp outputs
 .tmp/
 tmp/
