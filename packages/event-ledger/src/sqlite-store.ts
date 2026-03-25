@@ -1,5 +1,5 @@
 import { Database } from "bun:sqlite";
-import type { LedgerStore, StoredCanonicalEvent } from "./types";
+import type { HealthStatus, LedgerStore, StoredCanonicalEvent } from "./types";
 
 const CREATE_TABLE = `
 CREATE TABLE IF NOT EXISTS canonical_events (
@@ -115,6 +115,24 @@ export class SqliteLedgerStore implements LedgerStore {
   getByCorrelationId(correlationId: string): StoredCanonicalEvent[] {
     const rows = this.selectByCorrelationStmt.all({ $correlation_id: correlationId }) as EventRow[];
     return rows.map((row) => JSON.parse(row.event_json) as StoredCanonicalEvent);
+  }
+
+  healthCheck(): HealthStatus {
+    try {
+      const row = this.db.prepare("SELECT COUNT(*) as cnt FROM canonical_events").get() as { cnt: number };
+      return {
+        healthy: true,
+        event_count: row.cnt,
+        backend: "sqlite",
+      };
+    } catch (error) {
+      return {
+        healthy: false,
+        event_count: 0,
+        backend: "sqlite",
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   }
 
   close(): void {

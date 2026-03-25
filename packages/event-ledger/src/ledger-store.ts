@@ -1,4 +1,4 @@
-import type { LedgerStore, StoredCanonicalEvent } from "./types";
+import type { HealthStatus, LedgerStore, StoredCanonicalEvent } from "./types";
 
 function cloneEvent(event: StoredCanonicalEvent): StoredCanonicalEvent {
   return structuredClone(event);
@@ -39,5 +39,13 @@ export class InMemoryEventLedgerStore implements LedgerStore {
 
   getByCorrelationId(correlationId: string): StoredCanonicalEvent[] {
     return this.getAll().filter((event) => event.correlation_id === correlationId);
+  }
+
+  healthCheck(): HealthStatus {
+    return {
+      healthy: true,
+      event_count: this.orderedEventIds.length,
+      backend: "in-memory",
+    };
   }
 }

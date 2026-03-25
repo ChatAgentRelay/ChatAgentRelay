@@ -81,7 +81,14 @@ export function startApiServer(config: ApiConfig): ReturnType<typeof Bun.serve> 
       const path = url.pathname;
 
       if (path === "/api/health") {
-        return jsonResponse({ status: "ok", timestamp: new Date().toISOString() });
+        const ledgerHealth = ledgerStore.healthCheck();
+        const status = ledgerHealth.healthy ? "ok" : "degraded";
+        return jsonResponse({
+          status,
+          timestamp: new Date().toISOString(),
+          ledger: ledgerHealth,
+          uptime_seconds: Math.floor(process.uptime()),
+        }, ledgerHealth.healthy ? 200 : 503);
       }
 
       const conversationMatch = path.match(/^\/api\/conversations\/([^/]+)\/events$/);

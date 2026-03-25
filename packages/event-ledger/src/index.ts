@@ -14,6 +14,7 @@ export type {
   AppendResult,
   AppendSuccess,
   AuditExplanation,
+  HealthStatus,
   LedgerStore,
   StoredCanonicalEvent,
   TimeRange,

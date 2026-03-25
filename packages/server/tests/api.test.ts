@@ -55,12 +55,17 @@ describe("replay/query API", () => {
     server.stop(true);
   });
 
-  it("GET /api/health returns ok", async () => {
+  it("GET /api/health returns ok with ledger status", async () => {
     const res = await fetch(`${baseUrl}/api/health`);
     expect(res.status).toBe(200);
     const body = await getJson(`${baseUrl}/api/health`);
     expect(body["status"]).toBe("ok");
     expect(body["timestamp"]).toBeDefined();
+    expect(body["uptime_seconds"]).toBeDefined();
+    const ledger = body["ledger"] as Record<string, unknown>;
+    expect(ledger["healthy"]).toBe(true);
+    expect(ledger["backend"]).toBe("in-memory");
+    expect(typeof ledger["event_count"]).toBe("number");
   });
 
   it("GET /api/conversations/:id/events returns events by conversation", async () => {
