@@ -104,4 +104,41 @@ describe("replay/query API", () => {
     const res = await fetch(`${baseUrl}/api/nope`);
     expect(res.status).toBe(404);
   });
+
+  it("GET /api/conversations/:id/audit returns structured audit explanation", async () => {
+    const res = await fetch(`${baseUrl}/api/conversations/conv_A/audit`);
+    expect(res.status).toBe(200);
+    const body = await res.json() as { conversation_id: string; total_events: number; turns: unknown[] };
+    expect(body.conversation_id).toBe("conv_A");
+    expect(body.total_events).toBe(2);
+    expect(body.turns).toHaveLength(1);
+  });
+
+  it("GET /api/conversations/:id/audit returns 404 for empty conversation", async () => {
+    const res = await fetch(`${baseUrl}/api/conversations/conv_NONE/audit`);
+    expect(res.status).toBe(404);
+  });
+
+  it("GET /api/conversations/:id/audit includes blocked info", async () => {
+    const blockedEvent = makeEvent({
+      conversation_id: "conv_C",
+      correlation_id: "corr_Z",
+      event_type: "message.received",
+    });
+    const blockEvent = makeEvent({
+      conversation_id: "conv_C",
+      correlation_id: "corr_Z",
+      event_type: "event.blocked",
+      payload: { reason: "spam_detected", block_stage: "governance", retryable: false },
+    });
+    store.append(blockedEvent);
+    store.append(blockEvent);
+
+    const res = await fetch(`${baseUrl}/api/conversations/conv_C/audit`);
+    expect(res.status).toBe(200);
+    const body = await res.json() as { turns: Array<{ blocked: boolean; block_reason: string; block_stage: string }> };
+    expect(body.turns[0]!.blocked).toBe(true);
+    expect(body.turns[0]!.block_reason).toBe("spam_detected");
+    expect(body.turns[0]!.block_stage).toBe("governance");
+  });
 });
