@@ -2,16 +2,14 @@
 
 ## Repo Purpose
 
-This repository is currently a docs-first, RFC-first project for CAP.
-
-CAP is being defined as a chat-platform <-> agent middleware with:
+CAP is a chat-platform <-> agent middleware framework with:
 - channel adapters
 - a canonical event model
 - governance and routing middleware
 - backend agent adapters
 - an append-only ledger with replay and auditability
 
-The repository uses a docs-first approach where RFCs govern architecture and the implementation follows approved narrow slices. The complete first executable path (seven-event happy path) is now implemented.
+The repository uses a docs-first approach where RFCs govern architecture and the implementation follows approved narrow slices.
 
 ## Source-of-Truth Hierarchy
 
@@ -61,82 +59,53 @@ Research documents MUST NOT be treated as normative requirements unless their co
 - Normative documents SHOULD use RFC 2119 keywords precisely.
 - Research documents SHOULD avoid sounding like implementation mandates.
 - Major architectural changes MUST be reflected in RFCs before or alongside implementation changes.
-- The repository should remain docs-first until the minimum kernel and its boundaries are sufficiently stable.
 - Do not mix runtime code into `docs/rfcs/`.
 - Do not treat UI state, temporary notes, or research comparisons as system truth.
 
-## Implementation Gate
+## Current Implementation Status
 
-The initial implementation gate has been satisfied:
-- the minimum kernel is defined (seven-event first executable path)
-- blocking open questions are centralized in `docs/decisions/`
-- a technology selection framework exists for major subsystems
-- repository governance files are in place
-- Bun runtime, TypeScript strict mode, monorepo layout established
+The repository has a complete first executable path and hardened feature set:
 
-The repository has moved past the initial review gate and now has a complete first executable path implementation.
+### Approved Package Set (11 packages)
 
-The current approved package set is:
-- `packages/contract-harness` as the contract validation baseline
-- `packages/event-ledger` with in-memory and SQLite-backed durable append via `LedgerStore` interface
-- `packages/channel-web-chat` for web chat ingress canonicalization to `message.received`
-- `packages/channel-slack` for Slack Socket Mode ingress and `chat.postMessage` delivery
-- `packages/middleware` for policy, routing, and dispatch (produces `policy.decision.made`, `route.decision.made`, `agent.invocation.requested`)
-- `packages/backend-http` for generic HTTP backend invocation and response mapping
-- `packages/backend-openai` for OpenAI Chat Completions API integration
-- `packages/delivery` for delivery orchestration (produces `message.send.requested`, `message.sent`)
-- `packages/pipeline` for end-to-end first executable path orchestration (supports pluggable channel and backend adapters)
-- `packages/server` as the runtime entry point wiring Slack + OpenAI + Pipeline + SQLite Ledger
+- `packages/contract-harness` — contract validation baseline (8 event types including `event.blocked`)
+- `packages/event-ledger` — in-memory and SQLite-backed durable append via `LedgerStore` interface, with `getByConversationId` and `getByCorrelationId`
+- `packages/channel-web-chat` — web chat ingress canonicalization
+- `packages/channel-slack` — Slack Socket Mode ingress, `chat.postMessage` delivery, `chat.update` for streaming
+- `packages/middleware` — policy (allow/deny via `policyFn`), routing, dispatch
+- `packages/backend-http` — generic HTTP backend invocation and response mapping
+- `packages/backend-openai` — OpenAI Chat Completions + SSE streaming via `invokeStreaming()`
+- `packages/delivery` — delivery orchestration with retry (exponential backoff) and `DeliveryExhaustedError`
+- `packages/pipeline` — end-to-end orchestration with error paths (`event.blocked`), deny path, conversation context, streaming
+- `packages/server` — runtime entry point with Slack + OpenAI + HTTP API + SQLite + structured logging
+- `packages/adapter-conformance` — reusable conformance test suite for channel and backend adapters
 
-This does not approve replay/query API surfaces for external consumers, projections, brokers, or orchestration services beyond the first happy path.
+### Test Coverage
 
-## Future Repository Shape Guidance
+163 tests across 13 test files verify:
+- contract compliance and schema validation
+- causal linkage and correlation propagation
+- error path (`event.blocked` on backend/delivery failure)
+- deny path (governance short-circuit)
+- multi-turn conversation context
+- delivery retry and exhaustion
+- streaming delta handling
+- replay/query HTTP API
+- adapter conformance (all 4 adapters pass)
 
-The bootstrap baseline uses Bun runtime and TypeScript strict mode. Framework choices for higher-level concerns (HTTP server, deployment) are not yet fixed.
+## Implementation Structure
 
-When extending the codebase:
-- create code directories separately from RFC directories
-- keep normative specifications under `docs/rfcs/`
-- ensure code layout follows the core CAP constraints rather than reshaping the protocol to fit a framework
-
-Implementation structure should preserve these boundaries:
+Implementation structure preserves these boundaries:
 - canonical event model remains central
 - channel adapters remain transport-side boundaries
 - backend adapters remain runtime-side boundaries
 - ledger, replay, audit, and governance remain first-class concerns
 
-## Expected Workflow
-
-Recommended order of work:
-1. refine RFCs
-2. centralize blocking questions in `docs/decisions/`
-3. evaluate technologies by subsystem
-4. record decisions
-5. plan implementation
-6. implement against the approved contracts
-
 ## Commit Workflow
 
-After the next commit, Claude should automatically create one commit per approved feature.
-
-That means Claude should:
+Claude should:
 - keep each feature commit narrowly scoped
 - avoid combining unrelated changes into a single commit
 - keep commit granularity aligned to the currently approved slice
-- not treat the commit workflow rule as permission to exceed the currently approved implementation boundary
 
-This workflow rule does not change the docs-first source-of-truth hierarchy and does not approve broader runtime work on its own.
-
-## Current Status
-
-Current repository status:
-- docs-first with a complete first executable path and real integration
-- core RFC set drafted but still open in places
-- implementation bootstrap baseline: Bun runtime, TypeScript strict mode, monorepo `packages/` layout
-- ten packages implement the complete happy-path pipeline with Slack and OpenAI integration
-- frozen seven-event fixture corpus remains the machine-readable contract baseline
-- all canonical events are validated against the frozen schema layer at each boundary
-- 110 tests across 10 packages verify contract compliance, causal linkage, and end-to-end behavior
-- real-world integration: Slack Socket Mode channel adapter + OpenAI Chat Completions backend
-
-The repository remains docs-first in its source-of-truth hierarchy. RFCs govern; implementation follows.
+This workflow rule does not change the docs-first source-of-truth hierarchy.

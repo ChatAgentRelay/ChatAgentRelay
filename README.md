@@ -1,102 +1,65 @@
 # CAP
 
-CAP is an open-source framework foundation for the layer between chat platforms and agents.
+CAP is an open-source framework for the layer between chat platforms and agents.
 
 As projects like Open SWE show, bringing agent workflows into tools like Slack is a natural starting point: users are already there, collaboration is already there, and lightweight remote agent interaction fits naturally into existing messaging environments.
 
 But Slack-first is a starting point, not an end state. The common workaround today is to build a point-to-point integration around a single chat platform, coupling message ingress, identity mapping, permissions, status updates, and agent invocation logic directly into one channel-specific path. That can validate demand quickly, but it creates upstream cost: each new messaging platform requires repeated integration work, platform-specific semantics leak into product logic, and monitoring, routing, governance, auditability, and migration become harder to standardize over time.
 
-CAP exists to make that layer explicit and reusable. It provides a docs-first, specs-first architecture for absorbing channel differences behind a canonical event model and pluggable adapter contracts, so developers can start with one messaging platform without locking themselves into one forever.
+CAP exists to make that layer explicit and reusable. It provides a canonical event model and pluggable adapter contracts that absorb channel differences, so developers can start with one messaging platform without locking themselves into one forever.
 
-This project is open source first. The immediate goal is not commercialization; it is to define the abstraction clearly, build a solid reusable framework, and make this layer legible and useful to more developers, projects, and future integrations.
+## What CAP Provides
 
-The project currently includes:
-- normative RFCs for architecture and protocol boundaries
-- a complete first executable path implementation across 10 packages
-- real Slack + OpenAI integration with a working end-to-end pipeline
-- decision documents that concentrate open questions and technology evaluation work
+- **Canonical event model** — a frozen seven-event chain that every message traverses: `message.received` → `policy.decision.made` → `route.decision.made` → `agent.invocation.requested` → `agent.response.completed` → `message.send.requested` → `message.sent`, plus `event.blocked` for error/deny paths
+- **Pluggable channel adapters** — Slack Socket Mode and WebChat ingress today; the `ChannelIngress` interface lets you add any chat platform
+- **Pluggable backend adapters** — OpenAI Chat Completions and generic HTTP today; the `BackendAdapter` interface lets you add any agent runtime
+- **Governance middleware** — configurable policy evaluation with allow/deny decisions before agent invocation
+- **Multi-turn conversation memory** — automatic context replay from the event ledger
+- **Streaming responses** — OpenAI SSE streaming with progressive Slack message updates
+- **Delivery retry with DLQ** — exponential backoff on send failure, `DeliveryExhaustedError` for exhausted retries
+- **Append-only event ledger** — in-memory and SQLite-backed durable persistence with replay and audit
+- **Replay/Query HTTP API** — REST endpoints for conversations, correlations, and individual events
+- **Structured JSON logging** — JSONL output with correlation IDs, durations, and context
+- **Conformance test suite** — reusable adapter validation for channel and backend implementations
 
 ## Repository Structure
 
 ```text
 .
-├── CLAUDE.md
-├── README.md
-├── .gitignore
-├── package.json
-├── tsconfig.base.json
 ├── docs/
-│   ├── rfcs/
-│   │   ├── architecture/
-│   │   ├── canonical-model/
-│   │   ├── adapters/
-│   │   └── middleware/
-│   ├── schemas/
-│   │   ├── canonical-model/
-│   │   └── fixtures/
-│   ├── research/
-│   └── decisions/
+│   ├── rfcs/           # normative architecture specs
+│   ├── schemas/        # JSON Schema contract layer
+│   ├── decisions/      # open questions and ADRs
+│   └── research/       # background research
 └── packages/
-    ├── contract-harness/
-    ├── event-ledger/
-    ├── channel-web-chat/
-    ├── channel-slack/
-    ├── middleware/
-    ├── backend-http/
-    ├── backend-openai/
-    ├── delivery/
-    ├── pipeline/
-    └── server/
+    ├── contract-harness/       # schema loading and validation
+    ├── event-ledger/           # append, replay, audit (in-memory + SQLite)
+    ├── channel-web-chat/       # web chat ingress canonicalization
+    ├── channel-slack/          # Slack Socket Mode + chat.postMessage
+    ├── middleware/              # policy, routing, dispatch
+    ├── backend-http/           # generic HTTP backend
+    ├── backend-openai/         # OpenAI Chat Completions + streaming
+    ├── delivery/               # delivery orchestration + retry
+    ├── pipeline/               # end-to-end orchestration
+    ├── server/                 # runtime: Slack + OpenAI + API + SQLite
+    └── adapter-conformance/    # reusable adapter test suite
 ```
-
-## Document Roles
-
-- `docs/rfcs/`: normative source of truth
-- `docs/decisions/`: open questions, selection frameworks, and later decision records
-- `docs/research/`: background research and comparison material
-
-## Current RFC Entry Points
-
-- `docs/rfcs/architecture/reference-architecture.md`
-- `docs/rfcs/canonical-model/canonical-event-schema.md`
-- `docs/rfcs/adapters/channel-adapter-contract.md`
-- `docs/rfcs/adapters/backend-agent-adapter-contract.md`
-- `docs/rfcs/middleware/routing-middleware-governance.md`
-
-## Current Decision Docs
-
-- `docs/decisions/open-questions.md`
-- `docs/decisions/technology-selection-framework.md`
-- `docs/decisions/repository-next-approved-slices.md`
-
-## Current Maturity
-
-This repository is docs-first with a complete first executable path and real Slack + OpenAI integration.
-
-Current maturity:
-- core RFC set drafted
-- cross-cutting open questions centralized
-- technology selection framework established
-- implementation bootstrap baseline: Bun runtime, TypeScript strict mode
-- frozen seven-event fixture corpus as machine-readable contract baseline
-- complete seven-event happy path with pluggable channel and backend adapters
-- Slack Socket Mode channel adapter and OpenAI Chat Completions backend
-- 110 tests across 10 packages verify contract compliance and end-to-end behavior
 
 ## Package Overview
 
 | Package | Role |
 |---------|------|
-| `@cap/contract-harness` | Schema loading and contract validation |
+| `@cap/contract-harness` | Schema loading and contract validation (8 event types) |
 | `@cap/event-ledger` | Append, replay, audit with in-memory and SQLite backends |
 | `@cap/channel-web-chat` | Web chat ingress canonicalization |
-| `@cap/channel-slack` | Slack Socket Mode ingress + chat.postMessage delivery |
-| `@cap/middleware` | Policy, routing, and dispatch |
+| `@cap/channel-slack` | Slack Socket Mode ingress + delivery + streaming updates |
+| `@cap/middleware` | Policy (allow/deny), routing, and dispatch |
 | `@cap/backend-http` | Generic HTTP backend invocation |
-| `@cap/backend-openai` | OpenAI Chat Completions API integration |
-| `@cap/delivery` | Delivery orchestration (send request + send completion) |
-| `@cap/pipeline` | End-to-end pipeline with pluggable adapters |
-| `@cap/server` | Runtime entry point: Slack + OpenAI + Pipeline + SQLite |
+| `@cap/backend-openai` | OpenAI Chat Completions + SSE streaming |
+| `@cap/delivery` | Delivery orchestration with retry and DLQ |
+| `@cap/pipeline` | End-to-end pipeline with error paths and streaming |
+| `@cap/server` | Runtime entry point with HTTP API |
+| `@cap/adapter-conformance` | Reusable conformance tests for adapters |
 
 ## Quick Start
 
@@ -104,20 +67,50 @@ Current maturity:
 # Install dependencies
 bun install
 
-# Run all tests
-bun run test
+# Run all tests (163 tests across 11 packages)
+bun test --recursive
 
-# Run the Slack + OpenAI server (requires .env configuration)
+# Run the Slack + OpenAI server
 cd packages/server
-cp .env.example .env  # edit with your tokens
+cp .env.example .env   # edit with your API tokens
 bun run start
 ```
 
-## Near-Term Workflow
+The server exposes a replay/query API on port 3000 (configurable via `CAP_API_PORT`):
 
-The first executable path with real integration is complete. Recommended next steps:
-1. extend coverage for error paths, deny decisions, and retries
-2. add streaming delta support for backend adapters
-3. add additional channel adapters (Discord, Teams, etc.)
-4. expose replay/query API surfaces for external consumers
-5. keep governing docs aligned before or alongside runtime changes
+```bash
+curl http://localhost:3000/api/health
+curl http://localhost:3000/api/conversations/<id>/events
+curl http://localhost:3000/api/correlations/<id>/events
+curl http://localhost:3000/api/events/<id>
+```
+
+## Current Maturity
+
+163 tests across 11 packages verify contract compliance, causal linkage, error paths, and end-to-end behavior:
+
+- frozen seven-event fixture corpus as machine-readable contract baseline
+- complete happy path + error path (`event.blocked`) + deny path (governance short-circuit)
+- multi-turn conversation context with automatic ledger replay
+- streaming delta support (OpenAI SSE → Slack progressive updates)
+- delivery retry with exponential backoff and dead-letter handling
+- replay/query HTTP API for external consumers
+- conformance test suite validating all 4 adapters
+- structured JSONL logging with correlation tracking
+
+## Architecture
+
+See [docs/rfcs/architecture/reference-architecture.md](docs/rfcs/architecture/reference-architecture.md) for the full reference architecture.
+
+### Adapter Interface Specs
+
+- [Channel Adapter Interface Spec](docs/rfcs/adapters/channel-adapter-interface-spec.md)
+- [Backend Adapter Interface Spec](docs/rfcs/adapters/backend-adapter-interface-spec.md)
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+
+## License
+
+See [LICENSE](LICENSE).
