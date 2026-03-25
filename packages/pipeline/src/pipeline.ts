@@ -49,7 +49,7 @@ export class FirstExecutablePathPipeline {
     const store = config.ledgerStore ?? new InMemoryEventLedgerStore();
     const [middleware, delivery, appender, validators] = await Promise.all([
       MiddlewarePipeline.create(config.middleware),
-      DeliveryOrchestrator.create(),
+      DeliveryOrchestrator.create(config.retryConfig),
       EventLedgerAppender.create(store),
       ContractHarnessValidators.create(),
     ]);

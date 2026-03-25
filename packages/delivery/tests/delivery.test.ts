@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from "bun:test";
 import type { CanonicalEvent } from "@cap/contract-harness";
 import { ContractHarnessValidators } from "@cap/contract-harness";
-import { DeliveryOrchestrator } from "../src/delivery";
+import { DeliveryOrchestrator, DeliveryExhaustedError } from "../src/delivery";
 import type { SendFn } from "../src/types";
 
 function sampleAgentResponse(): CanonicalEvent {
@@ -99,5 +99,39 @@ describe("delivery orchestrator", () => {
     await expect(orchestrator.deliver(noText, mockSendFn)).rejects.toThrow(
       "payload must contain text",
     );
+  });
+
+  it("retries on failure and succeeds on 3rd attempt", async () => {
+    let callCount = 0;
+    const flakySend: SendFn = async () => {
+      callCount++;
+      if (callCount < 3) throw new Error("temporary failure");
+      return { providerMessageId: "msg_retry_ok" };
+    };
+
+    const retryOrch = await DeliveryOrchestrator.create({ maxRetries: 3, baseDelayMs: 10 });
+    const result = await retryOrch.deliver(sampleAgentResponse(), flakySend);
+
+    expect(callCount).toBe(3);
+    expect(result.providerMessageId).toBe("msg_retry_ok");
+  });
+
+  it("throws DeliveryExhaustedError after all retries fail", async () => {
+    const alwaysFail: SendFn = async () => {
+      throw new Error("permanent failure");
+    };
+
+    const retryOrch = await DeliveryOrchestrator.create({ maxRetries: 2, baseDelayMs: 10 });
+
+    try {
+      await retryOrch.deliver(sampleAgentResponse(), alwaysFail);
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(DeliveryExhaustedError);
+      if (error instanceof DeliveryExhaustedError) {
+        expect(error.attempts).toBe(3);
+        expect(error.lastError.message).toBe("permanent failure");
+      }
+    }
   });
 });

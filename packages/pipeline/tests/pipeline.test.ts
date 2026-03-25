@@ -218,17 +218,18 @@ describe("first executable path pipeline (end-to-end)", () => {
     expect(v.ok).toBe(true);
   });
 
-  it("produces event.blocked when delivery fails", async () => {
+  it("produces event.blocked when delivery fails after retries exhausted", async () => {
     const config = await makeConfig({
       middleware: { route: { route_id: "r1", backend: "b1" } },
       sendFn: async () => { throw new Error("Slack API unreachable"); },
+      retryConfig: { maxRetries: 0 },
     });
 
     const pipeline = await FirstExecutablePathPipeline.create(config);
     const result = await pipeline.execute(validInput());
 
     expect(result.blocked).toBe(true);
-    expect(result.blockReason).toBe("Slack API unreachable");
+    expect(result.blockReason).toContain("Slack API unreachable");
     expect(result.events).toHaveLength(6);
 
     const blockedEvent = result.events[5]!;

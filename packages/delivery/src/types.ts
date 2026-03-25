@@ -6,6 +6,11 @@ export type SendResult = {
 
 export type SendFn = (text: string) => Promise<SendResult>;
 
+export type RetryConfig = {
+  maxRetries?: number | undefined;
+  baseDelayMs?: number | undefined;
+};
+
 export type DeliveryResult = {
   sendRequestedEvent: CanonicalEvent;
   sentEvent: CanonicalEvent;

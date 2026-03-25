@@ -1,7 +1,7 @@
 import type { CanonicalEvent } from "@cap/contract-harness";
 import type { InvocationContext, InvocationResult } from "@cap/backend-http";
 import type { CanonicalizationResult } from "@cap/channel-web-chat";
-import type { SendFn } from "@cap/delivery";
+import type { SendFn, RetryConfig } from "@cap/delivery";
 import type { MiddlewareConfig } from "@cap/middleware";
 import type { LedgerStore } from "@cap/event-ledger";
 
@@ -19,6 +19,7 @@ export type PipelineConfig = {
   ingress: ChannelIngress;
   sendFn: SendFn;
   ledgerStore?: LedgerStore | undefined;
+  retryConfig?: RetryConfig | undefined;
 };
 
 export type PipelineResult = {

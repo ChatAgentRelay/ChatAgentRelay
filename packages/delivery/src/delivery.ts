@@ -1,6 +1,21 @@
 import type { CanonicalEvent, ValidationResult } from "@cap/contract-harness";
 import { ContractHarnessValidators } from "@cap/contract-harness";
-import type { DeliveryResult, SendFn } from "./types";
+import type { DeliveryResult, RetryConfig, SendFn } from "./types";
+
+const DEFAULT_MAX_RETRIES = 3;
+const DEFAULT_BASE_DELAY_MS = 500;
+
+export class DeliveryExhaustedError extends Error {
+  public readonly attempts: number;
+  public readonly lastError: Error;
+
+  constructor(attempts: number, lastError: Error) {
+    super(`Delivery failed after ${attempts} attempts: ${lastError.message}`);
+    this.name = "DeliveryExhaustedError";
+    this.attempts = attempts;
+    this.lastError = lastError;
+  }
+}
 
 function deriveEvent(
   source: CanonicalEvent,
@@ -33,11 +48,21 @@ function deriveEvent(
 }
 
 export class DeliveryOrchestrator {
-  private constructor(private readonly validators: ContractHarnessValidators) {}
+  private readonly retryConfig: Required<RetryConfig>;
 
-  static async create(): Promise<DeliveryOrchestrator> {
+  private constructor(
+    private readonly validators: ContractHarnessValidators,
+    retryConfig?: RetryConfig,
+  ) {
+    this.retryConfig = {
+      maxRetries: retryConfig?.maxRetries ?? DEFAULT_MAX_RETRIES,
+      baseDelayMs: retryConfig?.baseDelayMs ?? DEFAULT_BASE_DELAY_MS,
+    };
+  }
+
+  static async create(retryConfig?: RetryConfig): Promise<DeliveryOrchestrator> {
     const validators = await ContractHarnessValidators.create();
-    return new DeliveryOrchestrator(validators);
+    return new DeliveryOrchestrator(validators, retryConfig);
   }
 
   async deliver(
@@ -62,7 +87,7 @@ export class DeliveryOrchestrator {
     );
     this.assertValid(sendRequestedEvent);
 
-    const sendResult = await sendFn(responseText);
+    const sendResult = await this.sendWithRetry(sendFn, responseText);
 
     const sentEvent = deriveEvent(
       agentResponseCompleted,
@@ -79,6 +104,27 @@ export class DeliveryOrchestrator {
       sentEvent,
       providerMessageId: sendResult.providerMessageId,
     };
+  }
+
+  private async sendWithRetry(
+    sendFn: SendFn,
+    text: string,
+  ): Promise<{ providerMessageId: string }> {
+    let lastError: Error | undefined;
+
+    for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
+      try {
+        return await sendFn(text);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        if (attempt < this.retryConfig.maxRetries) {
+          const delay = this.retryConfig.baseDelayMs * Math.pow(2, attempt);
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    throw new DeliveryExhaustedError(this.retryConfig.maxRetries + 1, lastError!);
   }
 
   private assertValid(event: CanonicalEvent): void {
