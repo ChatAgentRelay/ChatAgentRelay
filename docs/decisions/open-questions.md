@@ -11,102 +11,65 @@ This document centralizes cross-cutting questions that matter for v0/v1 planning
 
 ## Repository Governance Questions
 
-### 1. RFC naming and numbering
+### 1. RFC naming and numbering [RESOLVED]
 - Question: Should `docs/rfcs/` remain path-based only, or adopt formal numbering such as `RFC-0001`?
-- Why it matters: Numbering affects citation style, future change management, and how stable references are shared across implementation work.
-- Current guidance: Keep the current path-based layout for now, but revisit before the RFC set grows substantially.
-- Affected areas:
-  - `docs/rfcs/architecture/reference-architecture.md`
-  - all future RFC cross-references
+- Resolution: Keep path-based layout. The current RFC set is small enough that path-based references are clear and sufficient. Formal numbering adds overhead without benefit at this stage. Revisit when the RFC count exceeds ~20.
 
-### 2. Normative document language policy
+### 2. Normative document language policy [RESOLVED]
 - Question: Should normative docs standardize on English-first, or continue allowing mixed English and Chinese text?
-- Why it matters: This affects external readability, contributor expectations, and future implementation precision.
-- Current guidance: Existing mixed-language content is acceptable for now, but a repository-wide policy should be chosen before broader collaboration.
-- Affected areas:
-  - all documents under `docs/rfcs/`
-  - `CLAUDE.md`
+- Resolution: English-first for all normative documents (`docs/rfcs/`). Internal comments and research may use any language. Existing documents will be normalized to English as part of the Beta milestone.
 
-### 3. Claude local settings versioning
+### 3. Claude local settings versioning [RESOLVED]
 - Question: Should `.claude/settings.local.json` remain fully local and untracked?
-- Why it matters: Local tool permissions are usually workstation-specific and should not silently become shared governance.
-- Current guidance: Treat it as local-only unless there is a deliberate decision to introduce shared Claude configuration later.
-- Affected areas:
-  - `.gitignore`
-  - future shared Claude configuration choices
+- Resolution: Remain local-only and untracked. `.gitignore` already excludes it. Shared Claude configuration is not needed.
 
 ## v1 Scope Boundary Questions
 
-### 4. First real channel for v1 [PARTIALLY RESOLVED]
+### 4. First real channel for v1 [RESOLVED]
 - Question: Should the first production-grade channel target be `web chat` or `Slack`?
-- Resolution: Both are now implemented. `packages/channel-web-chat` provides web chat ingress canonicalization; `packages/channel-slack` provides Slack Socket Mode ingress and `chat.postMessage` delivery. Slack is the first channel with a working end-to-end integration.
-- Remaining: additional channel adapters (Discord, Teams, etc.) are deferred.
-- Relevant RFC constraints:
-  - `docs/rfcs/adapters/channel-adapter-contract.md`
-  - `docs/rfcs/middleware/routing-middleware-governance.md`
-  - `docs/rfcs/architecture/reference-architecture.md`
+- Resolution: Both are implemented. `packages/channel-web-chat` provides web chat ingress canonicalization; `packages/channel-slack` provides Slack Socket Mode ingress and `chat.postMessage` delivery, including `chat.update` for streaming. Slack is the first channel with a working end-to-end integration. Additional channel adapters (Discord, Teams, etc.) are deferred to post-v1.
 
-### 5. First real backend adapter set [PARTIALLY RESOLVED]
+### 5. First real backend adapter set [RESOLVED]
 - Question: Should v1 implement only a generic HTTP/streaming backend adapter, or also include one framework-specific adapter?
-- Resolution: Both are now implemented. `packages/backend-http` provides generic HTTP backend invocation; `packages/backend-openai` provides OpenAI Chat Completions API integration. This proves runtime portability via the `BackendAdapter` interface.
-- Remaining: streaming (SSE) support, tool/function calling, and additional provider adapters are deferred.
-- Relevant RFC constraints:
-  - `docs/rfcs/adapters/backend-agent-adapter-contract.md`
-  - `docs/rfcs/architecture/reference-architecture.md`
+- Resolution: Both are implemented. `packages/backend-http` provides generic HTTP backend invocation; `packages/backend-openai` provides OpenAI Chat Completions API integration with SSE streaming via `invokeStreaming()`. This proves runtime portability via the `BackendAdapter` interface. Tool/function calling and additional provider adapters are deferred to post-v1.
 
-### 6. Handoff depth in v1
+### 6. Handoff depth in v1 [RESOLVED]
 - Question: Should v1 handoff stop at canonical events plus projections, or include a deeper operator model?
-- Why it matters: This affects scope, projection design, audit semantics, and whether operator-facing concepts are part of the early implementation surface.
-- Relevant RFC constraints:
-  - `docs/rfcs/middleware/routing-middleware-governance.md`
-  - `docs/rfcs/canonical-model/canonical-event-schema.md`
+- Resolution: v1 stops at canonical events. The audit explanation API (`/api/conversations/:id/audit`) provides structured per-turn explanations from the event ledger. A deeper operator model (assignment queues, escalation flows) is deferred to v2.
 
 ## Protocol Detail Questions
 
-### 7. Conversation-local sequencing
+### 7. Conversation-local sequencing [RESOLVED]
 - Question: Should conversation-local sequence numbers become normative in v1 or remain projection-only?
-- Why it matters: This impacts ordering semantics, replay expectations, and storage/index design.
-- RFC origin:
-  - `docs/rfcs/canonical-model/canonical-event-schema.md`
+- Resolution: Projection-only for v1. The `LedgerStore` provides ordering via `occurred_at` + insertion order. Explicit sequence numbers add complexity without clear benefit for the current adapter set. Can be promoted to normative in v2 if multi-writer scenarios emerge.
 
-### 8. Identity resolution depth for v1
+### 8. Identity resolution depth for v1 [RESOLVED]
 - Question: Which identity resolution outcomes must be first-class and mandatory in v1?
-- Why it matters: This affects canonical event families, projection shape, and policy/governance complexity.
-- RFC origin:
-  - `docs/rfcs/canonical-model/canonical-event-schema.md`
-  - `docs/rfcs/middleware/routing-middleware-governance.md`
+- Resolution: v1 identity is channel-provided only. `actor_type` (`end_user` | `agent` | `system`) and channel-level user IDs (e.g., Slack user ID) are sufficient. Cross-channel identity mapping, identity enrichment, and verified identity are deferred to v2.
 
-### 9. Protocol trace standardization
+### 9. Protocol trace standardization [RESOLVED]
 - Question: Does protocol trace linkage need a companion RFC before implementation begins?
-- Why it matters: Trace retention, raw payload references, and observability boundaries appear in several RFCs and may deserve a dedicated normative document.
-- RFC origin:
-  - `docs/rfcs/canonical-model/canonical-event-schema.md`
-  - `docs/rfcs/middleware/routing-middleware-governance.md`
-  - `docs/rfcs/architecture/reference-architecture.md`
-  - `docs/rfcs/adapters/channel-adapter-contract.md`
+- Resolution: No separate RFC needed for v1. The existing `correlation_id` + `causation_id` chain provides adequate trace linkage. The structured logger outputs `correlation_id` on every log entry. A dedicated observability RFC with OpenTelemetry integration guidance is recommended for v2.
 
-### 10. Governance stages mandatory in v1
+### 10. Governance stages mandatory in v1 [RESOLVED]
 - Question: Which governance stages are required for a conforming v1 implementation versus recommended later?
-- Why it matters: This defines the minimum kernel execution path more precisely and affects middleware composition.
-- RFC origin:
-  - `docs/rfcs/middleware/routing-middleware-governance.md`
+- Resolution: v1 requires exactly one governance stage: the policy decision (`policy.decision.made`). This supports allow/deny with configurable keyword/regex rules via `PolicyFn`. Additional stages (rate limiting, content classification, multi-stage approval) are optional extensions. The `event.blocked` path handles denied requests.
 
-### 11. Adapter fallback standardization
+### 11. Adapter fallback standardization [RESOLVED]
 - Question: Which channel fallback and transcoding rules should be normative versus implementation-defined?
-- Why it matters: This affects interoperability, testability, and what counts as conformance for channel adapters.
-- RFC origin:
-  - `docs/rfcs/adapters/channel-adapter-contract.md`
+- Resolution: Implementation-defined for v1. Each channel adapter is responsible for its own error handling and must return `CanonicalizationResult` (never throw). The conformance test suite (`@cap/adapter-conformance`) validates this contract. Normative fallback rules (e.g., rich-to-plain-text transcoding) are deferred.
 
-### 12. Backend streaming and async envelope shape
+### 12. Backend streaming and async envelope shape [RESOLVED]
 - Question: Should async callback mode and streaming mode share one normative envelope or remain separate bindings?
-- Why it matters: This directly affects backend adapter API shape and future portability guarantees.
-- RFC origin:
-  - `docs/rfcs/adapters/backend-agent-adapter-contract.md`
+- Resolution: Separate bindings for v1. `invoke()` returns `Promise<InvocationResult>`; `invokeStreaming()` returns `AsyncGenerator<string, InvocationResult>`. Both produce the same `agent.response.completed` canonical event as their final result. Async callback mode is not yet implemented and will be evaluated in v2.
 
-## Deferred but Important
+## Deferred to v2
 
-These questions matter, but do not need to block repository governance work:
+These questions are important but do not block v1:
 - When execution isolation becomes a first-class architectural component
-- How much checkpoint/resume behavior should be mandatory before v2
+- How much checkpoint/resume behavior should be mandatory
 - How much queue and assignment semantics belong in core RFCs versus extension RFCs
-- Which v2 enterprise features must be normative before CAP is considered production-ready
+- Which enterprise features must be normative before CAP is considered production-ready
+- Cross-channel identity resolution and mapping
+- OpenTelemetry trace integration
+- Multi-stage governance pipelines
