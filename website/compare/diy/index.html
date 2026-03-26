@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CAP vs DIY - Why use a middleware for chat-to-agent integration</title>
+  <meta name="description" content="Compare building chat-to-agent integration yourself versus CAP open-source middleware: multi-channel adapters, audit ledger, policy, retries, and time to production.">
+  <meta name="keywords" content="CAP, DIY integration, chat middleware, AI agent, Slack, audit trail, open source">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="CAP vs DIY - Why use a middleware for chat-to-agent integration">
+  <meta property="og:description" content="Hidden costs of custom integrations and what CAP gives you out of the box: adapters, ledger, policy, delivery, and streaming.">
+  <meta property="og:url" content="https://anthropics.github.io/cap/compare/diy/">
+  <meta property="og:site_name" content="CAP">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="CAP vs DIY - Why use a middleware for chat-to-agent integration">
+  <meta name="twitter:description" content="Feature comparison: DIY integration vs CAP for multi-channel chat and AI agents.">
+
+  <link rel="canonical" href="https://anthropics.github.io/cap/compare/diy/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../css/style.css">
+
+  <!-- GA4 placeholder — replace G-XXXXXXXXXX with real ID -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "CAP vs DIY - Why use a middleware for chat-to-agent integration",
+    "description": "Comparison of custom chat-to-agent integration versus CAP middleware.",
+    "url": "https://anthropics.github.io/cap/compare/diy/"
+  }
+  </script>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="container">
+    <a href="/cap/" class="nav-brand"><span class="prompt">$</span> cap</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <div class="nav-links">
+      <a href="/cap/why-cap/">Why CAP</a>
+      <a href="/cap/docs/">Docs</a>
+      <a href="/cap/compare/diy/" class="active">Compare</a>
+      <a href="/cap/blog/">Blog</a>
+      <a href="https://github.com/anthropics/cap" class="nav-cta" data-track="nav_github">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<article class="article">
+  <h1>CAP vs Building It Yourself</h1>
+  <p class="meta">Compare &middot; DIY integration</p>
+
+  <p>
+    Rolling your own webhook handler and API glue works fine when you have one chat platform,
+    one agent backend, and a narrow scope. Many teams start there — and they should. The catch is
+    not the first integration; it is everything that comes after: a second channel, compliance
+    questions, swapping models, and production failures. Each of those expands surface area you
+    did not budget for upfront.
+  </p>
+
+  <h2>Feature comparison</h2>
+  <div style="overflow-x:auto;margin-bottom:24px">
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th>Capability</th>
+          <th>DIY integration</th>
+          <th>CAP</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="highlight">Multi-channel support</td>
+          <td>Build per-platform webhook + API</td>
+          <td class="check">ChannelIngress interface, plug in any platform</td>
+        </tr>
+        <tr>
+          <td class="highlight">Agent backend swapping</td>
+          <td>Rewrite integration logic</td>
+          <td class="check">BackendAdapter interface, one config change</td>
+        </tr>
+        <tr>
+          <td class="highlight">Audit trail</td>
+          <td>Build logging + storage + query API</td>
+          <td class="check">Built-in append-only ledger with REST API</td>
+        </tr>
+        <tr>
+          <td class="highlight">Policy / governance</td>
+          <td>Custom middleware from scratch</td>
+          <td class="check">Configurable keyword/regex policy engine</td>
+        </tr>
+        <tr>
+          <td class="highlight">Delivery retry</td>
+          <td>Implement queue + backoff + DLQ</td>
+          <td class="check">Built-in exponential backoff + dead-letter</td>
+        </tr>
+        <tr>
+          <td class="highlight">Streaming responses</td>
+          <td>SSE parsing + message update logic</td>
+          <td class="check">Progressive Slack updates out of the box</td>
+        </tr>
+        <tr>
+          <td class="highlight">Conversation context</td>
+          <td>Build session store + replay</td>
+          <td class="check">Automatic ledger replay for multi-turn</td>
+        </tr>
+        <tr>
+          <td class="highlight">Error handling</td>
+          <td>Custom error paths per integration</td>
+          <td class="check"><code>event.blocked</code> captures all failures with reason</td>
+        </tr>
+        <tr>
+          <td class="highlight">Time to production</td>
+          <td>2&ndash;6 weeks</td>
+          <td class="check">2 minutes</td>
+        </tr>
+        <tr>
+          <td class="highlight">Ongoing maintenance</td>
+          <td>Per-platform fixes</td>
+          <td class="check">Community-maintained adapters</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>The hidden costs of DIY</h2>
+  <p>
+    A working prototype hides recurring cost. Below are the patterns we see once the integration
+    leaves the demo stage.
+  </p>
+  <ul>
+    <li><strong>Each new platform</strong> means new integration code: webhooks, auth, rate limits,
+      message shapes, and delivery quirks. None of that composes cleanly unless you designed for
+      abstraction on day one.</li>
+    <li><strong>Audit and compliance</strong> become a separate system: durable logs, correlation
+      IDs, retention, and query surfaces for security and legal — usually bolted on late.</li>
+    <li><strong>Agent switching</strong> often forces a rewrite of request/response handling,
+      streaming, and error semantics instead of a configuration change.</li>
+    <li><strong>Error handling</strong> fragments into per-platform branches, making incidents hard
+      to reason about and impossible to report on uniformly.</li>
+  </ul>
+
+  <h2>When DIY makes sense</h2>
+  <p>
+    CAP is not the only valid choice. Building in-house is reasonable when:
+  </p>
+  <ul>
+    <li>You have <strong>truly unique protocol or product requirements</strong> that do not map to a
+      canonical message &rarr; policy &rarr; route &rarr; agent &rarr; delivery pipeline, and you
+      are willing to own that complexity end to end.</li>
+    <li>You are committed to <strong>a single platform, a single agent, and no governance or audit
+      requirements</strong> beyond what you can satisfy with minimal logging — and you accept that
+      expanding scope will cost you another build cycle.</li>
+  </ul>
+
+  <p style="margin-top:32px">
+    <a href="/cap/docs/" class="btn btn-primary" data-track="compare_diy_get_started">Get started with CAP in 2 minutes</a>
+  </p>
+</article>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/anthropics/cap">GitHub</a>
+      <a href="/cap/docs/">Docs</a>
+      <a href="/cap/blog/">Blog</a>
+      <a href="/cap/why-cap/">Why CAP</a>
+      <a href="https://github.com/anthropics/cap/issues">Issues</a>
+    </div>
+    <p>MIT License &middot; Built with Bun and TypeScript</p>
+  </div>
+</footer>
+
+<script src="../../js/main.js"></script>
+</body>
+</html>

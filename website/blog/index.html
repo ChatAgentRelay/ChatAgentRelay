@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Blog - CAP</title>
+  <meta name="description" content="News and technical writing from the CAP project: open-source middleware connecting chat platforms to AI agents, architecture, and the canonical event model.">
+  <meta name="keywords" content="CAP, blog, chat platform, AI agent, middleware, open source, Slack, architecture, events">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Blog - CAP">
+  <meta property="og:description" content="Updates and deep dives on CAP: chat-to-agent middleware, governance, audit, and pluggable adapters.">
+  <meta property="og:url" content="https://anthropics.github.io/cap/blog/">
+  <meta property="og:site_name" content="CAP">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Blog - CAP">
+  <meta name="twitter:description" content="News and technical articles from the CAP open-source chat-to-agent middleware project.">
+
+  <link rel="canonical" href="https://anthropics.github.io/cap/blog/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../css/style.css">
+
+  <!-- GA4 placeholder — replace G-XXXXXXXXXX with real ID -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    "name": "CAP Blog",
+    "description": "Articles about CAP open-source middleware for chat platforms and AI agents.",
+    "url": "https://anthropics.github.io/cap/blog/",
+    "publisher": { "@type": "Organization", "name": "CAP", "url": "https://anthropics.github.io/cap/" },
+    "blogPost": [
+      {
+        "@type": "BlogPosting",
+        "headline": "Introducing CAP",
+        "url": "https://anthropics.github.io/cap/blog/introducing-cap/",
+        "datePublished": "2026-03-01",
+        "description": "Why we built an open-source middleware for chat-to-agent integration."
+      },
+      {
+        "@type": "BlogPosting",
+        "headline": "Architecture Deep Dive",
+        "url": "https://anthropics.github.io/cap/blog/architecture-deep-dive/",
+        "datePublished": "2026-03-01",
+        "description": "The canonical event chain and why every message produces 7 events."
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="container">
+    <a href="/cap/" class="nav-brand"><span class="prompt">$</span> cap</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <div class="nav-links">
+      <a href="/cap/why-cap/">Why CAP</a>
+      <a href="/cap/docs/">Docs</a>
+      <a href="/cap/compare/diy/">Compare</a>
+      <a href="/cap/blog/" class="active">Blog</a>
+      <a href="https://github.com/anthropics/cap" class="nav-cta" data-track="nav_github">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <article class="article">
+    <h1>Blog</h1>
+    <p class="meta">Updates &amp; technical writing &middot; open-source chat-to-agent middleware</p>
+
+    <div class="blog-list">
+      <article class="blog-card">
+        <p class="meta">March 2026</p>
+        <h3><a href="/cap/blog/introducing-cap/">Introducing CAP</a></h3>
+        <p>Why we built an open-source middleware for chat-to-agent integration</p>
+      </article>
+      <article class="blog-card">
+        <p class="meta">March 2026</p>
+        <h3><a href="/cap/blog/architecture-deep-dive/">Architecture Deep Dive</a></h3>
+        <p>The canonical event chain and why every message produces 7 events</p>
+      </article>
+    </div>
+  </article>
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/anthropics/cap">GitHub</a>
+      <a href="/cap/docs/">Docs</a>
+      <a href="/cap/blog/">Blog</a>
+      <a href="/cap/why-cap/">Why CAP</a>
+      <a href="https://github.com/anthropics/cap/issues">Issues</a>
+    </div>
+    <p>MIT License &middot; Built with Bun and TypeScript</p>
+  </div>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CAP — Connect Any Chat Platform to Any AI Agent</title>
+  <meta name="description" content="CAP is open-source middleware that connects any chat platform to any AI agent with governance, audit, and zero lock-in. Slack, Teams, Discord — one integration, every channel.">
+  <meta name="keywords" content="CAP, chat platform, AI agent, middleware, Slack, OpenAI, open source, governance, audit">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="CAP — Connect Any Chat Platform to Any AI Agent">
+  <meta property="og:description" content="Open-source middleware between chat platforms and AI agents. Governance, audit, zero lock-in.">
+  <meta property="og:url" content="https://anthropics.github.io/cap/">
+  <meta property="og:site_name" content="CAP">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="CAP — Chat Platform to AI Agent Middleware">
+  <meta name="twitter:description" content="One integration, every channel, every agent, full audit trail. Open source.">
+
+  <link rel="canonical" href="https://anthropics.github.io/cap/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- GA4 placeholder — replace G-XXXXXXXXXX with real ID -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "CAP",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Linux, macOS, Windows",
+    "description": "Open-source middleware that connects any chat platform to any AI agent with governance, audit, and zero lock-in.",
+    "url": "https://anthropics.github.io/cap/",
+    "license": "https://opensource.org/licenses/MIT",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="container">
+    <a href="/cap/" class="nav-brand"><span class="prompt">$</span> cap</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <div class="nav-links">
+      <a href="/cap/why-cap/">Why CAP</a>
+      <a href="/cap/docs/">Docs</a>
+      <a href="/cap/compare/diy/">Compare</a>
+      <a href="/cap/blog/">Blog</a>
+      <a href="https://github.com/anthropics/cap" class="nav-cta" data-track="nav_github">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <span class="hero-tag">open source &middot; MIT license &middot; TypeScript</span>
+    <h1>
+      <span class="accent">Any chat platform</span><br>
+      <span class="green">Any AI agent</span><br>
+      One middleware.
+    </h1>
+    <p class="hero-sub">
+      Your users are in Slack. Your AI speaks OpenAI. Tomorrow it's Teams and Claude.
+      CAP is the open-source layer that makes every combination work — with governance,
+      audit trail, and zero lock-in.
+    </p>
+    <div class="hero-actions">
+      <a href="/cap/docs/" class="btn btn-primary" data-track="hero_get_started">Get Started</a>
+      <a href="https://github.com/anthropics/cap" class="btn btn-secondary" data-track="hero_github">View on GitHub</a>
+    </div>
+
+    <!-- Terminal demo -->
+    <div class="terminal hero-terminal" style="margin-top:48px">
+      <div class="terminal-header">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot yellow"></span>
+        <span class="terminal-dot green"></span>
+        <span class="terminal-title">terminal</span>
+      </div>
+      <div class="terminal-body">
+<span class="prompt-char">$</span> <span class="cmd">git clone https://github.com/anthropics/cap && cd cap</span>
+<span class="prompt-char">$</span> <span class="cmd">bun install</span>
+<span class="output">installed 12 packages</span>
+<span class="prompt-char">$</span> <span class="cmd">cd packages/server && cp .env.example .env</span>
+<span class="prompt-char">$</span> <span class="cmd">bun run start</span>
+<span class="output">[cap] Slack connected &middot; OpenAI ready &middot; API on :3000</span>
+<span class="output">[cap] Listening for messages...</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Problem → Solution -->
+<section>
+  <div class="container reveal">
+    <div class="section-label">The Problem</div>
+    <h2 class="section-title">Every AI chat integration is a custom spaghetti</h2>
+    <p class="section-desc">
+      You build Slack webhook &rarr; your code &rarr; OpenAI &rarr; Slack API. It works.
+      Then your PM wants Teams. Compliance wants audit logs. The CEO switches to Claude.
+      Each change is a rewrite. Each platform leaks into your logic.
+    </p>
+  </div>
+</section>
+
+<!-- How it works -->
+<section>
+  <div class="container reveal">
+    <div class="section-label">The Solution</div>
+    <h2 class="section-title">One canonical event chain, infinite combinations</h2>
+    <p class="section-desc">
+      Every message flows through a 7-event chain. Channels and agents are pluggable.
+      Swap either side without touching business logic.
+    </p>
+
+    <div class="event-chain">
+      <div class="event-line">
+        <span class="event-num">1</span>
+        <span class="event-arrow">&rarr;</span>
+        <span class="event-name">message.received</span>
+        <span class="event-desc">&nbsp;user's message, canonicalized from any platform</span>
+      </div>
+      <div class="event-line">
+        <span class="event-num">2</span>
+        <span class="event-arrow">&rarr;</span>
+        <span class="event-name">policy.decision.made</span>
+        <span class="event-desc">&nbsp;allow or deny (configurable rules)</span>
+      </div>
+      <div class="event-line">
+        <span class="event-num">3</span>
+        <span class="event-arrow">&rarr;</span>
+        <span class="event-name">route.decision.made</span>
+        <span class="event-desc">&nbsp;select the right agent backend</span>
+      </div>
+      <div class="event-line">
+        <span class="event-num">4</span>
+        <span class="event-arrow">&rarr;</span>
+        <span class="event-name">agent.invocation.requested</span>
+        <span class="event-desc">&nbsp;dispatch to AI backend</span>
+      </div>
+      <div class="event-line">
+        <span class="event-num">5</span>
+        <span class="event-arrow">&rarr;</span>
+        <span class="event-name">agent.response.completed</span>
+        <span class="event-desc">&nbsp;agent's reply captured</span>
+      </div>
+      <div class="event-line">
+        <span class="event-num">6</span>
+        <span class="event-arrow">&rarr;</span>
+        <span class="event-name">message.send.requested</span>
+        <span class="event-desc">&nbsp;queued for delivery with retry</span>
+      </div>
+      <div class="event-line">
+        <span class="event-num">7</span>
+        <span class="event-arrow">&rarr;</span>
+        <span class="event-name">message.sent</span>
+        <span class="event-desc">&nbsp;delivered to user's chat platform</span>
+      </div>
+      <div class="event-line" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+        <span class="event-num">&times;</span>
+        <span class="event-arrow" style="color:var(--red)">&rarr;</span>
+        <span class="event-blocked">event.blocked</span>
+        <span class="event-desc">&nbsp;captures failures with reason + stage</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section>
+  <div class="container reveal">
+    <div class="section-label">What You Get</div>
+    <h2 class="section-title">Built for the real world, not just demos</h2>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">$ plug --channel</div>
+        <h3>Any Chat Platform</h3>
+        <p>Slack and WebChat built-in. Add Discord, Teams, or Telegram with one interface. No platform lock-in.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">$ plug --agent</div>
+        <h3>Any AI Agent</h3>
+        <p>OpenAI and generic HTTP included. Add Claude, Gemini, or your custom model. Swap backends in one line.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">$ cap policy</div>
+        <h3>Governance Built-In</h3>
+        <p>Keyword/regex policy engine blocks messages before they reach your agent. Every decision logged.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">$ cap audit</div>
+        <h3>Full Audit Trail</h3>
+        <p>Every message produces an immutable event chain. Query conversations, correlations, and audit explanations via REST API.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">$ cap stream</div>
+        <h3>Streaming Responses</h3>
+        <p>OpenAI SSE streams update Slack messages progressively. Users see the agent thinking in real-time.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">$ cap retry</div>
+        <h3>Delivery Retry + DLQ</h3>
+        <p>Exponential backoff on failures. Dead-letter queue for exhausted retries. No lost messages.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Who is this for -->
+<section>
+  <div class="container reveal">
+    <div class="section-label">Use Cases</div>
+    <h2 class="section-title">Who is CAP for?</h2>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h3>Slack Bot Builder</h3>
+        <p>Get governance, audit, retry, and streaming from day one. Focus on your agent's logic, not infrastructure.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Multi-Platform Team</h3>
+        <p>Write adapters once. The canonical event model abstracts away channel differences.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Compliance-First Org</h3>
+        <p>Every AI interaction is an immutable event in an append-only ledger. Auditable by default.</p>
+      </div>
+    </div>
+
+    <div class="use-case-tags">
+      <span class="use-case-tag">customer support bots</span>
+      <span class="use-case-tag">internal tooling</span>
+      <span class="use-case-tag">developer assistants</span>
+      <span class="use-case-tag">content moderation</span>
+      <span class="use-case-tag">multi-tenant SaaS</span>
+      <span class="use-case-tag">agent orchestration</span>
+    </div>
+  </div>
+</section>
+
+<!-- Quick compare -->
+<section>
+  <div class="container reveal">
+    <div class="section-label">Compare</div>
+    <h2 class="section-title">CAP vs building from scratch</h2>
+    <p class="section-desc">
+      You can always build it yourself. Here's what you'd need to replicate.
+    </p>
+
+    <div style="overflow-x:auto">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Capability</th>
+            <th>DIY Integration</th>
+            <th>CAP</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="highlight">Multi-channel support</td>
+            <td>Build per platform</td>
+            <td class="check">Plug-in adapters</td>
+          </tr>
+          <tr>
+            <td class="highlight">Agent swapping</td>
+            <td>Rewrite integration</td>
+            <td class="check">One-line config change</td>
+          </tr>
+          <tr>
+            <td class="highlight">Audit trail</td>
+            <td>Build from scratch</td>
+            <td class="check">Built-in event ledger</td>
+          </tr>
+          <tr>
+            <td class="highlight">Policy / governance</td>
+            <td>Custom middleware</td>
+            <td class="check">Configurable policy engine</td>
+          </tr>
+          <tr>
+            <td class="highlight">Delivery retry</td>
+            <td>Implement yourself</td>
+            <td class="check">Exponential backoff + DLQ</td>
+          </tr>
+          <tr>
+            <td class="highlight">Streaming</td>
+            <td>SSE parsing + update logic</td>
+            <td class="check">Progressive message updates</td>
+          </tr>
+          <tr>
+            <td class="highlight">Time to production</td>
+            <td>Weeks</td>
+            <td class="check">Minutes</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="text-align:center;margin-top:24px">
+      <a href="/cap/compare/diy/" class="btn btn-secondary" data-track="compare_diy">Full comparison &rarr;</a>
+      <a href="/cap/compare/alternatives/" class="btn btn-secondary" data-track="compare_alt" style="margin-left:8px">vs Botpress, Rasa, Chatwoot &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-banner">
+  <div class="container">
+    <h2>Ready to stop rewriting integrations?</h2>
+    <p>CAP is MIT licensed and free forever. Get started in 2 minutes.</p>
+    <div class="hero-actions">
+      <a href="/cap/docs/" class="btn btn-primary" data-track="cta_get_started">Get Started</a>
+      <a href="https://github.com/anthropics/cap" class="btn btn-secondary" data-track="cta_github">Star on GitHub</a>
+    </div>
+
+    <div class="share-row">
+      <a href="https://twitter.com/intent/tweet?text=CAP%20%E2%80%94%20connect%20any%20chat%20platform%20to%20any%20AI%20agent.%20Open%20source.%20https%3A%2F%2Fgithub.com%2Fanthropics%2Fcap" class="share-btn" target="_blank" rel="noopener" data-track="share_twitter">Share on X</a>
+      <a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fgithub.com%2Fanthropics%2Fcap" class="share-btn" target="_blank" rel="noopener" data-track="share_linkedin">Share on LinkedIn</a>
+      <a href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fgithub.com%2Fanthropics%2Fcap&t=CAP%20%E2%80%94%20Open-source%20chat-to-agent%20middleware" class="share-btn" target="_blank" rel="noopener" data-track="share_hn">Share on HN</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/anthropics/cap">GitHub</a>
+      <a href="/cap/docs/">Docs</a>
+      <a href="/cap/blog/">Blog</a>
+      <a href="/cap/why-cap/">Why CAP</a>
+      <a href="https://github.com/anthropics/cap/issues">Issues</a>
+    </div>
+    <p>MIT License &middot; Built with Bun and TypeScript</p>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

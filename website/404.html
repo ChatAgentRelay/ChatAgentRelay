@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>404 — Page not found · CAP</title>
+  <meta name="description" content="The page you requested could not be found.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/cap/css/style.css">
+
+  <!-- GA4 placeholder — replace G-XXXXXXXXXX with real ID -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX');
+  </script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container">
+    <a href="/cap/" class="nav-brand"><span class="prompt">$</span> cap</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <div class="nav-links">
+      <a href="/cap/why-cap/">Why CAP</a>
+      <a href="/cap/docs/">Docs</a>
+      <a href="/cap/compare/diy/">Compare</a>
+      <a href="/cap/blog/">Blog</a>
+      <a href="https://github.com/anthropics/cap" class="nav-cta" data-track="nav_github">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <section class="hero error-hero">
+    <div class="container">
+      <h1><span class="green">$</span> 404</h1>
+      <p class="error-lede">Page not found</p>
+      <p class="hero-sub">
+        The file you're looking for doesn't exist. Maybe it was moved, or maybe it never existed.
+      </p>
+      <div class="hero-actions">
+        <a href="/cap/" class="btn btn-primary" data-track="404_home">Back to homepage</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/anthropics/cap">GitHub</a>
+      <a href="/cap/docs/">Docs</a>
+      <a href="/cap/blog/">Blog</a>
+      <a href="/cap/why-cap/">Why CAP</a>
+      <a href="https://github.com/anthropics/cap/issues">Issues</a>
+    </div>
+    <p>MIT License &middot; Built with Bun and TypeScript</p>
+  </div>
+</footer>
+
+<script src="/cap/js/main.js"></script>
+<style>
+  .error-hero {
+    min-height: calc(100vh - 220px);
+    display: flex;
+    align-items: center;
+    padding-top: 48px;
+    padding-bottom: 80px;
+  }
+  .error-lede {
+    font-family: var(--mono);
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
+</style>
+</body>
+</html>
