@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://car.local/schemas/canonical-model/events/messaging/message-sent.schema.json",
+  "title": "CAR Message Sent Event",
+  "description": "Specialized canonical event schema for outbound message.sent events.",
+  "allOf": [
+    {
+      "$ref": "../../canonical-event-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_type", "payload", "actor_type"],
+      "properties": {
+        "event_type": {
+          "const": "message.sent"
+        },
+        "actor_type": {
+          "const": "channel_adapter"
+        },
+        "payload": {
+          "type": "object",
+          "required": ["provider_message_id"],
+          "properties": {
+            "provider_message_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "event_id": "evt_105",
+      "schema_version": "v1alpha1",
+      "event_type": "message.sent",
+      "tenant_id": "tenant_acme",
+      "workspace_id": "ws_support",
+      "channel": "slack",
+      "channel_instance_id": "slack_support_prod",
+      "conversation_id": "conv_1",
+      "session_id": "sess_1",
+      "correlation_id": "corr_1",
+      "causation_id": "evt_104",
+      "occurred_at": "2026-03-17T12:00:05Z",
+      "actor_type": "channel_adapter",
+      "payload": {
+        "provider_message_id": "slack_msg_555"
+      }
+    }
+  ]
+}

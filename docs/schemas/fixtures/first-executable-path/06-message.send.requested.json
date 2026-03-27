@@ -1,0 +1,23 @@
+{
+  "event_id": "evt_105",
+  "schema_version": "v1alpha1",
+  "event_type": "message.send.requested",
+  "tenant_id": "tenant_acme",
+  "workspace_id": "ws_support",
+  "channel": "webchat",
+  "channel_instance_id": "webchat_acme_prod",
+  "conversation_id": "conv_1",
+  "session_id": "sess_1",
+  "correlation_id": "corr_1",
+  "causation_id": "evt_104",
+  "occurred_at": "2026-03-18T10:00:05Z",
+  "actor_type": "system",
+  "trace_context": {
+    "trace_id": "trace_123",
+    "span_id": "span_105",
+    "parent_span_id": "span_104"
+  },
+  "payload": {
+    "text": "Your order shipped yesterday."
+  }
+}

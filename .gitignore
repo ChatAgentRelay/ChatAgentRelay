@@ -1,0 +1,56 @@
+# OS and editor files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Environment and secrets
+.env
+.env.local
+.env.production
+.env.development
+# Note: .env.example is tracked intentionally
+*.local
+*.secret
+secrets.*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node.js / Bun
+node_modules/
+dist/
+build/
+coverage/
+.npm/
+.pnpm-store/
+.next/
+.nuxt/
+.bun/
+
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+
+# General build and temp outputs
+.tmp/
+tmp/
+out/
+.cache/
+
+# Claude local state
+.claude/settings.local.json
+
+# Private internal docs
+/docs/private/

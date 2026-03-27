@@ -1,0 +1,23 @@
+{
+  "name": "@chat-agent-relay/adapter-conformance",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@chat-agent-relay/contract-harness": "workspace:*",
+    "@chat-agent-relay/backend-http": "workspace:*",
+    "@chat-agent-relay/backend-openai": "workspace:*",
+    "@chat-agent-relay/channel-web-chat": "workspace:*",
+    "@chat-agent-relay/channel-slack": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^6.0.2"
+  }
+}

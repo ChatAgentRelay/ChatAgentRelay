@@ -1,0 +1,33 @@
+{
+  "event_id": "evt_100",
+  "schema_version": "v1alpha1",
+  "event_type": "message.received",
+  "tenant_id": "tenant_acme",
+  "workspace_id": "ws_support",
+  "channel": "webchat",
+  "channel_instance_id": "webchat_acme_prod",
+  "conversation_id": "conv_1",
+  "session_id": "sess_1",
+  "correlation_id": "corr_1",
+  "occurred_at": "2026-03-18T10:00:00Z",
+  "actor": {
+    "id": "user_123",
+    "display_name": "Alice"
+  },
+  "actor_type": "end_user",
+  "identity_refs": {
+    "channel_user_id": "web_user_123"
+  },
+  "trace_context": {
+    "trace_id": "trace_123",
+    "span_id": "span_100"
+  },
+  "payload": {
+    "text": "Where is my order?"
+  },
+  "provider_extensions": {
+    "webchat": {
+      "client_message_id": "web_msg_001"
+    }
+  }
+}

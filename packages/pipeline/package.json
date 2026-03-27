@@ -1,0 +1,26 @@
+{
+  "name": "@chat-agent-relay/pipeline",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@chat-agent-relay/contract-harness": "workspace:*",
+    "@chat-agent-relay/channel-web-chat": "workspace:*",
+    "@chat-agent-relay/middleware": "workspace:*",
+    "@chat-agent-relay/backend-http": "workspace:*",
+    "@chat-agent-relay/delivery": "workspace:*",
+    "@chat-agent-relay/event-ledger": "workspace:*"
+  },
+  "devDependencies": {
+    "@chat-agent-relay/channel-slack": "workspace:*",
+    "@chat-agent-relay/backend-openai": "workspace:*",
+    "@types/bun": "latest",
+    "typescript": "^6.0.2"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://car.local/schemas/canonical-model/events/routing/policy-decision-made.schema.json",
+  "title": "CAR Policy Decision Made Event",
+  "description": "Specialized canonical event schema for policy.decision.made events.",
+  "allOf": [
+    {
+      "$ref": "../../canonical-event-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_type", "payload", "actor_type"],
+      "properties": {
+        "event_type": {
+          "const": "policy.decision.made"
+        },
+        "actor_type": {
+          "const": "system"
+        },
+        "payload": {
+          "type": "object",
+          "required": ["policy", "decision"],
+          "properties": {
+            "policy": {
+              "type": "string",
+              "minLength": 1
+            },
+            "decision": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "event_id": "evt_101",
+      "schema_version": "v1alpha1",
+      "event_type": "policy.decision.made",
+      "tenant_id": "tenant_acme",
+      "workspace_id": "ws_support",
+      "conversation_id": "conv_1",
+      "session_id": "sess_1",
+      "correlation_id": "corr_1",
+      "causation_id": "evt_100",
+      "occurred_at": "2026-03-17T12:00:01Z",
+      "actor_type": "system",
+      "payload": {
+        "policy": "default_ingress",
+        "decision": "allow"
+      }
+    }
+  ]
+}

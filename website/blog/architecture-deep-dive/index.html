@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Canonical Event Chain — Why Every Message Produces 7 Events</title>
+  <meta name="description" content="How Chat Agent Relay models chat-to-agent flows as a declarative chain of seven canonical events plus failure capture — auditable, replayable, and adapter-friendly.">
+  <meta name="keywords" content="Chat Agent Relay, CAR, event-driven architecture, canonical events, message.received, audit ledger, JSON Schema, middleware, AI agents">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="The Canonical Event Chain — Why Every Message Produces 7 Events">
+  <meta property="og:description" content="Declarative chat-to-agent integration: seven events from ingress to delivery, plus first-class failure events.">
+  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/blog/architecture-deep-dive/">
+  <meta property="og:site_name" content="Chat Agent Relay">
+  <meta property="article:published_time" content="2026-03-01">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="The Canonical Event Chain — Chat Agent Relay">
+  <meta name="twitter:description" content="Why Chat Agent Relay records policy, routing, invocation, response, and delivery as explicit events — not hidden control flow.">
+
+  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/blog/architecture-deep-dive/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../css/style.css">
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-7FERB87K2D');
+  </script>
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "The Canonical Event Chain — Why Every Message Produces 7 Events",
+    "description": "Technical overview of Chat Agent Relay's seven-event pipeline and event.blocked for failures.",
+    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/architecture-deep-dive/",
+    "datePublished": "2026-03-01",
+    "dateModified": "2026-03-01",
+    "author": { "@type": "Organization", "name": "Chat Agent Relay" },
+    "publisher": { "@type": "Organization", "name": "Chat Agent Relay", "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/" },
+    "isPartOf": { "@type": "Blog", "name": "Chat Agent Relay Blog", "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/" }
+  }
+  </script>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="container">
+    <a href="/ChatAgentRelay/" class="nav-brand"><span class="prompt">$</span> car</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <div class="nav-links">
+      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+      <a href="/ChatAgentRelay/docs/">Docs</a>
+      <a href="/ChatAgentRelay/compare/diy/">Compare</a>
+      <a href="/ChatAgentRelay/blog/" class="active">Blog</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="nav-cta" data-track="nav_github">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <article class="article">
+    <h1>The Canonical Event Chain &mdash; Why Every Message Produces 7 Events</h1>
+    <p class="meta">March 2026 &middot; Technical deep dive</p>
+
+    <h2 id="intro">Integration styles</h2>
+    <p>
+      Most chat-agent integrations are <strong>imperative</strong>: receive a payload, branch on errors, call an API, hope the logs are enough when something breaks.
+      Chat Agent Relay is <strong>declarative</strong> at the protocol layer: every user message is expected to advance through the same ordered chain of event types.
+      Adapters translate platform-specific wire formats in and out; the middleware never needs to know Slack&rsquo;s payload shape to reason about policy or audit.
+    </p>
+
+    <h2 id="seven-events">The seven-event chain</h2>
+    <p>Each step is a durable, schema-validated fact in the ledger:</p>
+    <ol>
+      <li>
+        <strong><code>message.received</code></strong> &mdash; The channel adapter canonicalizes the inbound message (text, thread, user, workspace identifiers) into the shared envelope.
+        Nothing downstream should parse raw Slack or HTTP bodies.
+      </li>
+      <li>
+        <strong><code>policy.decision.made</code></strong> &mdash; The policy engine evaluates rules (keywords, regex, and future richer logic) and records allow or deny <em>before</em> any agent call.
+        Blocked traffic never touches the model; the decision is still auditable.
+      </li>
+      <li>
+        <strong><code>route.decision.made</code></strong> &mdash; Routing selects which backend adapter handles this conversation (model, tenant-specific endpoint, A/B experiment, etc.).
+      </li>
+      <li>
+        <strong><code>agent.invocation.requested</code></strong> &mdash; Dispatch includes conversation context and correlation metadata so backends stay stateless where possible and traces stay coherent.
+      </li>
+      <li>
+        <strong><code>agent.response.completed</code></strong> &mdash; The agent&rsquo;s reply (or structured failure from the backend) is captured as an event, not only as a return value on the stack.
+      </li>
+      <li>
+        <strong><code>message.send.requested</code></strong> &mdash; Outbound delivery is queued with retry policy; the user-visible &ldquo;send&rdquo; is separate from the agent finishing.
+      </li>
+      <li>
+        <strong><code>message.sent</code></strong> &mdash; The channel confirms delivery (or terminal failure after retries), closing the happy path for that turn.
+      </li>
+    </ol>
+
+    <h3 id="blocked"><code>event.blocked</code></h3>
+    <p>
+      When anything fails policy, routing, invocation, or delivery, Chat Agent Relay emits <strong><code>event.blocked</code></strong>: a first-class failure record with <strong>reason</strong> and <strong>stage</strong>.
+      Failures are not only exceptions in logs; they are queryable events with the same envelope as the rest of the system, so dashboards and compliance tools can treat them uniformly.
+    </p>
+
+    <h2 id="why">Why this matters</h2>
+    <ul>
+      <li><strong>Every decision is auditable</strong> &mdash; Allow/deny, route choice, and delivery outcomes are explicit events with timestamps and correlation IDs.</li>
+      <li><strong>Failures are first-class</strong> &mdash; <code>event.blocked</code> preserves why something stopped without inferring from stack traces.</li>
+      <li><strong>Replay from the ledger</strong> &mdash; Replaying stored events reconstructs conversation timelines for debugging and compliance.</li>
+      <li><strong>Adapters stay thin</strong> &mdash; New channels and backends only need to produce and consume canonical events; they do not reimplement policy or audit.</li>
+    </ul>
+
+    <h2 id="envelope">The event envelope</h2>
+    <p>
+      Events conform to a shared <strong>JSON Schema</strong> contract. The envelope carries cross-cutting fields so traces survive across services and storage backends, for example:
+    </p>
+    <ul>
+      <li><code>event_id</code> &mdash; unique identifier for the event instance</li>
+      <li><code>event_type</code> &mdash; such as <code>message.received</code> or <code>policy.decision.made</code></li>
+      <li><code>correlation_id</code> &mdash; ties one user turn together across all seven steps</li>
+      <li><code>causation_id</code> &mdash; links an event to the specific prior event that triggered it</li>
+      <li><code>tenant_id</code>, <code>workspace_id</code> &mdash; isolation and scoping for multi-tenant deployments</li>
+      <li><code>timestamp</code> &mdash; when the event was recorded</li>
+      <li><code>payload</code> &mdash; type-specific body validated against the schema for that <code>event_type</code></li>
+    </ul>
+    <p>
+      Normative detail lives in the project&rsquo;s RFCs and schema artifacts; implementations validate at boundaries so bad data never poisons the ledger silently.
+    </p>
+
+    <h2 id="adapters">Adapters as boundary translators</h2>
+    <p>
+      Chat Agent Relay splits the world at two interfaces. <strong>Channel ingress</strong> implements <strong>ChannelIngress</strong>: turn vendor webhooks or sockets into <code>message.received</code> and apply outbound mapping for <code>message.send.requested</code> / <code>message.sent</code>.
+      <strong>Backend adapters</strong> implement <strong>BackendAdapter</strong>: consume invocation events, call models or HTTP services, and emit <code>agent.response.completed</code>.
+      Both sides speak only canonical events plus the envelope &mdash; the glue that used to sprawl across your codebase becomes replaceable modules.
+    </p>
+
+    <h2 id="cta">Try it and read the specs</h2>
+    <p>
+      Run Chat Agent Relay locally from the <a href="/ChatAgentRelay/docs/">documentation</a>, then read the RFCs in the repository for the full contract. The seven-event story is the spine that keeps channels, agents, and audit aligned.
+    </p>
+    <div class="hero-actions" style="justify-content:flex-start;margin-top:8px;margin-bottom:16px">
+      <a href="/ChatAgentRelay/docs/" class="btn btn-primary" data-track="blog_arch_try">Try Chat Agent Relay</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/tree/main/docs/rfcs" class="btn btn-secondary" data-track="blog_arch_specs">Read the specs</a>
+    </div>
+    <p style="margin-top:8px"><a href="/ChatAgentRelay/blog/">&larr; Back to Blog</a></p>
+  </article>
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
+      <a href="/ChatAgentRelay/docs/">Docs</a>
+      <a href="/ChatAgentRelay/blog/">Blog</a>
+      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
+    </div>
+    <p>MIT License &middot; Built with Bun and TypeScript</p>
+  </div>
+</footer>
+
+<script src="../../js/main.js"></script>
+</body>
+</html>

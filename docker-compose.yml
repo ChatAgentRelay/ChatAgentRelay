@@ -1,0 +1,15 @@
+services:
+  car-server:
+    build: .
+    ports:
+      - "${CAR_API_PORT:-3000}:3000"
+    env_file:
+      - packages/server/.env
+    volumes:
+      - car-data:/app/data
+    environment:
+      - CAR_SQLITE_PATH=/app/data/car-ledger.db
+    restart: unless-stopped
+
+volumes:
+  car-data:

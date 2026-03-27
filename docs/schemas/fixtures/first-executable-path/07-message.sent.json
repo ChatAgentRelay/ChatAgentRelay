@@ -1,0 +1,28 @@
+{
+  "event_id": "evt_106",
+  "schema_version": "v1alpha1",
+  "event_type": "message.sent",
+  "tenant_id": "tenant_acme",
+  "workspace_id": "ws_support",
+  "channel": "webchat",
+  "channel_instance_id": "webchat_acme_prod",
+  "conversation_id": "conv_1",
+  "session_id": "sess_1",
+  "correlation_id": "corr_1",
+  "causation_id": "evt_105",
+  "occurred_at": "2026-03-18T10:00:06Z",
+  "actor_type": "channel_adapter",
+  "trace_context": {
+    "trace_id": "trace_123",
+    "span_id": "span_106",
+    "parent_span_id": "span_105"
+  },
+  "payload": {
+    "provider_message_id": "webchat_msg_9001"
+  },
+  "provider_extensions": {
+    "webchat": {
+      "delivery_status": "sent"
+    }
+  }
+}

@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Getting Started — Chat Agent Relay Documentation</title>
+  <meta name="description" content="Install Chat Agent Relay with Bun, configure Slack and OpenAI, run the server, test with bun test, use Docker, car-server CLI, and the HTTP API. Open-source chat-to-agent middleware.">
+  <meta name="keywords" content="Chat Agent Relay, CAR, getting started, Bun, TypeScript, Slack bot, OpenAI, Docker, API, documentation">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Getting Started — Chat Agent Relay Documentation">
+  <meta property="og:description" content="From clone to running server: prerequisites, install, .env, Docker, CLI, and REST API in one place.">
+  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/">
+  <meta property="og:site_name" content="Chat Agent Relay">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Getting Started — Chat Agent Relay">
+  <meta name="twitter:description" content="Install, configure, and run Chat Agent Relay: Bun, TypeScript, Slack, OpenAI, Docker, CLI, HTTP API.">
+
+  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../css/style.css">
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-7FERB87K2D');
+  </script>
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "Getting Started with Chat Agent Relay",
+    "description": "How to install, configure, run, test, and integrate with Chat Agent Relay chat-to-agent middleware.",
+    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/"
+  }
+  </script>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="container">
+    <a href="/ChatAgentRelay/" class="nav-brand"><span class="prompt">$</span> car</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <div class="nav-links">
+      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+      <a href="/ChatAgentRelay/docs/" class="active">Docs</a>
+      <a href="/ChatAgentRelay/compare/diy/">Compare</a>
+      <a href="/ChatAgentRelay/blog/">Blog</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="nav-cta" data-track="nav_github">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<article class="article">
+  <h1>Getting Started</h1>
+  <p class="meta">Practical setup &middot; copy-paste commands &middot; <a href="https://bun.sh">Bun</a> + TypeScript</p>
+
+  <p>
+    Chat Agent Relay sits between your chat platform and your AI agent. This guide gets you from zero to a running server:
+    install dependencies, wire Slack and OpenAI, start the process, verify with tests or Docker, and hit the HTTP API.
+  </p>
+
+  <h2 id="prerequisites">Prerequisites</h2>
+  <p>Before you start, you need:</p>
+  <ul>
+    <li><strong><a href="https://bun.sh">Bun</a></strong> — runtime and package manager for this project.</li>
+    <li>A <strong>Slack app</strong> with a bot token and app-level token (Socket Mode).</li>
+    <li>An <strong>OpenAI API key</strong> (or compatible endpoint via optional env vars).</li>
+  </ul>
+  <p>Clone the repo if you have not already:</p>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="terminal-dot red"></span>
+      <span class="terminal-dot yellow"></span>
+      <span class="terminal-dot green"></span>
+      <span class="terminal-title">terminal</span>
+    </div>
+    <div class="terminal-body">
+<span class="prompt-char">$</span> <span class="cmd">git clone https://github.com/ChatAgentRelay/ChatAgentRelay.git</span>
+<span class="prompt-char">$</span> <span class="cmd">cd ChatAgentRelay</span>
+    </div>
+  </div>
+
+  <h2 id="installation">Installation</h2>
+  <p>Install all workspace dependencies from the repository root:</p>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="terminal-dot red"></span>
+      <span class="terminal-dot yellow"></span>
+      <span class="terminal-dot green"></span>
+      <span class="terminal-title">terminal</span>
+    </div>
+    <div class="terminal-body">
+<span class="prompt-char">$</span> <span class="cmd">bun install</span>
+    </div>
+  </div>
+  <p>That pulls everything the monorepo needs so you can run the server and the full test suite.</p>
+
+  <h2 id="configuration">Configuration</h2>
+  <p>Create a <code>.env</code> for the server (start from <code>.env.example</code> in <code>packages/server</code> if the repo provides one). At minimum, set:</p>
+  <ul>
+    <li><code>SLACK_BOT_TOKEN</code> — Slack bot token (prefix <code>xoxb-</code>).</li>
+    <li><code>SLACK_APP_TOKEN</code> — Slack app-level token for Socket Mode (prefix <code>xapp-</code>).</li>
+    <li><code>OPENAI_API_KEY</code> — OpenAI secret key (prefix <code>sk-</code>).</li>
+  </ul>
+  <p><strong>Optional</strong> tuning (only if you need them):</p>
+  <ul>
+    <li><code>OPENAI_BASE_URL</code> — non-default API base (e.g. proxies or compatible providers).</li>
+    <li><code>OPENAI_MODEL</code> — model name override.</li>
+    <li><code>CAR_STREAMING</code> — control streaming behavior.</li>
+    <li><code>CAR_API_PORT</code> — HTTP API port (default is commonly <code>3000</code>).</li>
+    <li><code>CAR_POLICY_CONFIG</code> — path or inline policy configuration for governance rules.</li>
+  </ul>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="terminal-dot red"></span>
+      <span class="terminal-dot yellow"></span>
+      <span class="terminal-dot green"></span>
+      <span class="terminal-title">.env</span>
+    </div>
+    <div class="terminal-body">
+<span class="comment"># Required</span>
+<span class="cmd">SLACK_BOT_TOKEN=xoxb-your-bot-token</span>
+<span class="cmd">SLACK_APP_TOKEN=xapp-your-app-token</span>
+<span class="cmd">OPENAI_API_KEY=sk-your-openai-key</span>
+<span class="comment"># Optional examples</span>
+<span class="comment"># OPENAI_BASE_URL=https://api.openai.com/v1</span>
+<span class="comment"># OPENAI_MODEL=gpt-4o</span>
+<span class="comment"># CAR_API_PORT=3000</span>
+    </div>
+  </div>
+
+  <h2 id="running">Running the server</h2>
+  <p>Start Chat Agent Relay from the server package so Bun resolves the right entrypoint and env:</p>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="terminal-dot red"></span>
+      <span class="terminal-dot yellow"></span>
+      <span class="terminal-dot green"></span>
+      <span class="terminal-title">terminal</span>
+    </div>
+    <div class="terminal-body">
+<span class="prompt-char">$</span> <span class="cmd">cd packages/server && bun run start</span>
+    </div>
+  </div>
+  <p>When it is up, the HTTP API is available on the configured port (typically <code>localhost:3000</code>). Use <code>/api/health</code> to confirm the process is live.</p>
+
+  <h2 id="testing">Testing</h2>
+  <p>Run the full test corpus from the repository root to validate contracts and behavior across packages:</p>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="terminal-dot red"></span>
+      <span class="terminal-dot yellow"></span>
+      <span class="terminal-dot green"></span>
+      <span class="terminal-title">terminal</span>
+    </div>
+    <div class="terminal-body">
+<span class="prompt-char">$</span> <span class="cmd">bun test --recursive</span>
+<span class="output"># 210 tests across packages (run from repo root).</span>
+    </div>
+  </div>
+  <p>Use this after dependency upgrades or local changes to ensure nothing regressed at the boundaries.</p>
+
+  <h2 id="docker">Docker</h2>
+  <p>To run with containers instead of a local Bun process:</p>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="terminal-dot red"></span>
+      <span class="terminal-dot yellow"></span>
+      <span class="terminal-dot green"></span>
+      <span class="terminal-title">terminal</span>
+    </div>
+    <div class="terminal-body">
+<span class="prompt-char">$</span> <span class="cmd">docker compose up -d</span>
+    </div>
+  </div>
+  <p>Mount or inject the same environment variables your <code>.env</code> would provide so Slack and OpenAI credentials reach the container.</p>
+
+  <h2 id="cli">CLI: <code>car-server</code></h2>
+  <p>The server binary supports the usual operational flags:</p>
+  <ul>
+    <li><code>car-server --help</code> — usage and subcommands/options.</li>
+    <li><code>car-server --version</code> — print the build or package version.</li>
+    <li><code>car-server --check-config</code> — validate configuration without fully starting long-running services.</li>
+    <li><code>car-server --dry-run</code> — exercise startup paths safely where supported.</li>
+  </ul>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="terminal-dot red"></span>
+      <span class="terminal-dot yellow"></span>
+      <span class="terminal-dot green"></span>
+      <span class="terminal-title">terminal</span>
+    </div>
+    <div class="terminal-body">
+<span class="prompt-char">$</span> <span class="cmd">car-server --check-config</span>
+<span class="prompt-char">$</span> <span class="cmd">car-server --version</span>
+    </div>
+  </div>
+
+  <h2 id="api">HTTP API</h2>
+  <p>With the server listening (default <code>http://localhost:3000</code>), you can:</p>
+  <ul>
+    <li><strong>Health</strong> — <code>GET /api/health</code> for a quick liveness check.</li>
+    <li><strong>Conversation events</strong> — <code>GET /api/conversations/:id/events</code> to inspect the event stream for a conversation.</li>
+    <li><strong>Audit</strong> — <code>GET /api/conversations/:id/audit</code> for audit-oriented views of the same conversation.</li>
+  </ul>
+  <p>Replace <code>:id</code> with your conversation identifier from Slack or your channel adapter.</p>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="terminal-dot red"></span>
+      <span class="terminal-dot yellow"></span>
+      <span class="terminal-dot green"></span>
+      <span class="terminal-title">terminal</span>
+    </div>
+    <div class="terminal-body">
+<span class="prompt-char">$</span> <span class="cmd">curl -s http://localhost:3000/api/health</span>
+<span class="prompt-char">$</span> <span class="cmd">curl -s http://localhost:3000/api/conversations/C123456/events</span>
+<span class="prompt-char">$</span> <span class="cmd">curl -s http://localhost:3000/api/conversations/C123456/audit</span>
+    </div>
+  </div>
+
+  <h2 id="custom-adapters">Custom adapters</h2>
+  <p>Chat Agent Relay is built so you can swap pieces without rewriting the middle:</p>
+  <ul>
+    <li><strong>New chat surface</strong> — add a channel adapter that turns platform webhooks or sockets into Chat Agent Relay&rsquo;s canonical message flow. Your users stay on Teams, Discord, or a custom web client; Chat Agent Relay keeps one internal shape.</li>
+    <li><strong>New model or agent host</strong> — plug a backend that speaks your stack (another vendor, self-hosted LLM, or internal HTTP service) while policy, routing, ledger, and delivery stay consistent.</li>
+  </ul>
+  <p>Implement adapters at the edges; keep governance and audit in the core pipeline so every integration gets the same guarantees.</p>
+
+  <p style="margin-top:40px">
+    <a href="/ChatAgentRelay/" class="btn btn-secondary">&larr; Back to home</a>
+    <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-primary" style="margin-left:8px" data-track="docs_github">Repository</a>
+  </p>
+</article>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
+      <a href="/ChatAgentRelay/docs/">Docs</a>
+      <a href="/ChatAgentRelay/blog/">Blog</a>
+      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
+    </div>
+    <p>MIT License &middot; Built with Bun and TypeScript</p>
+  </div>
+</footer>
+
+<script src="../js/main.js"></script>
+</body>
+</html>

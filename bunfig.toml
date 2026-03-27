@@ -1,0 +1,2 @@
+# Minimal Bun config for local workspace readiness.
+# Keep bootstrap intentionally light for the approved contract-harness and bounded prototype slices.

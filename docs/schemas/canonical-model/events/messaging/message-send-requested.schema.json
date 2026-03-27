@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://car.local/schemas/canonical-model/events/messaging/message-send-requested.schema.json",
+  "title": "CAR Message Send Requested Event",
+  "description": "Specialized canonical event schema for outbound message.send.requested events.",
+  "allOf": [
+    {
+      "$ref": "../../canonical-event-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_type", "payload", "actor_type"],
+      "properties": {
+        "event_type": {
+          "const": "message.send.requested"
+        },
+        "actor_type": {
+          "const": "system"
+        },
+        "payload": {
+          "type": "object",
+          "required": ["text"],
+          "properties": {
+            "text": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "event_id": "evt_105",
+      "schema_version": "v1alpha1",
+      "event_type": "message.send.requested",
+      "tenant_id": "tenant_acme",
+      "workspace_id": "ws_support",
+      "channel": "webchat",
+      "channel_instance_id": "webchat_acme_prod",
+      "conversation_id": "conv_1",
+      "session_id": "sess_1",
+      "correlation_id": "corr_1",
+      "causation_id": "evt_104",
+      "occurred_at": "2026-03-18T10:00:05Z",
+      "actor_type": "system",
+      "payload": {
+        "text": "Your order shipped yesterday."
+      }
+    }
+  ]
+}

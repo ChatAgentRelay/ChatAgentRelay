@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chat Agent Relay — Connect Any Chat Platform to Any Agent</title>
+  <meta name="description" content="Chat Agent Relay is open-source middleware that connects any chat platform to any agent — your internal agent, your LangChain pipeline, your self-hosted model, or any commercial API. Governance, audit, zero lock-in.">
+  <meta name="keywords" content="Chat Agent Relay, CAR, chat platform, AI agent, middleware, Slack, Teams, Discord, agent framework, open source, governance, audit">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Chat Agent Relay — Your Agent Is Ready. Now Let Users Talk to It.">
+  <meta property="og:description" content="Open-source middleware between chat platforms and your agents. Governance, audit, zero lock-in.">
+  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/">
+  <meta property="og:site_name" content="Chat Agent Relay">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Chat Agent Relay — Your Agent Is Ready. Now Let Users Talk to It.">
+  <meta name="twitter:description" content="Open-source middleware: any chat platform, any agent, full audit trail.">
+
+  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css">
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-7FERB87K2D');
+  </script>
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Chat Agent Relay",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Linux, macOS, Windows",
+    "description": "Open-source middleware that connects any chat platform to any agent with governance, audit, and zero lock-in.",
+    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/",
+    "license": "https://opensource.org/licenses/MIT",
+    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+  }
+  </script>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="container">
+    <a href="/ChatAgentRelay/" class="nav-brand"><span class="prompt">$</span> car</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <div class="nav-links">
+      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+      <a href="/ChatAgentRelay/docs/">Docs</a>
+      <a href="/ChatAgentRelay/compare/diy/">Compare</a>
+      <a href="/ChatAgentRelay/blog/">Blog</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="nav-cta" data-track="nav_github">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <span class="hero-tag">open source &middot; MIT license &middot; TypeScript</span>
+    <h1>
+      Your agent is ready.<br>
+      <span class="accent">Now let users talk to it.</span>
+    </h1>
+    <p class="hero-sub">
+      You built the agent. But users are in Slack. Another team wants Teams. Legal needs audit logs. Product wants to try a different model. Each requirement means more plumbing you didn't sign up for.
+    </p>
+    <p class="hero-sub" style="margin-top:12px">
+      <strong>Chat Agent Relay is that plumbing, done once.</strong> Connect any chat platform to any agent &mdash; your internal agent, a LangChain pipeline, a self-hosted model, or a commercial API. Governance, audit trail, zero lock-in.
+    </p>
+    <div class="hero-actions">
+      <a href="/ChatAgentRelay/docs/" class="btn btn-primary" data-track="hero_get_started">Get Started</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-secondary" data-track="hero_github">View on GitHub</a>
+    </div>
+
+    <!-- Terminal demo -->
+    <div class="terminal hero-terminal" style="margin-top:48px">
+      <div class="terminal-header">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot yellow"></span>
+        <span class="terminal-dot green"></span>
+        <span class="terminal-title">terminal</span>
+      </div>
+      <div class="terminal-body">
+<span class="prompt-char">$</span> <span class="cmd">git clone https://github.com/ChatAgentRelay/ChatAgentRelay && cd ChatAgentRelay</span>
+<span class="prompt-char">$</span> <span class="cmd">bun install</span>
+<span class="output">installed 12 packages</span>
+<span class="prompt-char">$</span> <span class="cmd">cd packages/server && cp .env.example .env</span>
+<span class="prompt-char">$</span> <span class="cmd">bun run start</span>
+<span class="output">[car] Slack connected &middot; Agent ready &middot; API on :3000</span>
+<span class="output">[car] Listening for messages...</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Problem → Solution -->
+<section>
+  <div class="container reveal">
+    <div class="section-label">The Problem</div>
+    <h2 class="section-title">You keep building the same plumbing</h2>
+    <p class="section-desc">
+      Webhook parsing. Message formatting. Retry logic. Error handling. Audit logging.
+      You write it for Slack. Then you write it again for Teams. Then again when you switch agents.
+      This code is not your product. It's overhead &mdash; and it multiplies every time requirements change.
+    </p>
+  </div>
+</section>
+
+<!-- Architecture -->
+<section>
+  <div class="container reveal">
+    <div class="section-label">The Solution</div>
+    <h2 class="section-title">One layer between chat and agent &mdash; with everything built in</h2>
+    <p class="section-desc">
+      Every message flows through a 7-event chain. Chat platforms and agents are pluggable adapters on both sides. Swap either without touching business logic.
+    </p>
+
+    <div class="terminal" style="max-width:100%;margin:24px auto">
+      <div class="terminal-header">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot yellow"></span>
+        <span class="terminal-dot green"></span>
+        <span class="terminal-title">architecture</span>
+      </div>
+      <div class="terminal-body" style="line-height:1.6">
+<pre style="margin:0;background:transparent;border:none;padding:0;font-family:inherit;font-size:0.8rem;color:var(--text-muted);white-space:pre;overflow-x:auto">Chat Platforms          Chat Agent Relay              Your Agents
+&#x250C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;     &#x250C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;     &#x250C;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2510;
+&#x2502;  Slack    &#x2502;     &#x2502;  Canonical Event Chain   &#x2502;     &#x2502; Internal agent  &#x2502;
+&#x2502;  Teams   &#x2502;&#x2500;&#x2500;&#x2500;&gt;&#x2502;  Policy + Governance    &#x2502;&#x2500;&#x2500;&#x2500;&gt;&#x2502; LangChain agent &#x2502;
+&#x2502;  Discord &#x2502;     &#x2502;  Routing + Dispatch     &#x2502;     &#x2502; Self-hosted LLM &#x2502;
+&#x2502;  Web     &#x2502;     &#x2502;  Audit Ledger           &#x2502;     &#x2502; Any HTTP agent  &#x2502;
+&#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;     &#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;     &#x2514;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2500;&#x2518;</pre>
+      </div>
+    </div>
+
+    <div class="event-chain">
+      <div class="event-line">
+        <span class="event-num">1</span>
+        <span class="event-arrow">&rarr;</span>
+        <span class="event-name">message.received</span>
+        <span class="event-desc">&nbsp;user's message, canonicalized from any platform</span>
+      </div>
+      <div class="event-line">
+        <span class="event-num">2</span>
+        <span class="event-arrow">&rarr;</span>
+        <span class="event-name">policy.decision.made</span>
+        <span class="event-desc">&nbsp;allow or deny (configurable rules)</span>
+      </div>
+      <div class="event-line">
+        <span class="event-num">3</span>
+        <span class="event-arrow">&rarr;</span>
+        <span class="event-name">route.decision.made</span>
+        <span class="event-desc">&nbsp;select the right agent</span>
+      </div>
+      <div class="event-line">
+        <span class="event-num">4</span>
+        <span class="event-arrow">&rarr;</span>
+        <span class="event-name">agent.invocation.requested</span>
+        <span class="event-desc">&nbsp;dispatch to your agent</span>
+      </div>
+      <div class="event-line">
+        <span class="event-num">5</span>
+        <span class="event-arrow">&rarr;</span>
+        <span class="event-name">agent.response.completed</span>
+        <span class="event-desc">&nbsp;agent's reply captured</span>
+      </div>
+      <div class="event-line">
+        <span class="event-num">6</span>
+        <span class="event-arrow">&rarr;</span>
+        <span class="event-name">message.send.requested</span>
+        <span class="event-desc">&nbsp;queued for delivery with retry</span>
+      </div>
+      <div class="event-line">
+        <span class="event-num">7</span>
+        <span class="event-arrow">&rarr;</span>
+        <span class="event-name">message.sent</span>
+        <span class="event-desc">&nbsp;delivered to user's chat platform</span>
+      </div>
+      <div class="event-line" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+        <span class="event-num">&times;</span>
+        <span class="event-arrow" style="color:var(--red)">&rarr;</span>
+        <span class="event-blocked">event.blocked</span>
+        <span class="event-desc">&nbsp;captures failures with reason + stage</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section>
+  <div class="container reveal">
+    <div class="section-label">What You Get</div>
+    <h2 class="section-title">Focus on your agent. We handle the rest.</h2>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">$ plug --channel</div>
+        <h3>Any Chat Platform</h3>
+        <p>Slack and WebChat built-in. Add Teams, Discord, Telegram, or your custom surface with one interface.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">$ plug --agent</div>
+        <h3>Any Agent</h3>
+        <p>Your internal agent, a LangChain pipeline, a self-hosted model, or a commercial API. If it speaks HTTP, CAR connects to it.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">$ car policy</div>
+        <h3>Governance Built-In</h3>
+        <p>Keyword/regex policy engine blocks messages before they reach your agent. Every decision logged.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">$ car audit</div>
+        <h3>Full Audit Trail</h3>
+        <p>Every message is a 7-event chain in an append-only ledger. Query conversations and audit explanations via REST API.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">$ car stream</div>
+        <h3>Streaming Responses</h3>
+        <p>SSE streams update chat messages progressively. Users see the agent thinking in real-time.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">$ car retry</div>
+        <h3>Delivery Retry + DLQ</h3>
+        <p>Exponential backoff on failures. Dead-letter queue for exhausted retries. No lost messages.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Who is this for -->
+<section>
+  <div class="container reveal">
+    <div class="section-label">Use Cases</div>
+    <h2 class="section-title">Built for teams that ship agents</h2>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h3>Agent Teams</h3>
+        <p>You built the agent. CAR handles delivery to Slack, Teams, web &mdash; with governance and audit you'd otherwise build from scratch.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Platform Engineers</h3>
+        <p>Multiple teams, multiple agents, multiple chat surfaces. One middleware layer with consistent policy and observability.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Compliance-First Orgs</h3>
+        <p>Every AI interaction is an immutable event in an append-only ledger. Auditable by default. No "we'll add logging later."</p>
+      </div>
+    </div>
+
+    <div class="use-case-tags">
+      <span class="use-case-tag">customer support agents</span>
+      <span class="use-case-tag">internal tooling</span>
+      <span class="use-case-tag">developer assistants</span>
+      <span class="use-case-tag">content moderation</span>
+      <span class="use-case-tag">multi-tenant SaaS</span>
+      <span class="use-case-tag">agent orchestration</span>
+    </div>
+  </div>
+</section>
+
+<!-- Quick compare -->
+<section>
+  <div class="container reveal">
+    <div class="section-label">Compare</div>
+    <h2 class="section-title">CAR vs building it yourself</h2>
+    <p class="section-desc">
+      You can always build the plumbing yourself. Here's what that means in practice.
+    </p>
+
+    <div style="overflow-x:auto">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Capability</th>
+            <th>DIY Integration</th>
+            <th>CAR</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="highlight">New chat platform</td>
+            <td>Weeks of integration work</td>
+            <td class="check">Implement one interface</td>
+          </tr>
+          <tr>
+            <td class="highlight">Switch agents</td>
+            <td>Rewrite integration logic</td>
+            <td class="check">Change one config</td>
+          </tr>
+          <tr>
+            <td class="highlight">Audit trail</td>
+            <td>Build from scratch</td>
+            <td class="check">Built-in event ledger + REST API</td>
+          </tr>
+          <tr>
+            <td class="highlight">Policy / governance</td>
+            <td>Custom middleware</td>
+            <td class="check">Configurable policy engine</td>
+          </tr>
+          <tr>
+            <td class="highlight">Delivery retry</td>
+            <td>Implement yourself</td>
+            <td class="check">Exponential backoff + DLQ</td>
+          </tr>
+          <tr>
+            <td class="highlight">Streaming</td>
+            <td>SSE parsing + update logic</td>
+            <td class="check">Progressive message updates</td>
+          </tr>
+          <tr>
+            <td class="highlight">Time to production</td>
+            <td>Weeks</td>
+            <td class="check">Minutes</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="text-align:center;margin-top:24px">
+      <a href="/ChatAgentRelay/compare/diy/" class="btn btn-secondary" data-track="compare_diy">Full comparison &rarr;</a>
+      <a href="/ChatAgentRelay/compare/alternatives/" class="btn btn-secondary" data-track="compare_alt" style="margin-left:8px">vs Botpress, Rasa, Chatwoot &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<!-- Roadmap -->
+<section>
+  <div class="container reveal">
+    <div class="section-label">Roadmap</div>
+    <h2 class="section-title">What's next &mdash; and what do you need?</h2>
+    <p class="section-desc">
+      We're expanding both sides of the relay. Tell us which integrations matter to you.
+    </p>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h3>More chat platforms</h3>
+        <p>Microsoft Teams, Discord, Telegram, WhatsApp Business, LINE &mdash; and a web widget SDK for embedding.</p>
+      </div>
+      <div class="feature-card">
+        <h3>More agent patterns</h3>
+        <p>Any SSE-streaming agent, webhook/async agents, MCP-compatible agents, multi-agent fan-out routing.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Enterprise capabilities</h3>
+        <p>RBAC, multi-tenant routing, usage analytics, admin UI for policy and routing management.</p>
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:24px">
+      <p><strong>Which chat platform do your users live in? What kind of agent do you want to connect?</strong></p>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues" class="btn btn-secondary" data-track="roadmap_issue" style="margin-top:8px">Tell us &rarr;</a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-banner">
+  <div class="container">
+    <h2>Stop building plumbing. Start shipping your agent.</h2>
+    <p>Chat Agent Relay is MIT licensed and free forever. Get started in 2 minutes.</p>
+    <div class="hero-actions">
+      <a href="/ChatAgentRelay/docs/" class="btn btn-primary" data-track="cta_get_started">Get Started</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-secondary" data-track="cta_github">Star on GitHub</a>
+    </div>
+
+    <div class="share-row">
+      <a href="https://twitter.com/intent/tweet?text=Chat%20Agent%20Relay%20%E2%80%94%20connect%20any%20chat%20platform%20to%20any%20agent.%20Open%20source.%20https%3A%2F%2Fgithub.com%2FChatAgentRelay%2FChatAgentRelay" class="share-btn" target="_blank" rel="noopener" data-track="share_twitter">Share on X</a>
+      <a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fgithub.com%2FChatAgentRelay%2FChatAgentRelay" class="share-btn" target="_blank" rel="noopener" data-track="share_linkedin">Share on LinkedIn</a>
+      <a href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fgithub.com%2FChatAgentRelay%2FChatAgentRelay&t=Chat%20Agent%20Relay%20%E2%80%94%20Your%20agent%20is%20ready.%20Now%20let%20users%20talk%20to%20it." class="share-btn" target="_blank" rel="noopener" data-track="share_hn">Share on HN</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
+      <a href="/ChatAgentRelay/docs/">Docs</a>
+      <a href="/ChatAgentRelay/blog/">Blog</a>
+      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
+    </div>
+    <p>MIT License &middot; Built with Bun and TypeScript</p>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "@chat-agent-relay/example-custom-channel-adapter",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@chat-agent-relay/adapter-conformance": "workspace:*",
+    "@chat-agent-relay/contract-harness": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^6.0.2"
+  }
+}

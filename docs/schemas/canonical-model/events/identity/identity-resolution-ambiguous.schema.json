@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://car.local/schemas/canonical-model/events/identity/identity-resolution-ambiguous.schema.json",
+  "title": "CAR Identity Resolution Ambiguous Event",
+  "description": "Specialized canonical event schema for identity.resolution.ambiguous events.",
+  "allOf": [
+    {
+      "$ref": "../../canonical-event-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_type", "payload"],
+      "properties": {
+        "event_type": {
+          "const": "identity.resolution.ambiguous"
+        },
+        "payload": {
+          "type": "object",
+          "required": ["status"],
+          "properties": {
+            "status": {
+              "const": "ambiguous"
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    }
+  ]
+}
