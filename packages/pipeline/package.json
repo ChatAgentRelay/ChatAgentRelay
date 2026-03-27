@@ -21,6 +21,6 @@
     "@chat-agent-relay/channel-slack": "workspace:*",
     "@chat-agent-relay/backend-openai": "workspace:*",
     "@types/bun": "latest",
-    "typescript": "^5.8.2"
+    "typescript": "^6.0.2"
   }
 }
