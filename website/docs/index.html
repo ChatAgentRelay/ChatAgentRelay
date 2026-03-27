@@ -169,7 +169,7 @@
     </div>
     <div class="terminal-body">
 <span class="prompt-char">$</span> <span class="cmd">bun test --recursive</span>
-<span class="output"># 210 tests across packages (run from repo root).</span>
+<span class="output"># 222 tests across packages (run from repo root).</span>
     </div>
   </div>
   <p>Use this after dependency upgrades or local changes to ensure nothing regressed at the boundaries.</p>
@@ -232,13 +232,18 @@
     </div>
   </div>
 
-  <h2 id="custom-adapters">Custom adapters</h2>
-  <p>Chat Agent Relay is built so you can swap pieces without rewriting the middle:</p>
+  <h2 id="custom-adapters">Connect your agent</h2>
+  <p>If your agent has an HTTP endpoint, you can connect it <strong>without writing any adapter code</strong>. The built-in <code>GenericHttpBackend</code> supports:</p>
   <ul>
-    <li><strong>New chat surface</strong> — add a channel adapter that turns platform webhooks or sockets into Chat Agent Relay&rsquo;s canonical message flow. Your users stay on Teams, Discord, or a custom web client; Chat Agent Relay keeps one internal shape.</li>
-    <li><strong>New model or agent host</strong> — plug a backend that speaks your stack (another vendor, self-hosted LLM, or internal HTTP service) while policy, routing, ledger, and delivery stay consistent.</li>
+    <li><strong>Custom headers</strong> &mdash; <code>Authorization</code>, API keys, or any custom header your agent expects.</li>
+    <li><strong>Custom request body</strong> &mdash; a builder function that transforms the user message into whatever JSON shape your agent accepts.</li>
+    <li><strong>Response field extraction</strong> &mdash; a dot-path (e.g. <code>"result.text"</code>, <code>"answer"</code>) to extract the reply from your agent&rsquo;s JSON response.</li>
   </ul>
-  <p>Implement adapters at the edges; keep governance and audit in the core pipeline so every integration gets the same guarantees.</p>
+  <p>For non-HTTP protocols or more advanced integration patterns:</p>
+  <ul>
+    <li><strong>New chat surface</strong> &mdash; add a channel adapter that turns platform webhooks or sockets into Chat Agent Relay&rsquo;s canonical message flow. Your users stay on Teams, Discord, or a custom web client; Chat Agent Relay keeps one internal shape.</li>
+    <li><strong>New agent backend</strong> &mdash; implement the <code>BackendAdapter</code> interface for protocols beyond HTTP while policy, routing, ledger, and delivery stay consistent.</li>
+  </ul>
 
   <p style="margin-top:40px">
     <a href="/ChatAgentRelay/" class="btn btn-secondary">&larr; Back to home</a>

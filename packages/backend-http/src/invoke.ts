@@ -1,7 +1,14 @@
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { buildBackendRequest } from "./build-request";
+import { extractField } from "./extract-field";
 import { mapCompletedResponse } from "./map-response";
-import type { BackendConfig, BackendResponse, InvocationContext, InvocationResult } from "./types";
+import type {
+  BackendConfig,
+  BackendCompletedResponse,
+  BackendResponse,
+  InvocationContext,
+  InvocationResult,
+} from "./types";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -20,22 +27,35 @@ export class GenericHttpBackend {
   }
 
   async invoke(context: InvocationContext): Promise<InvocationResult> {
-    const request = buildBackendRequest(context);
+    const useCustomBody = this.config.buildRequestBody !== undefined;
+    const useCustomResponse = this.config.responseTextField !== undefined;
+
+    const carRequest = buildBackendRequest(context);
+    const requestId = carRequest.request_id;
     const timeoutMs = this.config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+
+    const requestBody = useCustomBody
+      ? this.config.buildRequestBody!(context.messageText, context.conversationHistory)
+      : carRequest;
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...this.config.headers,
+    };
 
     let rawResponse: Response;
     try {
       rawResponse = await fetch(this.config.endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request),
+        headers,
+        body: JSON.stringify(requestBody),
         signal: AbortSignal.timeout(timeoutMs),
       });
     } catch (error: unknown) {
       const isTimeout = error instanceof DOMException && error.name === "TimeoutError";
       return {
         ok: false,
-        requestId: request.request_id,
+        requestId,
         error: {
           code: isTimeout ? "backend_timeout" : "backend_unavailable",
           message: isTimeout
@@ -50,7 +70,7 @@ export class GenericHttpBackend {
     if (!rawResponse.ok) {
       return {
         ok: false,
-        requestId: request.request_id,
+        requestId,
         error: {
           code: "backend_http_error",
           message: `Backend returned HTTP ${rawResponse.status}`,
@@ -60,13 +80,13 @@ export class GenericHttpBackend {
       };
     }
 
-    let body: BackendResponse;
+    let body: unknown;
     try {
-      body = (await rawResponse.json()) as BackendResponse;
+      body = await rawResponse.json();
     } catch {
       return {
         ok: false,
-        requestId: request.request_id,
+        requestId,
         error: {
           code: "invalid_response",
           message: "Backend returned unparseable JSON",
@@ -76,21 +96,60 @@ export class GenericHttpBackend {
       };
     }
 
-    if (body.status === "failed") {
+    if (useCustomResponse) {
+      const text = extractField(body, this.config.responseTextField!);
+      if (!text) {
+        return {
+          ok: false,
+          requestId,
+          error: {
+            code: "empty_response",
+            message: `Could not extract text at path "${this.config.responseTextField}" from backend response`,
+            retryable: false,
+            category: "dependency_failure",
+          },
+        };
+      }
+
+      const syntheticResponse: BackendCompletedResponse = {
+        request_id: requestId,
+        status: "completed",
+        output: { text },
+      };
+      const event = mapCompletedResponse(context.invocationEvent, syntheticResponse);
+      const validation = this.validators.validateEvent(event);
+      if (!validation.ok) {
+        return {
+          ok: false,
+          requestId,
+          error: {
+            code: "contract_violation",
+            message: `Mapped response failed ${validation.failure.step} validation: ${validation.failure.issues.map((i) => i.message).join("; ")}`,
+            retryable: false,
+            category: "invalid_request",
+          },
+        };
+      }
+      return { ok: true, event, requestId };
+    }
+
+    const typedBody = body as BackendResponse;
+
+    if (typedBody.status === "failed") {
       return {
         ok: false,
-        requestId: request.request_id,
-        error: body.error,
+        requestId,
+        error: typedBody.error,
       };
     }
 
-    const event = mapCompletedResponse(context.invocationEvent, body);
+    const event = mapCompletedResponse(context.invocationEvent, typedBody);
     const validation = this.validators.validateEvent(event);
 
     if (!validation.ok) {
       return {
         ok: false,
-        requestId: request.request_id,
+        requestId,
         error: {
           code: "contract_violation",
           message: `Mapped response failed ${validation.failure.step} validation: ${validation.failure.issues.map((i) => i.message).join("; ")}`,
@@ -100,6 +159,6 @@ export class GenericHttpBackend {
       };
     }
 
-    return { ok: true, event, requestId: request.request_id };
+    return { ok: true, event, requestId };
   }
 }

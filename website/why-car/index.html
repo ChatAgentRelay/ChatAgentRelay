@@ -96,13 +96,13 @@
         <span class="terminal-title">architecture.txt</span>
       </div>
       <div class="terminal-body" style="line-height:1.5">
-<pre style="margin:0;background:transparent;border:none;padding:0;font-family:inherit;font-size:0.75rem;color:var(--text-muted);white-space:pre;overflow-x:auto">Chat Platforms          CAR Middleware              Agent Backends
-┌──────────┐     ┌──────────────────────────┐     ┌──────────────┐
-│  Slack   │     │  Canonical Event Chain    │     │   OpenAI     │
-│  Teams   │────>│  Policy + Governance     │────>│   Claude     │
-│  Discord │     │  Routing + Dispatch      │     │   Custom     │
-│  Web     │     │  Audit Ledger           │     │   HTTP API   │
-└──────────┘     └──────────────────────────┘     └──────────────┘</pre>
+<pre style="margin:0;background:transparent;border:none;padding:0;font-family:inherit;font-size:0.75rem;color:var(--text-muted);white-space:pre;overflow-x:auto">Chat Platforms          CAR Middleware                Your Agents
+┌──────────┐     ┌──────────────────────────┐     ┌────────────────┐
+│  Slack   │     │  Canonical Event Chain    │     │ Internal agent │
+│  Teams   │────>│  Policy + Governance     │────>│ LangChain agent│
+│  Discord │     │  Routing + Dispatch      │     │ Self-hosted LLM│
+│  Web     │     │  Audit Ledger           │     │ Any HTTP agent │
+└──────────┘     └──────────────────────────┘     └────────────────┘</pre>
       </div>
     </div>
 
@@ -140,7 +140,7 @@
 
     <h2>Technical Details</h2>
     <ul>
-      <li>12 packages, 210 tests, TypeScript strict mode</li>
+      <li>12 packages, 222 tests, TypeScript strict mode</li>
       <li>Built on Bun for speed</li>
       <li>SQLite for durable event storage</li>
       <li>JSON Schema for contract validation</li>

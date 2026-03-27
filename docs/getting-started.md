@@ -1,6 +1,6 @@
 # Getting Started with Chat Agent Relay
 
-This guide walks you through running Chat Agent Relay (CAR) with Slack and OpenAI, then shows how to build your own adapter.
+This guide walks you through running Chat Agent Relay (CAR) with Slack and an agent backend, then shows how to connect your own agent and chat platform.
 
 ## Prerequisites
 
@@ -20,7 +20,7 @@ Verify everything works:
 
 ```bash
 bun test --recursive
-# Expected: 163 pass, 0 fail
+# Expected: 222 pass, 0 fail
 ```
 
 ## 2. Set Up a Slack App

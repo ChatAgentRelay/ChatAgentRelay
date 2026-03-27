@@ -1,4 +1,5 @@
 export { buildBackendRequest } from "./build-request";
+export { extractField } from "./extract-field";
 export { GenericHttpBackend } from "./invoke";
 export { mapCompletedResponse } from "./map-response";
 export type {

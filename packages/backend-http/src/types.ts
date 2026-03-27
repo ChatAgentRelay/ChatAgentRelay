@@ -3,6 +3,9 @@ import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
 export type BackendConfig = {
   endpoint: string;
   timeoutMs?: number;
+  headers?: Record<string, string>;
+  buildRequestBody?: (messageText: string, conversationHistory?: ConversationTurn[]) => unknown;
+  responseTextField?: string;
 };
 
 export type ConversationTurn = {

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 There has been no formal versioned release yet. The following summarizes work on the main development line.
 
+### Added
+
+#### Configurable HTTP backend
+
+- `GenericHttpBackend` now supports custom `headers`, `buildRequestBody`, and `responseTextField` configuration, allowing any HTTP agent to be connected without adapting to CAR's native request/response format.
+- New `extractField` utility for dot-path based field extraction from arbitrary JSON responses.
+- 12 new tests covering custom headers, request body builders, response field extraction, and backward compatibility.
+
 ### Changed
 
 #### Dependency upgrades
@@ -26,7 +34,7 @@ There has been no formal versioned release yet. The following summarizes work on
 
 - Eleven packages: `contract-harness`, `event-ledger`, `channel-web-chat`, `channel-slack`, `middleware`, `backend-http`, `backend-openai`, `delivery`, `pipeline`, `server`, and `adapter-conformance`.
 - Canonical seven-event model with JSON Schema validation at boundaries.
-- Test suite: 200 tests across 16 files.
+- Test suite: 222 tests across 17 files.
 
 #### Channels and backends
 

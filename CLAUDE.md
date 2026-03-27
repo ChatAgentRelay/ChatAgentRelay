@@ -62,7 +62,7 @@ The repository has a complete first executable path and hardened feature set:
 - `packages/channel-web-chat` — web chat ingress canonicalization + HTTP transport with CORS
 - `packages/channel-slack` — Slack Socket Mode ingress, `chat.postMessage` delivery, `chat.update` for streaming
 - `packages/middleware` — policy (allow/deny via `policyFn`), configurable keyword/regex policy engine, routing, dispatch
-- `packages/backend-http` — generic HTTP backend invocation and response mapping
+- `packages/backend-http` — configurable HTTP backend invocation with custom headers, request body builder, and response field extraction
 - `packages/backend-openai` — OpenAI Chat Completions + SSE streaming via `invokeStreaming()`
 - `packages/delivery` — delivery orchestration with retry (exponential backoff) and `DeliveryExhaustedError`
 - `packages/pipeline` — end-to-end orchestration with error paths (`event.blocked`), deny path, conversation context, streaming
@@ -71,7 +71,7 @@ The repository has a complete first executable path and hardened feature set:
 
 ### Test Coverage
 
-200 tests across 16 test files verify:
+222 tests across 17 test files verify:
 - contract compliance and schema validation
 - causal linkage and correlation propagation
 - error path (`event.blocked` on backend/delivery failure)

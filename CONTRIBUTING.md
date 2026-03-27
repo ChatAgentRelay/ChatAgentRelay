@@ -61,7 +61,13 @@ bun run typecheck
 - Write commit messages that explain "why" rather than "what"
 - Run `bun test --recursive` before committing
 
+### Connecting Your Agent
+
+If your agent exposes an HTTP endpoint, you likely **don't need a new adapter**. `GenericHttpBackend` supports custom headers, request body builders, and response field extraction — configure it to match your agent's API shape.
+
 ### Adding a New Adapter
+
+If you need a non-HTTP protocol or a fundamentally different integration pattern:
 
 1. Create a new package under `packages/`
 2. Implement the `ChannelIngress` or `BackendAdapter` interface

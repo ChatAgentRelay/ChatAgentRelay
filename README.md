@@ -55,7 +55,7 @@ bun run start
 
 ```bash
 git clone https://github.com/ChatAgentRelay/ChatAgentRelay && cd ChatAgentRelay
-bun install && bun test --recursive    # 210 tests, ~5 seconds
+bun install && bun test --recursive    # 222 tests, ~5 seconds
 ```
 
 ## How It Works
@@ -87,7 +87,7 @@ const backend: BackendAdapter = {
 };
 ```
 
-Built-in backends: **OpenAI Chat Completions** (with SSE streaming) and **generic HTTP** (works with any REST agent). The conformance test suite validates your adapter automatically: run `testBackendAdapter()` and you know it's correct.
+Built-in backends: **OpenAI Chat Completions** (with SSE streaming) and **configurable generic HTTP** — supports custom headers, request body builders, and response field extraction, so you can connect any HTTP agent without modifying its code. The conformance test suite validates your adapter automatically: run `testBackendAdapter()` and you know it's correct.
 
 ## Connect Your Chat Platform
 

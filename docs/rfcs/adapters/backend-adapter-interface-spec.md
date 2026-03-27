@@ -191,5 +191,19 @@ A conforming streaming adapter additionally MUST:
 
 | Adapter | Package | Backend |
 |---|---|---|
-| `GenericHttpBackend` | `@chat-agent-relay/backend-http` | Generic HTTP endpoint |
+| `GenericHttpBackend` | `@chat-agent-relay/backend-http` | Configurable HTTP endpoint |
 | `OpenAIBackend` | `@chat-agent-relay/backend-openai` | OpenAI Chat Completions API |
+
+### 9.1 GenericHttpBackend Configuration
+
+`GenericHttpBackend` supports connecting to any HTTP agent without requiring the agent to speak CAR's native request/response format:
+
+| Config Field | Type | Default | Purpose |
+|---|---|---|---|
+| `endpoint` | `string` | (required) | Agent HTTP endpoint URL |
+| `timeoutMs` | `number` | `30000` | Request timeout in milliseconds |
+| `headers` | `Record<string, string>` | `{}` | Custom request headers (e.g. `Authorization`) |
+| `buildRequestBody` | `(messageText, history?) => unknown` | CAR native format | Custom request body builder function |
+| `responseTextField` | `string` | `"output.text"` | Dot-path to extract response text (e.g. `"answer"`, `"result.data.text"`) |
+
+When `buildRequestBody` and `responseTextField` are omitted, the adapter uses CAR's native request/response format for backward compatibility.

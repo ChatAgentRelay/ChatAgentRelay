@@ -3,6 +3,7 @@ import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import type { Server } from "bun";
 import { buildBackendRequest } from "../src/build-request";
+import { extractField } from "../src/extract-field";
 import { GenericHttpBackend } from "../src/invoke";
 import { mapCompletedResponse } from "../src/map-response";
 import type { BackendCompletedResponse, InvocationContext } from "../src/types";
@@ -246,5 +247,158 @@ describe("generic HTTP backend integration", () => {
 
     expect(result.error.code).toBe("backend_unavailable");
     expect(result.error.retryable).toBe(true);
+  });
+});
+
+describe("extractField", () => {
+  it("extracts a top-level field", () => {
+    expect(extractField({ answer: "hello" }, "answer")).toBe("hello");
+  });
+
+  it("extracts a nested field", () => {
+    expect(extractField({ result: { text: "hi" } }, "result.text")).toBe("hi");
+  });
+
+  it("extracts from arrays via numeric index", () => {
+    expect(extractField({ choices: [{ msg: "ok" }] }, "choices.0.msg")).toBe("ok");
+  });
+
+  it("returns undefined for missing path", () => {
+    expect(extractField({ a: 1 }, "b.c")).toBeUndefined();
+  });
+
+  it("returns undefined for non-string leaf", () => {
+    expect(extractField({ count: 42 }, "count")).toBeUndefined();
+  });
+});
+
+describe("configurable HTTP backend", () => {
+  let mockServer: BunServer;
+  let mockPort: number;
+  let lastReceivedHeaders: Headers;
+  let lastReceivedBody: unknown;
+
+  beforeAll(() => {
+    mockServer = Bun.serve({
+      port: 0,
+      async fetch(req) {
+        lastReceivedHeaders = req.headers;
+        lastReceivedBody = await req.json();
+        const url = new URL(req.url);
+
+        if (url.pathname === "/custom-agent") {
+          return Response.json({ answer: "I am a custom agent." });
+        }
+        if (url.pathname === "/nested-response") {
+          return Response.json({ result: { data: { text: "nested value" } } });
+        }
+        if (url.pathname === "/car-native") {
+          return Response.json(sampleCompletedResponse());
+        }
+        return new Response("Not Found", { status: 404 });
+      },
+    });
+    mockPort = mockServer.port!;
+  });
+
+  afterAll(() => {
+    mockServer.stop(true);
+  });
+
+  it("sends custom headers to the backend", async () => {
+    const backend = await GenericHttpBackend.create({
+      endpoint: `http://localhost:${mockPort}/custom-agent`,
+      headers: { Authorization: "Bearer test-token-123", "X-Custom": "value" },
+      responseTextField: "answer",
+    });
+    await backend.invoke(sampleContext());
+
+    expect(lastReceivedHeaders.get("authorization")).toBe("Bearer test-token-123");
+    expect(lastReceivedHeaders.get("x-custom")).toBe("value");
+    expect(lastReceivedHeaders.get("content-type")).toBe("application/json");
+  });
+
+  it("uses custom request body builder", async () => {
+    const backend = await GenericHttpBackend.create({
+      endpoint: `http://localhost:${mockPort}/custom-agent`,
+      buildRequestBody: (text, history) => ({
+        query: text,
+        history: history ?? [],
+      }),
+      responseTextField: "answer",
+    });
+    await backend.invoke(sampleContext());
+
+    const body = lastReceivedBody as Record<string, unknown>;
+    expect(body["query"]).toBe("Where is my order?");
+    expect(body["history"]).toEqual([]);
+  });
+
+  it("extracts response text from a custom field path", async () => {
+    const backend = await GenericHttpBackend.create({
+      endpoint: `http://localhost:${mockPort}/custom-agent`,
+      responseTextField: "answer",
+    });
+    const result = await backend.invoke(sampleContext());
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.event.payload["text"]).toBe("I am a custom agent.");
+    expect(result.event.event_type).toBe("agent.response.completed");
+  });
+
+  it("extracts response text from a nested field path", async () => {
+    const backend = await GenericHttpBackend.create({
+      endpoint: `http://localhost:${mockPort}/nested-response`,
+      responseTextField: "result.data.text",
+    });
+    const result = await backend.invoke(sampleContext());
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.event.payload["text"]).toBe("nested value");
+  });
+
+  it("returns error when response field path yields no text", async () => {
+    const backend = await GenericHttpBackend.create({
+      endpoint: `http://localhost:${mockPort}/custom-agent`,
+      responseTextField: "nonexistent.path",
+    });
+    const result = await backend.invoke(sampleContext());
+
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.code).toBe("empty_response");
+  });
+
+  it("falls back to CAR native format when no custom config is set", async () => {
+    const backend = await GenericHttpBackend.create({
+      endpoint: `http://localhost:${mockPort}/car-native`,
+    });
+    const result = await backend.invoke(sampleContext());
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.event.payload["text"]).toBe("Your order shipped yesterday.");
+
+    const body = lastReceivedBody as Record<string, unknown>;
+    expect(body).toHaveProperty("car");
+    expect(body).toHaveProperty("request_id");
+  });
+
+  it("combines custom headers, body, and response extraction", async () => {
+    const backend = await GenericHttpBackend.create({
+      endpoint: `http://localhost:${mockPort}/custom-agent`,
+      headers: { "X-Api-Key": "secret" },
+      buildRequestBody: (text) => ({ prompt: text }),
+      responseTextField: "answer",
+    });
+    const result = await backend.invoke(sampleContext());
+
+    expect(lastReceivedHeaders.get("x-api-key")).toBe("secret");
+    expect((lastReceivedBody as Record<string, unknown>)["prompt"]).toBe("Where is my order?");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.event.payload["text"]).toBe("I am a custom agent.");
   });
 });

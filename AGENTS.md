@@ -20,7 +20,7 @@ Chat Agent Relay (CAR) is a middleware framework between chat platforms and AI a
 | channel-web-chat | WebChat adapter | ChannelIngress |
 | channel-slack | Slack adapter | ChannelIngress |
 | middleware | Policy + routing | MiddlewarePipeline |
-| backend-http | HTTP backend | BackendAdapter |
+| backend-http | Configurable HTTP backend | BackendAdapter |
 | backend-openai | OpenAI backend | BackendAdapter |
 | delivery | Message delivery | DeliveryOrchestrator |
 | pipeline | Orchestration | FirstExecutablePathPipeline |

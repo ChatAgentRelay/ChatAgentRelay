@@ -136,7 +136,7 @@ graph TD
 | `@chat-agent-relay/channel-web-chat` | Web chat ingress canonicalization |
 | `@chat-agent-relay/channel-slack` | Slack ingress, send, streaming updates |
 | `@chat-agent-relay/middleware` | Policy, routing, invocation event emission |
-| `@chat-agent-relay/backend-http` | Generic HTTP backend invocation |
+| `@chat-agent-relay/backend-http` | Configurable HTTP backend (custom headers, request/response mapping) |
 | `@chat-agent-relay/backend-openai` | OpenAI Chat Completions + streaming |
 | `@chat-agent-relay/delivery` | Outbound orchestration, retry, DLQ behavior |
 | `@chat-agent-relay/pipeline` | End-to-end orchestration and ledger appends |
@@ -218,7 +218,7 @@ flowchart LR
 
 **New chat platforms** — Add a package (or module) that implements the channel ingress contract: map vendor webhooks or socket payloads to `message.received`, preserve correlation and conversation identifiers, and wire a `sendFn` (or equivalent) so delivery can post replies. Run the adapter against `@chat-agent-relay/adapter-conformance` channel fixtures before relying on it in production.
 
-**New agent runtimes** — Implement `BackendAdapter`: map `agent.invocation.requested` and conversation history into your runtime’s API, then map success and failure outcomes to `agent.response.completed` or structured errors. Conformance tests cover both HTTP and OpenAI-style adapters today; new backends can follow the same pattern with additional fixtures if needed.
+**New agent runtimes** — If your agent exposes an HTTP endpoint, you may not need a new adapter at all: `GenericHttpBackend` supports custom headers, a request body builder function, and configurable response field extraction via dot-path (e.g. `"result.text"`), so many agents can be connected through configuration alone. For agents with non-HTTP protocols, implement `BackendAdapter`: map `agent.invocation.requested` and conversation history into your runtime’s API, then map success and failure outcomes to `agent.response.completed` or structured errors. Conformance tests cover both HTTP and OpenAI-style adapters today; new backends can follow the same pattern with additional fixtures if needed.
 
 **Middleware policy and routing** — Replace or configure `PolicyFn` and routing rules inside `@chat-agent-relay/middleware` without changing channel or backend packages, as long as emitted events remain schema-valid and causally linked.
 
