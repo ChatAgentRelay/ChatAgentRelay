@@ -50,7 +50,11 @@ export function validateInboundInput(raw: unknown): InputValidationResult {
   }
 
   if (!isNonEmptyString(body["channel_instance_id"])) {
-    return fail("missing_field", "channel_instance_id is required and must be a non-empty string", "channel_instance_id");
+    return fail(
+      "missing_field",
+      "channel_instance_id is required and must be a non-empty string",
+      "channel_instance_id",
+    );
   }
 
   const request: InboundWebChatRequest = {

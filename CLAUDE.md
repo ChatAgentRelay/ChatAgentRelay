@@ -1,8 +1,8 @@
-# CAP Repository Working Agreement
+# Chat Agent Relay Repository Working Agreement
 
 ## Repo Purpose
 
-CAP is a chat-platform <-> agent middleware framework with:
+Chat Agent Relay (CAR) is a chat-platform <-> agent middleware framework with:
 - channel adapters
 - a canonical event model
 - governance and routing middleware

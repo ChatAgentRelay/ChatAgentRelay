@@ -1,6 +1,6 @@
-# CAP Machine-Readable Schemas
+# Chat Agent Relay Machine-Readable Schemas
 
-This directory contains CAP's first machine-readable contract artifacts.
+This directory contains CAR's first machine-readable contract artifacts.
 
 ## Contract Hierarchy
 

@@ -1,8 +1,8 @@
-# CAP First Executable Path Plan
+# Chat Agent Relay First Executable Path Plan
 
-This document operationalizes already-decided RFC and decision inputs into one narrow implementation/design slice for the first executable CAP kernel path.
+This document operationalizes already-decided RFC and decision inputs into one narrow implementation/design slice for the first executable CAR kernel path.
 
-It does not redefine CAP architecture or canonical semantics. Those remain governed by:
+It does not redefine CAR architecture or canonical semantics. Those remain governed by:
 - `docs/rfcs/`
 - existing decision documents
 - `docs/schemas/` for machine-readable contract shape
@@ -11,7 +11,7 @@ Its purpose is to freeze one precise first runtime path tightly enough that foll
 
 ## Purpose
 
-Define the first executable CAP kernel path for:
+Define the first executable CAR kernel path for:
 - web chat ingress
 - canonical middleware and governance
 - generic HTTP / streaming backend invocation
@@ -142,7 +142,7 @@ Does not own:
 ### Generic backend adapter boundary
 Owns:
 - accepting one canonical invocation request
-- mapping CAP conversation/session identifiers to backend session handles if needed
+- mapping CAR conversation/session identifiers to backend session handles if needed
 - invoking one generic HTTP / streaming backend contract
 - mapping runtime output into canonical response or structured error shape
 - preserving correlation and trace propagation
@@ -317,7 +317,7 @@ The minimum append idempotency rules for this slice are:
 - duplicate inbound deliveries MUST NOT produce multiple canonical happy-path chains for the same logical ingress
 - append decisions for duplicate ingress should occur within the same serialized processing scope used for idempotent processing decisions
 - canonical events themselves SHOULD have stable `event_id` values and the ledger MUST reject or safely handle duplicate append attempts for the same canonical fact
-- CAP continues to assume at-least-once internal processing with idempotent consumers, not exactly-once semantics
+- CAR continues to assume at-least-once internal processing with idempotent consumers, not exactly-once semantics
 
 ### Replay target
 The first required replay target is:

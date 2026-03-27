@@ -1,4 +1,4 @@
-# CAP First Executable Path Event Contract Matrix
+# Chat Agent Relay First Executable Path Event Contract Matrix
 
 This document condenses the seven-event happy path from `docs/decisions/first-executable-path-plan.md` into a compact implementation-facing matrix.
 

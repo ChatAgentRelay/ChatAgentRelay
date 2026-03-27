@@ -6,10 +6,10 @@
       "name": "cap",
     },
     "examples/custom-channel-adapter": {
-      "name": "@cap/example-custom-channel-adapter",
+      "name": "@chat-agent-relay/example-custom-channel-adapter",
       "dependencies": {
-        "@cap/adapter-conformance": "workspace:*",
-        "@cap/contract-harness": "workspace:*",
+        "@chat-agent-relay/adapter-conformance": "workspace:*",
+        "@chat-agent-relay/contract-harness": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -17,13 +17,13 @@
       },
     },
     "packages/adapter-conformance": {
-      "name": "@cap/adapter-conformance",
+      "name": "@chat-agent-relay/adapter-conformance",
       "dependencies": {
-        "@cap/backend-http": "workspace:*",
-        "@cap/backend-openai": "workspace:*",
-        "@cap/channel-slack": "workspace:*",
-        "@cap/channel-web-chat": "workspace:*",
-        "@cap/contract-harness": "workspace:*",
+        "@chat-agent-relay/backend-http": "workspace:*",
+        "@chat-agent-relay/backend-openai": "workspace:*",
+        "@chat-agent-relay/channel-slack": "workspace:*",
+        "@chat-agent-relay/channel-web-chat": "workspace:*",
+        "@chat-agent-relay/contract-harness": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -31,9 +31,9 @@
       },
     },
     "packages/backend-http": {
-      "name": "@cap/backend-http",
+      "name": "@chat-agent-relay/backend-http",
       "dependencies": {
-        "@cap/contract-harness": "workspace:*",
+        "@chat-agent-relay/contract-harness": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -41,10 +41,10 @@
       },
     },
     "packages/backend-openai": {
-      "name": "@cap/backend-openai",
+      "name": "@chat-agent-relay/backend-openai",
       "dependencies": {
-        "@cap/backend-http": "workspace:*",
-        "@cap/contract-harness": "workspace:*",
+        "@chat-agent-relay/backend-http": "workspace:*",
+        "@chat-agent-relay/contract-harness": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -52,9 +52,9 @@
       },
     },
     "packages/channel-slack": {
-      "name": "@cap/channel-slack",
+      "name": "@chat-agent-relay/channel-slack",
       "dependencies": {
-        "@cap/contract-harness": "workspace:*",
+        "@chat-agent-relay/contract-harness": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -62,9 +62,9 @@
       },
     },
     "packages/channel-web-chat": {
-      "name": "@cap/channel-web-chat",
+      "name": "@chat-agent-relay/channel-web-chat",
       "dependencies": {
-        "@cap/contract-harness": "workspace:*",
+        "@chat-agent-relay/contract-harness": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -72,7 +72,7 @@
       },
     },
     "packages/contract-harness": {
-      "name": "@cap/contract-harness",
+      "name": "@chat-agent-relay/contract-harness",
       "dependencies": {
         "ajv": "^8.17.1",
         "ajv-formats": "^3.0.1",
@@ -83,9 +83,9 @@
       },
     },
     "packages/delivery": {
-      "name": "@cap/delivery",
+      "name": "@chat-agent-relay/delivery",
       "dependencies": {
-        "@cap/contract-harness": "workspace:*",
+        "@chat-agent-relay/contract-harness": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -93,9 +93,9 @@
       },
     },
     "packages/event-ledger": {
-      "name": "@cap/event-ledger",
+      "name": "@chat-agent-relay/event-ledger",
       "dependencies": {
-        "@cap/contract-harness": "workspace:*",
+        "@chat-agent-relay/contract-harness": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -103,9 +103,9 @@
       },
     },
     "packages/middleware": {
-      "name": "@cap/middleware",
+      "name": "@chat-agent-relay/middleware",
       "dependencies": {
-        "@cap/contract-harness": "workspace:*",
+        "@chat-agent-relay/contract-harness": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -113,30 +113,34 @@
       },
     },
     "packages/pipeline": {
-      "name": "@cap/pipeline",
+      "name": "@chat-agent-relay/pipeline",
       "dependencies": {
-        "@cap/backend-http": "workspace:*",
-        "@cap/channel-web-chat": "workspace:*",
-        "@cap/contract-harness": "workspace:*",
-        "@cap/delivery": "workspace:*",
-        "@cap/event-ledger": "workspace:*",
-        "@cap/middleware": "workspace:*",
+        "@chat-agent-relay/backend-http": "workspace:*",
+        "@chat-agent-relay/channel-web-chat": "workspace:*",
+        "@chat-agent-relay/contract-harness": "workspace:*",
+        "@chat-agent-relay/delivery": "workspace:*",
+        "@chat-agent-relay/event-ledger": "workspace:*",
+        "@chat-agent-relay/middleware": "workspace:*",
       },
       "devDependencies": {
-        "@cap/backend-openai": "workspace:*",
-        "@cap/channel-slack": "workspace:*",
+        "@chat-agent-relay/backend-openai": "workspace:*",
+        "@chat-agent-relay/channel-slack": "workspace:*",
         "@types/bun": "latest",
         "typescript": "^5.8.2",
       },
     },
     "packages/server": {
-      "name": "@cap/server",
+      "name": "@chat-agent-relay/server",
+      "version": "0.1.0",
+      "bin": {
+        "car-server": "src/cli.ts",
+      },
       "dependencies": {
-        "@cap/backend-openai": "workspace:*",
-        "@cap/channel-slack": "workspace:*",
-        "@cap/event-ledger": "workspace:*",
-        "@cap/middleware": "workspace:*",
-        "@cap/pipeline": "workspace:*",
+        "@chat-agent-relay/backend-openai": "workspace:*",
+        "@chat-agent-relay/channel-slack": "workspace:*",
+        "@chat-agent-relay/event-ledger": "workspace:*",
+        "@chat-agent-relay/middleware": "workspace:*",
+        "@chat-agent-relay/pipeline": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -145,29 +149,29 @@
     },
   },
   "packages": {
-    "@cap/adapter-conformance": ["@cap/adapter-conformance@workspace:packages/adapter-conformance"],
+    "@chat-agent-relay/adapter-conformance": ["@chat-agent-relay/adapter-conformance@workspace:packages/adapter-conformance"],
 
-    "@cap/backend-http": ["@cap/backend-http@workspace:packages/backend-http"],
+    "@chat-agent-relay/backend-http": ["@chat-agent-relay/backend-http@workspace:packages/backend-http"],
 
-    "@cap/backend-openai": ["@cap/backend-openai@workspace:packages/backend-openai"],
+    "@chat-agent-relay/backend-openai": ["@chat-agent-relay/backend-openai@workspace:packages/backend-openai"],
 
-    "@cap/channel-slack": ["@cap/channel-slack@workspace:packages/channel-slack"],
+    "@chat-agent-relay/channel-slack": ["@chat-agent-relay/channel-slack@workspace:packages/channel-slack"],
 
-    "@cap/channel-web-chat": ["@cap/channel-web-chat@workspace:packages/channel-web-chat"],
+    "@chat-agent-relay/channel-web-chat": ["@chat-agent-relay/channel-web-chat@workspace:packages/channel-web-chat"],
 
-    "@cap/contract-harness": ["@cap/contract-harness@workspace:packages/contract-harness"],
+    "@chat-agent-relay/contract-harness": ["@chat-agent-relay/contract-harness@workspace:packages/contract-harness"],
 
-    "@cap/delivery": ["@cap/delivery@workspace:packages/delivery"],
+    "@chat-agent-relay/delivery": ["@chat-agent-relay/delivery@workspace:packages/delivery"],
 
-    "@cap/event-ledger": ["@cap/event-ledger@workspace:packages/event-ledger"],
+    "@chat-agent-relay/event-ledger": ["@chat-agent-relay/event-ledger@workspace:packages/event-ledger"],
 
-    "@cap/example-custom-channel-adapter": ["@cap/example-custom-channel-adapter@workspace:examples/custom-channel-adapter"],
+    "@chat-agent-relay/example-custom-channel-adapter": ["@chat-agent-relay/example-custom-channel-adapter@workspace:examples/custom-channel-adapter"],
 
-    "@cap/middleware": ["@cap/middleware@workspace:packages/middleware"],
+    "@chat-agent-relay/middleware": ["@chat-agent-relay/middleware@workspace:packages/middleware"],
 
-    "@cap/pipeline": ["@cap/pipeline@workspace:packages/pipeline"],
+    "@chat-agent-relay/pipeline": ["@chat-agent-relay/pipeline@workspace:packages/pipeline"],
 
-    "@cap/server": ["@cap/server@workspace:packages/server"],
+    "@chat-agent-relay/server": ["@chat-agent-relay/server@workspace:packages/server"],
 
     "@types/bun": ["@types/bun@1.3.11", "", { "dependencies": { "bun-types": "1.3.11" } }, "sha512-5vPne5QvtpjGpsGYXiFyycfpDF2ECyPcTSsFBMa0fraoxiQyMJ3SmuQIGhzPg2WJuWxVBoxWJ2kClYTcw/4fAg=="],
 

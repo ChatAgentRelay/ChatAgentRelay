@@ -1,5 +1,5 @@
 ---
-description: Testing conventions for CAP
+description: Testing conventions for Chat Agent Relay (CAR)
 globs: **/tests/**
 alwaysApply: false
 ---
@@ -8,7 +8,7 @@ alwaysApply: false
 
 - Use bun:test (describe, it, expect, beforeAll, afterAll)
 - Test files go in tests/ directory alongside src/
-- New adapters MUST pass conformance tests from @cap/adapter-conformance
+- New adapters MUST pass conformance tests from @chat-agent-relay/adapter-conformance
 - All canonical events must validate against JSON Schema via ContractHarnessValidators
 - Mock external services with Bun.serve() on port 0 for random port assignment
 - Never use real API keys in tests

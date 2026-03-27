@@ -1,5 +1,5 @@
-import type { CanonicalEvent, ValidationResult } from "@cap/contract-harness";
-import { ContractHarnessValidators } from "@cap/contract-harness";
+import type { CanonicalEvent, ValidationResult } from "@chat-agent-relay/contract-harness";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import type { MiddlewareConfig, MiddlewareResult } from "./types";
 
 function deriveEvent(
@@ -46,16 +46,11 @@ export class MiddlewarePipeline {
       ? this.config.policyFn(messageReceived)
       : { decision: "allow" as const };
 
-    const policyEvent = deriveEvent(
-      messageReceived,
-      messageReceived.event_id,
-      "policy.decision.made",
-      {
-        policy: this.config.policyId ?? "default_ingress",
-        decision: policyDecision.decision,
-        ...(policyDecision.reason !== undefined ? { reason: policyDecision.reason } : {}),
-      },
-    );
+    const policyEvent = deriveEvent(messageReceived, messageReceived.event_id, "policy.decision.made", {
+      policy: this.config.policyId ?? "default_ingress",
+      decision: policyDecision.decision,
+      ...(policyDecision.reason !== undefined ? { reason: policyDecision.reason } : {}),
+    });
     this.assertValid(policyEvent);
 
     if (policyDecision.decision === "deny") {
@@ -66,26 +61,16 @@ export class MiddlewarePipeline {
       };
     }
 
-    const routeEvent = deriveEvent(
-      messageReceived,
-      policyEvent.event_id,
-      "route.decision.made",
-      {
-        route: this.config.route.route_id,
-        reason: this.config.route.reason ?? "default_route",
-      },
-    );
+    const routeEvent = deriveEvent(messageReceived, policyEvent.event_id, "route.decision.made", {
+      route: this.config.route.route_id,
+      reason: this.config.route.reason ?? "default_route",
+    });
     this.assertValid(routeEvent);
 
-    const invocationEvent = deriveEvent(
-      messageReceived,
-      routeEvent.event_id,
-      "agent.invocation.requested",
-      {
-        backend: this.config.route.backend,
-        input_event_id: messageReceived.event_id,
-      },
-    );
+    const invocationEvent = deriveEvent(messageReceived, routeEvent.event_id, "agent.invocation.requested", {
+      backend: this.config.route.backend,
+      input_event_id: messageReceived.event_id,
+    });
     this.assertValid(invocationEvent);
 
     return { allowed: true, policyEvent, routeEvent, invocationEvent };

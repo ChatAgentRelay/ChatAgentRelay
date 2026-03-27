@@ -1,6 +1,6 @@
-# CAP First Executable Path Validation Harness Scope
+# Chat Agent Relay First Executable Path Validation Harness Scope
 
-This document fixes the first allowed code slice for CAP in operational terms.
+This document fixes the first allowed code slice for CAR in operational terms.
 
 It exists to prevent the first implementation work from expanding into broad runtime concerns before the contract boundary is proven.
 
@@ -111,7 +111,7 @@ It is not:
 - a ledger component
 - an API surface
 
-Its job is to prove that CAP's frozen first executable path is consumable as machine-readable input before any broader runtime slice is discussed.
+Its job is to prove that CAR's frozen first executable path is consumable as machine-readable input before any broader runtime slice is discussed.
 
 ## Completion Criteria
 

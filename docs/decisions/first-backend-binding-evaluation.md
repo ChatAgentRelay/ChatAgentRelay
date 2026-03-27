@@ -1,4 +1,4 @@
-# CAP First Backend Binding Evaluation
+# Chat Agent Relay First Backend Binding Evaluation
 
 This decision is intentionally separated from the language/runtime decision.
 
@@ -50,7 +50,7 @@ The first real backend binding must support:
 
 For this first path:
 - these capabilities are core and must exist on day one
-- much of the contract surface is CAP-owned and should remain neutral rather than framework-derived
+- much of the contract surface is CAR-owned and should remain neutral rather than framework-derived
 - third-party runtime SDK maturity matters, but mainly after the neutral contract is proven and a framework-specific portability pressure-test becomes worth the added cost
 
 ### Deferred capabilities for later backend pressure-tests
@@ -66,7 +66,7 @@ Those deferred capabilities are the right reason to add a framework-specific ada
 
 ## Evaluation Summary
 
-`generic HTTP / streaming` is the best first backend binding for CAP's first executable path.
+`generic HTTP / streaming` is the best first backend binding for CAR's first executable path.
 
 It provides the cleanest way to validate the backend-facing contract as a neutral public boundary before any single runtime ecosystem is allowed to shape it. That makes it the strongest option for preserving portability, keeping session and identity ownership explicit, and writing reusable contract tests against a stable invocation surface.
 
@@ -88,7 +88,7 @@ Even at prototype stage, the boundary should still prove session mapping, struct
 
 ## v1 Recommendation
 
-Use `generic HTTP / streaming` as the first real backend binding for the CAP minimum kernel.
+Use `generic HTTP / streaming` as the first real backend binding for the CAR minimum kernel.
 
 After that neutral path is stable, add one framework-specific adapter as the first runtime portability pressure-test. That follow-up should confirm that the public contract survives real framework lifecycle pressure without letting the initial v1 path become framework-defined too early.
 
@@ -101,4 +101,4 @@ After that neutral path is stable, add one framework-specific adapter as the fir
 
 ## Decision Outcome
 
-CAP should use `generic HTTP / streaming` as the first real backend binding because it best validates the runtime-side contract as a neutral boundary while preserving portability, boundary discipline, and reusable contract testing. A framework-specific binding should follow as a pressure-test after the minimum-kernel path is already stable.
+CAR should use `generic HTTP / streaming` as the first real backend binding because it best validates the runtime-side contract as a neutral boundary while preserving portability, boundary discipline, and reusable contract testing. A framework-specific binding should follow as a pressure-test after the minimum-kernel path is already stable.

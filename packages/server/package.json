@@ -1,10 +1,10 @@
 {
-  "name": "@cap/server",
+  "name": "@chat-agent-relay/server",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "bin": {
-    "cap-server": "src/cli.ts"
+    "car-server": "src/cli.ts"
   },
   "scripts": {
     "start": "bun run src/cli.ts",
@@ -12,11 +12,11 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@cap/pipeline": "workspace:*",
-    "@cap/channel-slack": "workspace:*",
-    "@cap/backend-openai": "workspace:*",
-    "@cap/event-ledger": "workspace:*",
-    "@cap/middleware": "workspace:*"
+    "@chat-agent-relay/pipeline": "workspace:*",
+    "@chat-agent-relay/channel-slack": "workspace:*",
+    "@chat-agent-relay/backend-openai": "workspace:*",
+    "@chat-agent-relay/event-ledger": "workspace:*",
+    "@chat-agent-relay/middleware": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",

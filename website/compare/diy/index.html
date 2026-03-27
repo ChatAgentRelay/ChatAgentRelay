@@ -3,23 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CAP vs DIY - Why use a middleware for chat-to-agent integration</title>
-  <meta name="description" content="Compare building chat-to-agent integration yourself versus CAP open-source middleware: multi-channel adapters, audit ledger, policy, retries, and time to production.">
-  <meta name="keywords" content="CAP, DIY integration, chat middleware, AI agent, Slack, audit trail, open source">
+  <title>Chat Agent Relay vs DIY - Why use a middleware for chat-to-agent integration</title>
+  <meta name="description" content="Compare building chat-to-agent integration yourself versus Chat Agent Relay open-source middleware: multi-channel adapters, audit ledger, policy, retries, and time to production.">
+  <meta name="keywords" content="Chat Agent Relay, CAR, DIY integration, chat middleware, AI agent, Slack, audit trail, open source">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
-  <meta property="og:title" content="CAP vs DIY - Why use a middleware for chat-to-agent integration">
-  <meta property="og:description" content="Hidden costs of custom integrations and what CAP gives you out of the box: adapters, ledger, policy, delivery, and streaming.">
-  <meta property="og:url" content="https://anthropics.github.io/cap/compare/diy/">
-  <meta property="og:site_name" content="CAP">
+  <meta property="og:title" content="Chat Agent Relay vs DIY - Why use a middleware for chat-to-agent integration">
+  <meta property="og:description" content="Hidden costs of custom integrations and what Chat Agent Relay gives you out of the box: adapters, ledger, policy, delivery, and streaming.">
+  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/compare/diy/">
+  <meta property="og:site_name" content="Chat Agent Relay">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="CAP vs DIY - Why use a middleware for chat-to-agent integration">
-  <meta name="twitter:description" content="Feature comparison: DIY integration vs CAP for multi-channel chat and AI agents.">
+  <meta name="twitter:title" content="Chat Agent Relay vs DIY - Why use a middleware for chat-to-agent integration">
+  <meta name="twitter:description" content="Feature comparison: DIY integration vs Chat Agent Relay for multi-channel chat and AI agents.">
 
-  <link rel="canonical" href="https://anthropics.github.io/cap/compare/diy/">
+  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/compare/diy/">
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,22 +28,21 @@
 
   <link rel="stylesheet" href="../../css/style.css">
 
-  <!-- GA4 placeholder — replace G-XXXXXXXXXX with real ID -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-XXXXXXXXXX');
+    gtag('config', 'G-7FERB87K2D');
   </script>
 
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "CAP vs DIY - Why use a middleware for chat-to-agent integration",
-    "description": "Comparison of custom chat-to-agent integration versus CAP middleware.",
-    "url": "https://anthropics.github.io/cap/compare/diy/"
+    "name": "Chat Agent Relay vs DIY - Why use a middleware for chat-to-agent integration",
+    "description": "Comparison of custom chat-to-agent integration versus Chat Agent Relay middleware.",
+    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/compare/diy/"
   }
   </script>
 </head>
@@ -52,20 +51,20 @@
 <!-- Nav -->
 <nav class="nav">
   <div class="container">
-    <a href="/cap/" class="nav-brand"><span class="prompt">$</span> cap</a>
+    <a href="/chat-agent-relay/" class="nav-brand"><span class="prompt">$</span> car</a>
     <button class="nav-toggle" aria-label="Menu">&#9776;</button>
     <div class="nav-links">
-      <a href="/cap/why-cap/">Why CAP</a>
-      <a href="/cap/docs/">Docs</a>
-      <a href="/cap/compare/diy/" class="active">Compare</a>
-      <a href="/cap/blog/">Blog</a>
-      <a href="https://github.com/anthropics/cap" class="nav-cta" data-track="nav_github">GitHub</a>
+      <a href="/chat-agent-relay/why-car/">Why CAR</a>
+      <a href="/chat-agent-relay/docs/">Docs</a>
+      <a href="/chat-agent-relay/compare/diy/" class="active">Compare</a>
+      <a href="/chat-agent-relay/blog/">Blog</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="nav-cta" data-track="nav_github">GitHub</a>
     </div>
   </div>
 </nav>
 
 <article class="article">
-  <h1>CAP vs Building It Yourself</h1>
+  <h1>Chat Agent Relay vs Building It Yourself</h1>
   <p class="meta">Compare &middot; DIY integration</p>
 
   <p>
@@ -83,7 +82,7 @@
         <tr>
           <th>Capability</th>
           <th>DIY integration</th>
-          <th>CAP</th>
+          <th>CAR</th>
         </tr>
       </thead>
       <tbody>
@@ -160,7 +159,7 @@
 
   <h2>When DIY makes sense</h2>
   <p>
-    CAP is not the only valid choice. Building in-house is reasonable when:
+    Chat Agent Relay is not the only valid choice. Building in-house is reasonable when:
   </p>
   <ul>
     <li>You have <strong>truly unique protocol or product requirements</strong> that do not map to a
@@ -172,7 +171,7 @@
   </ul>
 
   <p style="margin-top:32px">
-    <a href="/cap/docs/" class="btn btn-primary" data-track="compare_diy_get_started">Get started with CAP in 2 minutes</a>
+    <a href="/chat-agent-relay/docs/" class="btn btn-primary" data-track="compare_diy_get_started">Get started with Chat Agent Relay in 2 minutes</a>
   </p>
 </article>
 
@@ -180,11 +179,11 @@
 <footer class="footer">
   <div class="container">
     <div class="footer-links">
-      <a href="https://github.com/anthropics/cap">GitHub</a>
-      <a href="/cap/docs/">Docs</a>
-      <a href="/cap/blog/">Blog</a>
-      <a href="/cap/why-cap/">Why CAP</a>
-      <a href="https://github.com/anthropics/cap/issues">Issues</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
+      <a href="/chat-agent-relay/docs/">Docs</a>
+      <a href="/chat-agent-relay/blog/">Blog</a>
+      <a href="/chat-agent-relay/why-car/">Why CAR</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
     </div>
     <p>MIT License &middot; Built with Bun and TypeScript</p>
   </div>

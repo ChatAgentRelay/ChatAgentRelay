@@ -1,5 +1,5 @@
 {
-  "name": "@cap/backend-openai",
+  "name": "@chat-agent-relay/backend-openai",
   "private": true,
   "type": "module",
   "exports": {
@@ -10,8 +10,8 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@cap/contract-harness": "workspace:*",
-    "@cap/backend-http": "workspace:*"
+    "@chat-agent-relay/contract-harness": "workspace:*",
+    "@chat-agent-relay/backend-http": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",

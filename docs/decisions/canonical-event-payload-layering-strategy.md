@@ -1,4 +1,4 @@
-# CAP Canonical Event Payload Layering Strategy
+# Chat Agent Relay Canonical Event Payload Layering Strategy
 
 This document defines how event-family-specific payload contracts should layer on top of the canonical event envelope JSON Schema.
 
@@ -12,7 +12,7 @@ Decision made: **use a layered schema model in which the canonical event envelop
 
 ## Decision Scope
 
-Choose how CAP should evolve from:
+Choose how CAR should evolve from:
 - one authoritative envelope JSON Schema
 - to more specific event-family payload contracts
 - without prematurely freezing every payload variant
@@ -69,7 +69,7 @@ docs/schemas/
 ```
 
 ### 3. Composition should be preferred over one giant schema
-When CAP starts formalizing specialized payloads, prefer JSON Schema composition patterns such as:
+When CAR starts formalizing specialized payloads, prefer JSON Schema composition patterns such as:
 - a base envelope schema
 - specialized schemas that constrain `event_type`
 - specialized schemas that refine `payload`
@@ -82,7 +82,7 @@ Conceptually:
 This avoids making the first schema artifact an unmaintainable all-in-one union.
 
 ### 4. Specialize in phases
-Payload formalization should follow CAP maturity:
+Payload formalization should follow CAR maturity:
 - first: minimum-kernel events that most affect interoperability
 - next: delivery, handoff, identity, and blocked/error flows
 - later: richer audit, queueing, protocol trace, and provider-specific extensions where justified
@@ -119,7 +119,7 @@ These give the best early interoperability value without forcing the whole proto
 
 ## Current Decision Statement
 
-CAP should evolve canonical event payload contracts through a **layered JSON Schema model**:
+CAR should evolve canonical event payload contracts through a **layered JSON Schema model**:
 - one stable envelope schema for shared contract shape
 - separate event-family-specific schemas for payload specialization
 - RFCs remain normative for meaning

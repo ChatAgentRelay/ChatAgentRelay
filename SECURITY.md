@@ -1,6 +1,6 @@
 # Security
 
-CAP is **pre-v1 software**. Interfaces, behavior, and security posture may change without notice. Reports are still welcome and help improve the project.
+Chat Agent Relay (CAR) is **pre-v1 software**. Interfaces, behavior, and security posture may change without notice. Reports are still welcome and help improve the project.
 
 ## How to report a vulnerability
 
@@ -34,7 +34,7 @@ We will keep you reasonably informed as the issue is triaged and addressed.
 **In scope** (examples):
 
 - Security flaws in this repository’s code, build, or documented default configurations shipped here
-- Issues that could lead to unauthorized access, data exposure, or unsafe execution in supported use of CAP components
+- Issues that could lead to unauthorized access, data exposure, or unsafe execution in supported use of CAR components
 
 **Typically out of scope** (examples):
 
@@ -53,4 +53,4 @@ We follow **coordinated disclosure**:
 - We ask that you do not publish details until we agree on a disclosure date, or until we confirm we will not fix the issue, or until a mutually agreed timeout if we cannot respond.
 - We will credit reporters who wish to be named, unless they prefer to remain anonymous.
 
-Thank you for helping keep CAP and its users safer.
+Thank you for helping keep Chat Agent Relay and its users safer.

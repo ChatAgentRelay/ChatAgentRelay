@@ -1,6 +1,6 @@
-# CAP Initial Package Boundaries
+# Chat Agent Relay Initial Package Boundaries
 
-This document records the initial package boundary for CAP's first code-facing work.
+This document records the initial package boundary for CAR's first code-facing work.
 
 It exists to prevent premature package sprawl before the contract boundary has been proven.
 
@@ -76,7 +76,7 @@ The following package families are explicitly deferred and MUST NOT be introduce
 
 Additional packages should only be introduced after a follow-on implementation slice has been explicitly approved.
 
-Future package boundaries must continue to preserve CAP's core architectural ownership model from the RFCs.
+Future package boundaries must continue to preserve CAR's core architectural ownership model from the RFCs.
 
 ## Approved Channel-Side Extension
 

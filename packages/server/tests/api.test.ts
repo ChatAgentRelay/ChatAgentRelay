@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import type { StoredCanonicalEvent } from "@chat-agent-relay/event-ledger";
+import { InMemoryEventLedgerStore } from "@chat-agent-relay/event-ledger";
 import type { Server } from "bun";
-import { InMemoryEventLedgerStore } from "@cap/event-ledger";
-import type { StoredCanonicalEvent } from "@cap/event-ledger";
 import { startApiServer } from "../src/api";
 
 type BunServer = Server<unknown>;

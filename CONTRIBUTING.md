@@ -1,12 +1,12 @@
-# Contributing to CAP
+# Contributing to Chat Agent Relay
 
-Thank you for your interest in contributing to CAP.
+Thank you for your interest in contributing to Chat Agent Relay (CAR).
 
 ## Development Setup
 
 ```bash
-git clone https://github.com/your-org/cap.git
-cd cap
+git clone https://github.com/ChatAgentRelay/ChatAgentRelay.git
+cd ChatAgentRelay
 bun install
 ```
 
@@ -46,7 +46,7 @@ bun run typecheck
 
 - TypeScript strict mode is enforced across all packages
 - All canonical events must validate against the frozen schema layer
-- New adapters should pass the `@cap/adapter-conformance` test suite
+- New adapters should pass the `@chat-agent-relay/adapter-conformance` test suite
 - Avoid comments that merely narrate what code does — only explain non-obvious intent
 - Each PR should have a clear, narrow scope
 
@@ -66,7 +66,7 @@ bun run typecheck
 
 1. Create a new package under `packages/`
 2. Implement the `ChannelIngress` or `BackendAdapter` interface
-3. Add conformance tests using `@cap/adapter-conformance`
+3. Add conformance tests using `@chat-agent-relay/adapter-conformance`
 4. Add unit tests for adapter-specific behavior
 5. Update `docs/decisions/initial-package-boundaries.md` if adding a new approved package
 

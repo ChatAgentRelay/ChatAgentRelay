@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeAll } from "bun:test";
-import type { CanonicalEvent } from "@cap/contract-harness";
-import { ContractHarnessValidators } from "@cap/contract-harness";
-import { DeliveryOrchestrator, DeliveryExhaustedError } from "../src/delivery";
+import { beforeAll, describe, expect, it } from "bun:test";
+import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
+import { DeliveryExhaustedError, DeliveryOrchestrator } from "../src/delivery";
 import type { SendFn } from "../src/types";
 
 function sampleAgentResponse(): CanonicalEvent {
@@ -89,16 +89,12 @@ describe("delivery orchestrator", () => {
 
   it("rejects non agent.response.completed input", async () => {
     const wrongEvent = { ...sampleAgentResponse(), event_type: "message.received" };
-    await expect(orchestrator.deliver(wrongEvent, mockSendFn)).rejects.toThrow(
-      "Expected agent.response.completed",
-    );
+    await expect(orchestrator.deliver(wrongEvent, mockSendFn)).rejects.toThrow("Expected agent.response.completed");
   });
 
   it("rejects agent response without text in payload", async () => {
     const noText = { ...sampleAgentResponse(), payload: {} };
-    await expect(orchestrator.deliver(noText, mockSendFn)).rejects.toThrow(
-      "payload must contain text",
-    );
+    await expect(orchestrator.deliver(noText, mockSendFn)).rejects.toThrow("payload must contain text");
   });
 
   it("retries on failure and succeeds on 3rd attempt", async () => {

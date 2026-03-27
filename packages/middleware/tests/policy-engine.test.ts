@@ -1,7 +1,7 @@
-import { describe, it, expect } from "bun:test";
-import { createPolicyFn, loadPolicyConfig } from "../src/policy-engine";
+import { describe, expect, it } from "bun:test";
+import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
 import type { PolicyConfig } from "../src/policy-engine";
-import type { CanonicalEvent } from "@cap/contract-harness";
+import { createPolicyFn, loadPolicyConfig } from "../src/policy-engine";
 
 function makeEvent(text: string): CanonicalEvent {
   return {
@@ -100,9 +100,7 @@ describe("loadPolicyConfig", () => {
 
   it("parses valid JSON config", () => {
     const json = JSON.stringify({
-      rules: [
-        { id: "r1", type: "keyword", pattern: "spam", action: "deny" },
-      ],
+      rules: [{ id: "r1", type: "keyword", pattern: "spam", action: "deny" }],
     });
     const config = loadPolicyConfig(json);
     expect(config.rules).toHaveLength(1);
@@ -122,11 +120,15 @@ describe("loadPolicyConfig", () => {
   });
 
   it("throws on invalid rule type", () => {
-    expect(() => loadPolicyConfig('{"rules": [{"id": "r1", "type": "bad", "pattern": "x"}]}')).toThrow("'keyword' or 'regex'");
+    expect(() => loadPolicyConfig('{"rules": [{"id": "r1", "type": "bad", "pattern": "x"}]}')).toThrow(
+      "'keyword' or 'regex'",
+    );
   });
 
   it("throws on invalid regex pattern", () => {
-    expect(() => loadPolicyConfig('{"rules": [{"id": "r1", "type": "regex", "pattern": "[invalid"}]}')).toThrow("invalid regex");
+    expect(() => loadPolicyConfig('{"rules": [{"id": "r1", "type": "regex", "pattern": "[invalid"}]}')).toThrow(
+      "invalid regex",
+    );
   });
 
   it("parses defaultDecision", () => {

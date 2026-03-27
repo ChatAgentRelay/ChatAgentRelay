@@ -1,6 +1,6 @@
-import type { CanonicalEvent } from "@cap/contract-harness";
-import { ContractHarnessValidators } from "@cap/contract-harness";
-import type { InvocationContext, InvocationResult } from "@cap/backend-http";
+import type { InvocationContext, InvocationResult } from "@chat-agent-relay/backend-http";
+import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import type { OpenAIBackendConfig, OpenAIChatRequest, OpenAIChatResponse, OpenAIStreamDelta } from "./types";
 
 const DEFAULT_MODEL = "gpt-4o-mini";
@@ -34,9 +34,7 @@ export class OpenAIBackend {
   async invoke(context: InvocationContext): Promise<InvocationResult> {
     const requestId = `req_${crypto.randomUUID()}`;
 
-    const messages: OpenAIChatRequest["messages"] = [
-      { role: "system", content: this.systemPrompt },
-    ];
+    const messages: OpenAIChatRequest["messages"] = [{ role: "system", content: this.systemPrompt }];
 
     if (context.conversationHistory) {
       for (const turn of context.conversationHistory) {
@@ -57,7 +55,7 @@ export class OpenAIBackend {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify(chatRequest),
         signal: AbortSignal.timeout(this.timeoutMs),
@@ -82,7 +80,9 @@ export class OpenAIBackend {
       let errorBody = "";
       try {
         errorBody = await rawResponse.text();
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
       return {
         ok: false,
         requestId,
@@ -147,9 +147,7 @@ export class OpenAIBackend {
   async *invokeStreaming(context: InvocationContext): AsyncGenerator<string, InvocationResult> {
     const requestId = `req_${crypto.randomUUID()}`;
 
-    const messages: OpenAIChatRequest["messages"] = [
-      { role: "system", content: this.systemPrompt },
-    ];
+    const messages: OpenAIChatRequest["messages"] = [{ role: "system", content: this.systemPrompt }];
     if (context.conversationHistory) {
       for (const turn of context.conversationHistory) {
         messages.push({ role: turn.role, content: turn.content });
@@ -165,7 +163,7 @@ export class OpenAIBackend {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${this.apiKey}`,
+          Authorization: `Bearer ${this.apiKey}`,
         },
         body: JSON.stringify(chatRequest),
         signal: AbortSignal.timeout(this.timeoutMs),
@@ -188,7 +186,11 @@ export class OpenAIBackend {
 
     if (!rawResponse.ok || !rawResponse.body) {
       let errorBody = "";
-      try { errorBody = await rawResponse.text(); } catch { /* ignore */ }
+      try {
+        errorBody = await rawResponse.text();
+      } catch {
+        /* ignore */
+      }
       return {
         ok: false,
         requestId,
@@ -322,11 +324,13 @@ export class OpenAIBackend {
           model: openaiResponse.model,
           openai_id: openaiResponse.id,
           finish_reason: openaiResponse.choices[0]?.finish_reason ?? "unknown",
-          ...(openaiResponse.usage ? {
-            prompt_tokens: openaiResponse.usage.prompt_tokens,
-            completion_tokens: openaiResponse.usage.completion_tokens,
-            total_tokens: openaiResponse.usage.total_tokens,
-          } : {}),
+          ...(openaiResponse.usage
+            ? {
+                prompt_tokens: openaiResponse.usage.prompt_tokens,
+                completion_tokens: openaiResponse.usage.completion_tokens,
+                total_tokens: openaiResponse.usage.total_tokens,
+              }
+            : {}),
         },
       },
     };

@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeAll } from "bun:test";
-import { ContractHarnessValidators } from "@cap/contract-harness";
-import type { CanonicalEvent } from "@cap/contract-harness";
-import type { InvocationContext, InvocationResult } from "@cap/backend-http";
+import { beforeAll, describe, expect, it } from "bun:test";
+import type { InvocationContext, InvocationResult } from "@chat-agent-relay/backend-http";
+import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 
 export type BackendAdapterUnderTest = {
   invoke(context: InvocationContext): Promise<InvocationResult>;

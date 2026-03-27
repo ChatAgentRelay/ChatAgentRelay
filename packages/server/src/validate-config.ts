@@ -45,18 +45,18 @@ export function validateConfig(config: ServerConfig): ConfigError[] {
     });
   }
 
-  if (config.cap.apiPort < 0 || config.cap.apiPort > 65535 || !Number.isInteger(config.cap.apiPort)) {
+  if (config.car.apiPort < 0 || config.car.apiPort > 65535 || !Number.isInteger(config.car.apiPort)) {
     errors.push({
-      field: "CAP_API_PORT",
-      message: `Invalid port number: ${config.cap.apiPort}`,
+      field: "CAR_API_PORT",
+      message: `Invalid port number: ${config.car.apiPort}`,
       hint: "Must be an integer between 0 and 65535",
     });
   }
 
-  if (config.cap.streamingIntervalMs < 100) {
+  if (config.car.streamingIntervalMs < 100) {
     errors.push({
-      field: "CAP_STREAMING_INTERVAL_MS",
-      message: `Streaming interval too low: ${config.cap.streamingIntervalMs}ms`,
+      field: "CAR_STREAMING_INTERVAL_MS",
+      message: `Streaming interval too low: ${config.car.streamingIntervalMs}ms`,
       hint: "Minimum recommended interval is 100ms to avoid rate limiting",
     });
   }
@@ -77,11 +77,7 @@ export function validateConfig(config: ServerConfig): ConfigError[] {
 }
 
 export function formatConfigErrors(errors: ConfigError[]): string {
-  const lines = [
-    "",
-    "=== CAP Server Configuration Errors ===",
-    "",
-  ];
+  const lines = ["", "=== Chat Agent Relay Configuration Errors ===", ""];
 
   for (const error of errors) {
     lines.push(`  [${error.field}] ${error.message}`);

@@ -1,4 +1,4 @@
-import type { CanonicalEvent } from "@cap/contract-harness";
+import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
 
 export type BackendConfig = {
   endpoint: string;
@@ -21,7 +21,7 @@ export type InvocationContext = {
 
 export type BackendInvocationRequest = {
   request_id: string;
-  cap: {
+  car: {
     event: CanonicalEvent;
     input: { message: { text: string } };
     context: {

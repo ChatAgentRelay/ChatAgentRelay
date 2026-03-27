@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import type { Server } from "bun";
-import { ContractHarnessValidators } from "@cap/contract-harness";
 import { SlackIngress } from "../src/slack-ingress";
 import { SlackSender } from "../src/slack-sender";
 import type { SlackMessageEvent } from "../src/types";
@@ -10,13 +10,17 @@ type BunServer = Server<unknown>;
 function patchFetch(port: number): () => void {
   const originalFetch = globalThis.fetch;
   const patched = async (input: string | URL | Request, init?: RequestInit) => {
-    const url = String(input instanceof Request ? input.url : input)
-      .replace("https://slack.com/api", `http://localhost:${port}`);
+    const url = String(input instanceof Request ? input.url : input).replace(
+      "https://slack.com/api",
+      `http://localhost:${port}`,
+    );
     return originalFetch(url, init);
   };
   patched.preconnect = originalFetch.preconnect;
   globalThis.fetch = patched as typeof fetch;
-  return () => { globalThis.fetch = originalFetch; };
+  return () => {
+    globalThis.fetch = originalFetch;
+  };
 }
 
 function sampleSlackEvent(): SlackMessageEvent {

@@ -1,6 +1,6 @@
-# CAP First Executable Path Fixture Set
+# Chat Agent Relay First Executable Path Fixture Set
 
-This directory contains the machine-readable happy-path contract fixtures for the frozen first executable CAP path.
+This directory contains the machine-readable happy-path contract fixtures for the frozen first executable CAR path.
 
 These fixtures are not new normative RFC content.
 

@@ -1,12 +1,7 @@
-import { ContractHarnessValidators } from "@cap/contract-harness";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { buildBackendRequest } from "./build-request";
 import { mapCompletedResponse } from "./map-response";
-import type {
-  BackendConfig,
-  BackendResponse,
-  InvocationContext,
-  InvocationResult,
-} from "./types";
+import type { BackendConfig, BackendResponse, InvocationContext, InvocationResult } from "./types";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 

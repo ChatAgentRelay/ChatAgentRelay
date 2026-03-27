@@ -1,4 +1,4 @@
-import type { CanonicalEvent } from "@cap/contract-harness";
+import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
 
 export type InboundWebChatRequest = {
   client_message_id: string;

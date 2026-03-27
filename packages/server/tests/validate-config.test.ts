@@ -1,12 +1,12 @@
-import { describe, it, expect } from "bun:test";
-import { validateConfig, formatConfigErrors } from "../src/validate-config";
+import { describe, expect, it } from "bun:test";
 import type { ServerConfig } from "../src/config";
+import { formatConfigErrors, validateConfig } from "../src/validate-config";
 
 function validConfig(): ServerConfig {
   return {
     slack: { botToken: "xoxb-test-token", appToken: "xapp-test-token" },
     openai: { apiKey: "sk-test-key", model: "gpt-4o-mini", systemPrompt: "test" },
-    cap: {
+    car: {
       tenantId: "t1",
       workspaceId: "ws1",
       routeId: "r1",
@@ -60,16 +60,16 @@ describe("validateConfig", () => {
 
   it("detects invalid port", () => {
     const config = validConfig();
-    config.cap.apiPort = -1;
+    config.car.apiPort = -1;
     const errors = validateConfig(config);
-    expect(errors.some((e) => e.field === "CAP_API_PORT")).toBe(true);
+    expect(errors.some((e) => e.field === "CAR_API_PORT")).toBe(true);
   });
 
   it("detects streaming interval too low", () => {
     const config = validConfig();
-    config.cap.streamingIntervalMs = 50;
+    config.car.streamingIntervalMs = 50;
     const errors = validateConfig(config);
-    expect(errors.some((e) => e.field === "CAP_STREAMING_INTERVAL_MS")).toBe(true);
+    expect(errors.some((e) => e.field === "CAR_STREAMING_INTERVAL_MS")).toBe(true);
   });
 
   it("detects invalid OPENAI_BASE_URL", () => {
@@ -98,11 +98,13 @@ describe("validateConfig", () => {
 
 describe("formatConfigErrors", () => {
   it("formats errors with hints", () => {
-    const output = formatConfigErrors([{
-      field: "TEST_FIELD",
-      message: "test error",
-      hint: "test hint",
-    }]);
+    const output = formatConfigErrors([
+      {
+        field: "TEST_FIELD",
+        message: "test error",
+        hint: "test hint",
+      },
+    ]);
     expect(output).toContain("TEST_FIELD");
     expect(output).toContain("test error");
     expect(output).toContain("test hint");

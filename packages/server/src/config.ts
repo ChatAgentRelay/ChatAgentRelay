@@ -9,7 +9,7 @@ export type ServerConfig = {
     systemPrompt: string;
     baseUrl?: string | undefined;
   };
-  cap: {
+  car: {
     tenantId: string;
     workspaceId: string;
     routeId: string;
@@ -22,10 +22,10 @@ export type ServerConfig = {
 };
 
 function loadPolicySource(): string | undefined {
-  const inline = process.env["CAP_POLICY_CONFIG"];
+  const inline = process.env["CAR_POLICY_CONFIG"];
   if (inline) return inline;
 
-  const filePath = process.env["CAP_POLICY_FILE"];
+  const filePath = process.env["CAR_POLICY_FILE"];
   if (filePath) {
     const fs = require("fs") as typeof import("fs");
     return fs.readFileSync(filePath, "utf-8");
@@ -54,14 +54,14 @@ export function loadConfig(): ServerConfig {
       systemPrompt: process.env["OPENAI_SYSTEM_PROMPT"] ?? "You are a helpful assistant.",
       baseUrl: process.env["OPENAI_BASE_URL"],
     },
-    cap: {
-      tenantId: process.env["CAP_TENANT_ID"] ?? "default_tenant",
-      workspaceId: process.env["CAP_WORKSPACE_ID"] ?? "default_workspace",
-      routeId: process.env["CAP_ROUTE_ID"] ?? "openai_agent",
-      sqlitePath: process.env["CAP_SQLITE_PATH"] ?? "./cap-ledger.db",
-      streaming: process.env["CAP_STREAMING"] !== "false",
-      streamingIntervalMs: Number(process.env["CAP_STREAMING_INTERVAL_MS"] ?? "800"),
-      apiPort: Number(process.env["CAP_API_PORT"] ?? "3000"),
+    car: {
+      tenantId: process.env["CAR_TENANT_ID"] ?? "default_tenant",
+      workspaceId: process.env["CAR_WORKSPACE_ID"] ?? "default_workspace",
+      routeId: process.env["CAR_ROUTE_ID"] ?? "openai_agent",
+      sqlitePath: process.env["CAR_SQLITE_PATH"] ?? "./car-ledger.db",
+      streaming: process.env["CAR_STREAMING"] !== "false",
+      streamingIntervalMs: Number(process.env["CAR_STREAMING_INTERVAL_MS"] ?? "800"),
+      apiPort: Number(process.env["CAR_API_PORT"] ?? "3000"),
       policyConfig: loadPolicySource(),
     },
   };

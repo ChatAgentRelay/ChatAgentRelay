@@ -1,4 +1,4 @@
-import type { LedgerStore, StoredCanonicalEvent } from "@cap/event-ledger";
+import type { LedgerStore, StoredCanonicalEvent } from "@chat-agent-relay/event-ledger";
 import { logger } from "./logger";
 
 export type ApiConfig = {
@@ -56,10 +56,12 @@ function buildAuditExplanation(conversationId: string, events: StoredCanonicalEv
       route: (route?.payload["route"] as string) ?? "",
       agent_response: (agentResp?.payload["text"] as string) ?? "",
       blocked: blocked !== undefined,
-      ...(blocked ? {
-        block_reason: blocked.payload["reason"] as string,
-        block_stage: blocked.payload["block_stage"] as string,
-      } : {}),
+      ...(blocked
+        ? {
+            block_reason: blocked.payload["reason"] as string,
+            block_stage: blocked.payload["block_stage"] as string,
+          }
+        : {}),
       events: chainEvents,
     });
   }
@@ -83,12 +85,15 @@ export function startApiServer(config: ApiConfig): ReturnType<typeof Bun.serve> 
       if (path === "/api/health") {
         const ledgerHealth = ledgerStore.healthCheck();
         const status = ledgerHealth.healthy ? "ok" : "degraded";
-        return jsonResponse({
-          status,
-          timestamp: new Date().toISOString(),
-          ledger: ledgerHealth,
-          uptime_seconds: Math.floor(process.uptime()),
-        }, ledgerHealth.healthy ? 200 : 503);
+        return jsonResponse(
+          {
+            status,
+            timestamp: new Date().toISOString(),
+            ledger: ledgerHealth,
+            uptime_seconds: Math.floor(process.uptime()),
+          },
+          ledgerHealth.healthy ? 200 : 503,
+        );
       }
 
       const conversationMatch = path.match(/^\/api\/conversations\/([^/]+)\/events$/);

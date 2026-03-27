@@ -1,5 +1,5 @@
-import type { CanonicalizationResult } from "./types";
 import type { WebChatIngress } from "./canonicalize";
+import type { CanonicalizationResult } from "./types";
 
 export type WebChatResponse = {
   ok: boolean;
@@ -57,10 +57,7 @@ export function startWebChatServer(config: WebChatHttpConfig) {
 
         const canonResult: CanonicalizationResult = ingress.canonicalize(body);
         if (!canonResult.ok) {
-          return jsonResponse(
-            { ok: false, error: canonResult.error.message } satisfies WebChatResponse,
-            400,
-          );
+          return jsonResponse({ ok: false, error: canonResult.error.message } satisfies WebChatResponse, 400);
         }
 
         try {

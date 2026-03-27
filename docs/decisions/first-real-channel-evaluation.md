@@ -1,4 +1,4 @@
-# CAP First Real Channel Evaluation
+# Chat Agent Relay First Real Channel Evaluation
 
 This decision is intentionally separated from the language/runtime decision.
 
@@ -49,8 +49,8 @@ The first real channel must support:
 
 For this first path:
 - these capabilities are core and must exist on day one
-- the core logic is mostly CAP-owned and relatively cheap to implement in-house once the boundary is fixed
-- third-party SDK maturity matters mainly for source verification, callback handling, and operational bootstrap rather than for defining CAP semantics
+- the core logic is mostly CAR-owned and relatively cheap to implement in-house once the boundary is fixed
+- third-party SDK maturity matters mainly for source verification, callback handling, and operational bootstrap rather than for defining CAR semantics
 
 ### Deferred capabilities for later channel pressure-tests
 The first real channel does not need to prove every transport feature immediately.
@@ -65,7 +65,7 @@ Those deferred capabilities are exactly where a provider-backed channel such as 
 
 ## Evaluation Summary
 
-`web chat` is the best first real channel for CAP's first executable path.
+`web chat` is the best first real channel for CAR's first executable path.
 
 It is the strongest fit for proving canonical ingress, outbound delivery, replay, audit, routing, and governance without letting one external provider shape the architecture prematurely. It also keeps contract-test fixtures, deterministic payload examples, and delivery-path debugging simpler while the canonical event layer and decision chain are still settling.
 
@@ -76,7 +76,7 @@ It is the strongest fit for proving canonical ingress, outbound delivery, replay
 For the first channel decision, ecosystem comparison should matter less than boundary clarity.
 
 - Web chat usually relies on simpler HTTP and browser-facing plumbing, much of which is replaceable and should not dominate the decision.
-- Provider-backed channels often have mature SDKs, but those SDKs primarily reduce integration labor rather than answer CAP's architectural questions.
+- Provider-backed channels often have mature SDKs, but those SDKs primarily reduce integration labor rather than answer CAR's architectural questions.
 - The first channel should therefore be chosen based on validation value, not on which SDK is easiest to install.
 
 ## v0 Recommendation
@@ -87,7 +87,7 @@ This keeps the initial implementation focused on validating canonical event shap
 
 ## v1 Recommendation
 
-Use `web chat` as the first real channel for the CAP minimum kernel.
+Use `web chat` as the first real channel for the CAR minimum kernel.
 
 After that path is stable, add `Slack` as the first external provider pressure-test channel. That follow-up should validate richer provider callback behavior, capability fallback pressure, and more realistic enterprise transport semantics without making those concerns the first constraint on the architecture.
 
@@ -100,4 +100,4 @@ After that path is stable, add `Slack` as the first external provider pressure-t
 
 ## Decision Outcome
 
-CAP should use `web chat` as the first real minimum-kernel channel because it best validates the canonical event loop, boundary discipline, replay, and audit model with the least architectural distortion. `Slack` should follow immediately after as the first external pressure-test channel, not as the first kernel-establishing dependency.
+CAR should use `web chat` as the first real minimum-kernel channel because it best validates the canonical event loop, boundary discipline, replay, and audit model with the least architectural distortion. `Slack` should follow immediately after as the first external pressure-test channel, not as the first kernel-establishing dependency.

@@ -1,6 +1,6 @@
-# CAP Canonical Event Machine-Readable Strategy
+# Chat Agent Relay Canonical Event Machine-Readable Strategy
 
-This document defines the first practical machine-readable contract strategy for the CAP canonical event model.
+This document defines the first practical machine-readable contract strategy for the CAR canonical event model.
 
 It follows these already-made decisions:
 - `docs/decisions/implementation-language-runtime-evaluation.md` — TypeScript on Node.js is the chosen implementation direction
@@ -15,7 +15,7 @@ Decision made: **use JSON Schema as the primary machine-readable contract format
 Choose the first machine-readable contract strategy for:
 - the canonical event envelope
 - the highest-value canonical event field structures
-- the first validation/interoperability layer used by CAP implementations
+- the first validation/interoperability layer used by CAR implementations
 
 This decision does **not** yet fully define:
 - the entire code generation toolchain
@@ -25,7 +25,7 @@ This decision does **not** yet fully define:
 
 ## Why This Decision Exists
 
-The repository has already chosen a hybrid schema authoring strategy. That means CAP now needs a concrete answer to:
+The repository has already chosen a hybrid schema authoring strategy. That means CAR now needs a concrete answer to:
 - which machine-readable format should become first-class first
 - how it relates to RFCs
 - how it relates to TypeScript implementation-facing definitions
@@ -58,13 +58,13 @@ Evidence collected:
 - `ts-json-schema-generator` exists to derive JSON Schema from TypeScript types.
 
 Implication:
-- TypeScript implementation ergonomics do not require CAP to abandon JSON Schema.
+- TypeScript implementation ergonomics do not require CAR to abandon JSON Schema.
 - A JSON-Schema-centered hybrid workflow is realistic in the chosen language.
 
 ### OpenAPI is important, but not the best first anchor
 Evidence collected:
 - OpenAPI is relevant and increasingly aligned with JSON Schema.
-- But OpenAPI is still centered on API description, operations, and transport-facing surfaces, while CAP's current need is a protocol-level canonical event contract.
+- But OpenAPI is still centered on API description, operations, and transport-facing surfaces, while CAR's current need is a protocol-level canonical event contract.
 
 Implication:
 - OpenAPI may later matter for selected external transport or API bindings.
@@ -100,7 +100,7 @@ Define canonical event machine-readable contracts first in JSON Schema, then der
 - Good cross-language portability.
 - Good long-term fit for conformance tooling and code generation.
 - Aligns well with the chosen hybrid strategy.
-- Does not bind CAP's core protocol to one runtime language.
+- Does not bind CAR's core protocol to one runtime language.
 
 #### Weaknesses
 - Slightly heavier authoring workflow than pure TypeScript-first validation.
@@ -121,7 +121,7 @@ Represent the canonical event model primarily through OpenAPI Schema Objects and
 - Related to JSON Schema through current OpenAPI evolution.
 
 #### Weaknesses
-- CAP's first machine-readable need is not endpoint description but canonical protocol modeling.
+- CAR's first machine-readable need is not endpoint description but canonical protocol modeling.
 - OpenAPI introduces API-description concerns earlier than needed.
 - Risks shaping the core protocol around transport-facing documentation concerns.
 
@@ -163,7 +163,7 @@ Use **JSON Schema as the primary machine-readable contract format for the canoni
 - They must not become the only practical source of truth.
 
 ### 4. OpenAPI is deferred to transport-facing surfaces
-- If CAP later exposes HTTP APIs or binding descriptions that benefit from OpenAPI, those should build on the established canonical machine-readable contract layer rather than replace it.
+- If CAR later exposes HTTP APIs or binding descriptions that benefit from OpenAPI, those should build on the established canonical machine-readable contract layer rather than replace it.
 
 ## First Practical Scope
 
@@ -224,14 +224,14 @@ This decision implies the next practical tasks are:
 ## Revisit Conditions
 
 Revisit this decision if:
-- CAP later decides that OpenAPI is the primary external contract surface
+- CAR later decides that OpenAPI is the primary external contract surface
 - the JSON Schema workflow proves too heavy for v0/v1 iteration
 - TypeScript-side ergonomics become so poor that the chosen hybrid balance is no longer sustainable
 - the project adopts stronger cross-language SDK/codegen goals, which may push toward an even more schema-first regime
 
 ## Current Decision Statement
 
-CAP should adopt the following strategy for the canonical event model:
+CAR should adopt the following strategy for the canonical event model:
 - RFCs define semantics
 - JSON Schema is the primary machine-readable contract layer for the canonical event envelope
 - TypeScript implementation artifacts must align to that contract layer rather than replace it

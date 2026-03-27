@@ -1,6 +1,6 @@
-# CAP HTTP API reference
+# Chat Agent Relay HTTP API reference
 
-This document describes the HTTP surfaces implemented in the CAP codebase. There are **two** Bun `serve` handlers with overlapping path names but different purposes:
+This document describes the HTTP surfaces implemented in the Chat Agent Relay (CAR) codebase. There are **two** Bun `serve` handlers with overlapping path names but different purposes:
 
 | Surface | Package / entry | Role |
 |--------|------------------|------|

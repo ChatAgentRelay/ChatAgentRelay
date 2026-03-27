@@ -1,4 +1,4 @@
-# CAP First Executable Path Sequence Diagram
+# Chat Agent Relay First Executable Path Sequence Diagram
 
 This document derives a single sequence diagram from `docs/decisions/first-executable-path-plan.md`.
 
@@ -6,7 +6,7 @@ It is a planning/design artifact, not a new normative protocol source and not an
 
 ## Purpose
 
-Freeze the exact interaction order for the first executable CAP happy path:
+Freeze the exact interaction order for the first executable CAR happy path:
 - one inbound plain-text web chat message
 - one allow policy decision
 - one route decision

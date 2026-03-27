@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug in CAP
+description: Report a bug in Chat Agent Relay (CAR)
 labels:
   - bug
 body:
@@ -69,9 +69,9 @@ body:
       required: true
 
   - type: dropdown
-    id: cap_version
+    id: car_version
     attributes:
-      label: CAP version
+      label: CAR version
       options:
         - "main (latest)"
         - "Released version (tag)"
@@ -84,6 +84,6 @@ body:
     id: additional_context
     attributes:
       label: Additional context
-      description: Logs, screenshots, exact Bun/CAP versions, or anything else that helps.
+      description: Logs, screenshots, exact Bun/CAR versions, or anything else that helps.
     validations:
       required: false

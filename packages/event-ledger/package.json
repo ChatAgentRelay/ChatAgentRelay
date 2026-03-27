@@ -1,5 +1,5 @@
 {
-  "name": "@cap/event-ledger",
+  "name": "@chat-agent-relay/event-ledger",
   "private": true,
   "type": "module",
   "exports": {
@@ -10,7 +10,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@cap/contract-harness": "workspace:*"
+    "@chat-agent-relay/contract-harness": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",

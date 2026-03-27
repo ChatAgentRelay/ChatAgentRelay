@@ -1,4 +1,4 @@
-# CAP First Executable Path Generic HTTP Backend Example
+# Chat Agent Relay First Executable Path Generic HTTP Backend Example
 
 This document gives a concrete example of the generic HTTP backend boundary for the first executable path.
 
@@ -9,7 +9,7 @@ It is a planning/design artifact derived from `docs/decisions/first-executable-p
 Show one narrow backend invocation and one narrow completed-response example for the first path so implementers can converge on:
 - what the generic backend adapter sends
 - what the backend minimally returns
-- how CAP identifiers and runtime-private identifiers stay separated
+- how CAR identifiers and runtime-private identifiers stay separated
 - how the result maps back into canonical events
 
 ## First-Path Scope
@@ -80,7 +80,7 @@ The generic backend adapter may send a request conceptually like this:
 
 ## Invocation Notes
 
-### What is CAP-owned
+### What is CAR-owned
 The following values remain platform-owned and must retain their canonical meaning:
 - `tenant_id`
 - `workspace_id`
@@ -131,7 +131,7 @@ The generic backend may return a response conceptually like this:
 }
 ```
 
-## Mapping Back Into CAP
+## Mapping Back Into CAR
 
 The generic backend adapter should map the completed response into a canonical event shaped like:
 
@@ -190,7 +190,7 @@ Even though the happy path does not use it, the same backend boundary should res
 }
 ```
 
-At the CAP boundary, the adapter must preserve at least:
+At the CAR boundary, the adapter must preserve at least:
 - `correlation_id`
 - optional `causation_id`
 - `code`

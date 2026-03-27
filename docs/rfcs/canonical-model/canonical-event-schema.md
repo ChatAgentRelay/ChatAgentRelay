@@ -1,17 +1,17 @@
-# RFC: CAP Canonical Event Schema
+# RFC: Chat Agent Relay Canonical Event Schema
 
 | | |
 |---|---|
 | **Status** | Draft |
 | **Author** | Claude Code |
-| **Audience** | CAP core / adapter / backend implementers |
+| **Audience** | CAR core / adapter / backend implementers |
 | **Version** | v0.1 |
 | **Last Updated** | 2026-03-17 |
 |
 
 ## 1. Abstract
 
-This RFC defines the CAP canonical event envelope as the protocol center of gravity for the system.
+This RFC defines the Chat Agent Relay (CAR) canonical event envelope as the protocol center of gravity for the system.
 
 ## 2. Purpose
 
@@ -25,7 +25,7 @@ The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** ar
 
 ## 4. Scope
 
-This RFC defines the canonical event envelope for CAP. It is the source of truth for channel adapters, backend agent adapters, governance, routing, audit, replay, and projections.
+This RFC defines the canonical event envelope for CAR. It is the source of truth for channel adapters, backend agent adapters, governance, routing, audit, replay, and projections.
 
 ## 5. Design Principles
 
@@ -38,7 +38,7 @@ This RFC defines the canonical event envelope for CAP. It is the source of truth
 
 ## 6. Minimal Kernel Relevance
 
-The canonical event schema is part of the **minimum CAP kernel**. A conforming minimum kernel MUST support:
+The canonical event schema is part of the **minimum CAR kernel**. A conforming minimum kernel MUST support:
 - canonical inbound message events
 - policy and route decision events
 - backend invocation and response events
@@ -470,7 +470,7 @@ Adds optional extensions for:
 
 ## 10. Conformance
 
-A conforming CAP implementation MUST:
+A conforming CAR implementation MUST:
 - produce canonical events for the minimum kernel flow
 - preserve correlation / causation / trace semantics
 - distinguish canonical events from provider-native extensions

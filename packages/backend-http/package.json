@@ -1,5 +1,5 @@
 {
-  "name": "@cap/backend-http",
+  "name": "@chat-agent-relay/backend-http",
   "private": true,
   "type": "module",
   "exports": {
@@ -10,7 +10,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@cap/contract-harness": "workspace:*"
+    "@chat-agent-relay/contract-harness": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",

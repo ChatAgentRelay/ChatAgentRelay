@@ -1,6 +1,6 @@
-# CAP Technology Selection Framework
+# Chat Agent Relay Technology Selection Framework
 
-This document defines how CAP technology choices should be evaluated after the repository governance baseline is in place.
+This document defines how CAR technology choices should be evaluated after the repository governance baseline is in place.
 
 It does not select a stack yet. It defines the scope, constraints, criteria, and output format for subsystem-level decisions.
 

@@ -1,4 +1,4 @@
-# CAP First Executable Path Implementation Checklist
+# Chat Agent Relay First Executable Path Implementation Checklist
 
 This document is a review-gate checklist artifact for the frozen first executable path.
 

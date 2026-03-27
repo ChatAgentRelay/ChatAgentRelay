@@ -1,6 +1,6 @@
 import Ajv2020, { type ErrorObject, type ValidateFunction } from "ajv/dist/2020";
 import addFormats from "ajv-formats";
-import { loadEnvelopeSchema, loadSpecializedSchemas, type JsonSchema } from "./schema-loader";
+import { type JsonSchema, loadEnvelopeSchema, loadSpecializedSchemas } from "./schema-loader";
 import type { CanonicalEvent, ValidationIssue, ValidationResult } from "./types";
 
 function toIssues(errors: ErrorObject[] | null | undefined): ValidationIssue[] {
@@ -39,7 +39,10 @@ export class ContractHarnessValidators {
 
     const envelopeValidator = compileSchema(ajv, envelopeSchema, "envelope schema");
     const specializedValidators = Object.fromEntries(
-      Object.entries(specializedSchemas).map(([eventType, schema]) => [eventType, compileSchema(ajv, schema, `${eventType} schema`)]),
+      Object.entries(specializedSchemas).map(([eventType, schema]) => [
+        eventType,
+        compileSchema(ajv, schema, `${eventType} schema`),
+      ]),
     );
 
     return new ContractHarnessValidators(envelopeValidator, specializedValidators);

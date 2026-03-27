@@ -1,4 +1,4 @@
-# CAP Primary Ledger Storage Evaluation
+# Chat Agent Relay Primary Ledger Storage Evaluation
 
 This decision is intentionally separated from the language/runtime decision.
 
@@ -17,7 +17,7 @@ Choose the primary durable store strategy for:
 
 The primary implementation language is now TypeScript, but storage must not be chosen merely because it is convenient in the chosen language.
 
-Storage must be evaluated by CAP requirements first:
+Storage must be evaluated by CAR requirements first:
 - append-only durability
 - replayability
 - auditability
@@ -61,8 +61,8 @@ The primary ledger store must support:
 
 For this first path:
 - these capabilities are core and must exist on day one
-- most ledger semantics are CAP-owned and should not be outsourced to a storage product's opinionated workflow model
-- ecosystem maturity matters most for durability, migrations, indexing, operations, and backup/restore rather than for defining CAP event semantics
+- most ledger semantics are CAR-owned and should not be outsourced to a storage product's opinionated workflow model
+- ecosystem maturity matters most for durability, migrations, indexing, operations, and backup/restore rather than for defining CAR event semantics
 
 ### Deferred capabilities for later storage evolution
 The first storage decision does not need to settle every future data concern.
@@ -78,9 +78,9 @@ Those concerns may justify a hybrid design later, but they should not prevent se
 
 ## Evaluation Summary
 
-A relational durable store is the best primary ledger direction for CAP's first executable path.
+A relational durable store is the best primary ledger direction for CAR's first executable path.
 
-It is the strongest fit for append-only event recording, replay queries, audit visibility, migration discipline, and small-team operational simplicity without forcing CAP into a broker-first or event-database-specialized architecture too early. It also matches the repository's current need: prove one replayable, auditable first executable path before optimizing for larger-scale fan-out or multi-store complexity.
+It is the strongest fit for append-only event recording, replay queries, audit visibility, migration discipline, and small-team operational simplicity without forcing CAR into a broker-first or event-database-specialized architecture too early. It also matches the repository's current need: prove one replayable, auditable first executable path before optimizing for larger-scale fan-out or multi-store complexity.
 
 Within that family, a Postgres-class primary store is the clearest v1 direction. It is operationally familiar, works well for immutable ledger tables plus replay indexes, and keeps projections, trace retention, and future companion stores as separate decisions rather than collapsing all persistence concerns into one premature platform bet.
 
@@ -90,7 +90,7 @@ For the primary ledger decision, ecosystem maturity matters more than it does fo
 
 - Migration, schema evolution, backup/restore, and operational tooling are not trivial to rebuild and should weigh heavily in the storage choice.
 - ORM preference alone should not drive the decision, because the core requirement is durable append-only event history, not convenience for CRUD modeling.
-- Specialized event-store products may offer attractive semantics, but CAP should not adopt them as the default unless they clearly improve replay, audit, and operational fit more than a relational store does for v1.
+- Specialized event-store products may offer attractive semantics, but CAR should not adopt them as the default unless they clearly improve replay, audit, and operational fit more than a relational store does for v1.
 
 ## v0 Recommendation
 
@@ -100,7 +100,7 @@ The prototype should still preserve immutable event history, replayability, and 
 
 ## v1 Recommendation
 
-Use a relational durable primary store with append-only ledger discipline as the CAP v1 primary ledger direction.
+Use a relational durable primary store with append-only ledger discipline as the CAR v1 primary ledger direction.
 
 For practical v1 planning, this should be treated as a Postgres-class baseline unless later evidence shows that replay, audit, tenant isolation, or operational simplicity are materially better served by another relational option. Projections, secure trace retention, and future companion stores should remain separate follow-on decisions.
 
@@ -113,4 +113,4 @@ For practical v1 planning, this should be treated as a Postgres-class baseline u
 
 ## Decision Outcome
 
-CAP should use a relational durable primary store with append-only ledger discipline as its v1 ledger baseline, with a Postgres-class implementation as the default planning assumption. This best supports replay, audit, explainability, and small-team operational simplicity while keeping projections and future multi-store evolution as separate decisions.
+CAR should use a relational durable primary store with append-only ledger discipline as its v1 ledger baseline, with a Postgres-class implementation as the default planning assumption. This best supports replay, audit, explainability, and small-team operational simplicity while keeping projections and future multi-store evolution as separate decisions.

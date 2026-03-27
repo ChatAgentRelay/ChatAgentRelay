@@ -1,0 +1,14 @@
+# Default owners for the entire repository
+* @ChatAgentRelay/maintainers
+
+# Package-specific ownership
+packages/contract-harness/ @ChatAgentRelay/maintainers
+packages/event-ledger/ @ChatAgentRelay/maintainers
+packages/pipeline/ @ChatAgentRelay/maintainers
+packages/server/ @ChatAgentRelay/maintainers
+
+# Documentation
+docs/ @ChatAgentRelay/maintainers
+
+# CI/CD
+.github/ @ChatAgentRelay/maintainers

@@ -1,5 +1,5 @@
 {
-  "name": "@cap/contract-harness",
+  "name": "@chat-agent-relay/contract-harness",
   "private": true,
   "type": "module",
   "exports": {

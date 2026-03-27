@@ -1,4 +1,4 @@
-import { assertFirstExecutablePathChain } from "@cap/contract-harness";
+import { assertFirstExecutablePathChain } from "@chat-agent-relay/contract-harness";
 import { AUDIT_EVENT_TYPES } from "./constants";
 import { LedgerAuditExplanationError } from "./errors";
 import type { AuditExplanation, StoredCanonicalEvent } from "./types";

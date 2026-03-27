@@ -4,23 +4,23 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>The Canonical Event Chain — Why Every Message Produces 7 Events</title>
-  <meta name="description" content="How CAP models chat-to-agent flows as a declarative chain of seven canonical events plus failure capture — auditable, replayable, and adapter-friendly.">
-  <meta name="keywords" content="CAP, event-driven architecture, canonical events, message.received, audit ledger, JSON Schema, middleware, AI agents">
+  <meta name="description" content="How Chat Agent Relay models chat-to-agent flows as a declarative chain of seven canonical events plus failure capture — auditable, replayable, and adapter-friendly.">
+  <meta name="keywords" content="Chat Agent Relay, CAR, event-driven architecture, canonical events, message.received, audit ledger, JSON Schema, middleware, AI agents">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
   <meta property="og:title" content="The Canonical Event Chain — Why Every Message Produces 7 Events">
   <meta property="og:description" content="Declarative chat-to-agent integration: seven events from ingress to delivery, plus first-class failure events.">
-  <meta property="og:url" content="https://anthropics.github.io/cap/blog/architecture-deep-dive/">
-  <meta property="og:site_name" content="CAP">
+  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/blog/architecture-deep-dive/">
+  <meta property="og:site_name" content="Chat Agent Relay">
   <meta property="article:published_time" content="2026-03-01">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="The Canonical Event Chain — CAP">
-  <meta name="twitter:description" content="Why CAP records policy, routing, invocation, response, and delivery as explicit events — not hidden control flow.">
+  <meta name="twitter:title" content="The Canonical Event Chain — Chat Agent Relay">
+  <meta name="twitter:description" content="Why Chat Agent Relay records policy, routing, invocation, response, and delivery as explicit events — not hidden control flow.">
 
-  <link rel="canonical" href="https://anthropics.github.io/cap/blog/architecture-deep-dive/">
+  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/blog/architecture-deep-dive/">
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,13 +29,12 @@
 
   <link rel="stylesheet" href="../../css/style.css">
 
-  <!-- GA4 placeholder — replace G-XXXXXXXXXX with real ID -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-XXXXXXXXXX');
+    gtag('config', 'G-7FERB87K2D');
   </script>
 
   <!-- Structured Data -->
@@ -44,13 +43,13 @@
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     "headline": "The Canonical Event Chain — Why Every Message Produces 7 Events",
-    "description": "Technical overview of CAP's seven-event pipeline and event.blocked for failures.",
-    "url": "https://anthropics.github.io/cap/blog/architecture-deep-dive/",
+    "description": "Technical overview of Chat Agent Relay's seven-event pipeline and event.blocked for failures.",
+    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/architecture-deep-dive/",
     "datePublished": "2026-03-01",
     "dateModified": "2026-03-01",
-    "author": { "@type": "Organization", "name": "CAP" },
-    "publisher": { "@type": "Organization", "name": "CAP", "url": "https://anthropics.github.io/cap/" },
-    "isPartOf": { "@type": "Blog", "name": "CAP Blog", "url": "https://anthropics.github.io/cap/blog/" }
+    "author": { "@type": "Organization", "name": "Chat Agent Relay" },
+    "publisher": { "@type": "Organization", "name": "Chat Agent Relay", "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/" },
+    "isPartOf": { "@type": "Blog", "name": "Chat Agent Relay Blog", "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/" }
   }
   </script>
 </head>
@@ -59,14 +58,14 @@
 <!-- Nav -->
 <nav class="nav">
   <div class="container">
-    <a href="/cap/" class="nav-brand"><span class="prompt">$</span> cap</a>
+    <a href="/chat-agent-relay/" class="nav-brand"><span class="prompt">$</span> car</a>
     <button class="nav-toggle" aria-label="Menu">&#9776;</button>
     <div class="nav-links">
-      <a href="/cap/why-cap/">Why CAP</a>
-      <a href="/cap/docs/">Docs</a>
-      <a href="/cap/compare/diy/">Compare</a>
-      <a href="/cap/blog/" class="active">Blog</a>
-      <a href="https://github.com/anthropics/cap" class="nav-cta" data-track="nav_github">GitHub</a>
+      <a href="/chat-agent-relay/why-car/">Why CAR</a>
+      <a href="/chat-agent-relay/docs/">Docs</a>
+      <a href="/chat-agent-relay/compare/diy/">Compare</a>
+      <a href="/chat-agent-relay/blog/" class="active">Blog</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="nav-cta" data-track="nav_github">GitHub</a>
     </div>
   </div>
 </nav>
@@ -79,7 +78,7 @@
     <h2 id="intro">Integration styles</h2>
     <p>
       Most chat-agent integrations are <strong>imperative</strong>: receive a payload, branch on errors, call an API, hope the logs are enough when something breaks.
-      CAP is <strong>declarative</strong> at the protocol layer: every user message is expected to advance through the same ordered chain of event types.
+      Chat Agent Relay is <strong>declarative</strong> at the protocol layer: every user message is expected to advance through the same ordered chain of event types.
       Adapters translate platform-specific wire formats in and out; the middleware never needs to know Slack&rsquo;s payload shape to reason about policy or audit.
     </p>
 
@@ -113,7 +112,7 @@
 
     <h3 id="blocked"><code>event.blocked</code></h3>
     <p>
-      When anything fails policy, routing, invocation, or delivery, CAP emits <strong><code>event.blocked</code></strong>: a first-class failure record with <strong>reason</strong> and <strong>stage</strong>.
+      When anything fails policy, routing, invocation, or delivery, Chat Agent Relay emits <strong><code>event.blocked</code></strong>: a first-class failure record with <strong>reason</strong> and <strong>stage</strong>.
       Failures are not only exceptions in logs; they are queryable events with the same envelope as the rest of the system, so dashboards and compliance tools can treat them uniformly.
     </p>
 
@@ -144,20 +143,20 @@
 
     <h2 id="adapters">Adapters as boundary translators</h2>
     <p>
-      CAP splits the world at two interfaces. <strong>Channel ingress</strong> implements <strong>ChannelIngress</strong>: turn vendor webhooks or sockets into <code>message.received</code> and apply outbound mapping for <code>message.send.requested</code> / <code>message.sent</code>.
+      Chat Agent Relay splits the world at two interfaces. <strong>Channel ingress</strong> implements <strong>ChannelIngress</strong>: turn vendor webhooks or sockets into <code>message.received</code> and apply outbound mapping for <code>message.send.requested</code> / <code>message.sent</code>.
       <strong>Backend adapters</strong> implement <strong>BackendAdapter</strong>: consume invocation events, call models or HTTP services, and emit <code>agent.response.completed</code>.
       Both sides speak only canonical events plus the envelope &mdash; the glue that used to sprawl across your codebase becomes replaceable modules.
     </p>
 
     <h2 id="cta">Try it and read the specs</h2>
     <p>
-      Run CAP locally from the <a href="/cap/docs/">documentation</a>, then read the RFCs in the repository for the full contract. The seven-event story is the spine that keeps channels, agents, and audit aligned.
+      Run Chat Agent Relay locally from the <a href="/chat-agent-relay/docs/">documentation</a>, then read the RFCs in the repository for the full contract. The seven-event story is the spine that keeps channels, agents, and audit aligned.
     </p>
     <div class="hero-actions" style="justify-content:flex-start;margin-top:8px;margin-bottom:16px">
-      <a href="/cap/docs/" class="btn btn-primary" data-track="blog_arch_try">Try CAP</a>
-      <a href="https://github.com/anthropics/cap/tree/main/docs/rfcs" class="btn btn-secondary" data-track="blog_arch_specs">Read the specs</a>
+      <a href="/chat-agent-relay/docs/" class="btn btn-primary" data-track="blog_arch_try">Try Chat Agent Relay</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/tree/main/docs/rfcs" class="btn btn-secondary" data-track="blog_arch_specs">Read the specs</a>
     </div>
-    <p style="margin-top:8px"><a href="/cap/blog/">&larr; Back to Blog</a></p>
+    <p style="margin-top:8px"><a href="/chat-agent-relay/blog/">&larr; Back to Blog</a></p>
   </article>
 </main>
 
@@ -165,11 +164,11 @@
 <footer class="footer">
   <div class="container">
     <div class="footer-links">
-      <a href="https://github.com/anthropics/cap">GitHub</a>
-      <a href="/cap/docs/">Docs</a>
-      <a href="/cap/blog/">Blog</a>
-      <a href="/cap/why-cap/">Why CAP</a>
-      <a href="https://github.com/anthropics/cap/issues">Issues</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
+      <a href="/chat-agent-relay/docs/">Docs</a>
+      <a href="/chat-agent-relay/blog/">Blog</a>
+      <a href="/chat-agent-relay/why-car/">Why CAR</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
     </div>
     <p>MIT License &middot; Built with Bun and TypeScript</p>
   </div>

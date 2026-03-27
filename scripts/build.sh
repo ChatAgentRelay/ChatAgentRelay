@@ -5,9 +5,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 OUT_DIR="$ROOT_DIR/dist"
 ENTRY="$ROOT_DIR/packages/server/src/cli.ts"
-VERSION="${CAP_VERSION:-dev}"
+VERSION="${CAR_VERSION:-dev}"
 
-echo "Building CAP Server v${VERSION}..."
+echo "Building Chat Agent Relay Server v${VERSION}..."
 mkdir -p "$OUT_DIR"
 
 targets=(
@@ -20,7 +20,7 @@ targets=(
 
 for target in "${targets[@]}"; do
   platform="${target#bun-}"
-  outname="cap-server-${VERSION}-${platform}"
+  outname="car-server-${VERSION}-${platform}"
   if [[ "$target" == *"windows"* ]]; then
     outname="${outname}.exe"
   fi

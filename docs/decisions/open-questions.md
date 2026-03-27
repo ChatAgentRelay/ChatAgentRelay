@@ -1,4 +1,4 @@
-# CAP Open Questions
+# Chat Agent Relay Open Questions
 
 This document centralizes cross-cutting questions that matter for v0/v1 planning so future implementation and technology selection work does not require re-reading every RFC.
 
@@ -57,7 +57,7 @@ This document centralizes cross-cutting questions that matter for v0/v1 planning
 
 ### 11. Adapter fallback standardization [RESOLVED]
 - Question: Which channel fallback and transcoding rules should be normative versus implementation-defined?
-- Resolution: Implementation-defined for v1. Each channel adapter is responsible for its own error handling and must return `CanonicalizationResult` (never throw). The conformance test suite (`@cap/adapter-conformance`) validates this contract. Normative fallback rules (e.g., rich-to-plain-text transcoding) are deferred.
+- Resolution: Implementation-defined for v1. Each channel adapter is responsible for its own error handling and must return `CanonicalizationResult` (never throw). The conformance test suite (`/adapter-conformance`) validates this contract. Normative fallback rules (e.g., rich-to-plain-text transcoding) are deferred.
 
 ### 12. Backend streaming and async envelope shape [RESOLVED]
 - Question: Should async callback mode and streaming mode share one normative envelope or remain separate bindings?
@@ -69,7 +69,7 @@ These questions are important but do not block v1:
 - When execution isolation becomes a first-class architectural component
 - How much checkpoint/resume behavior should be mandatory
 - How much queue and assignment semantics belong in core RFCs versus extension RFCs
-- Which enterprise features must be normative before CAP is considered production-ready
+- Which enterprise features must be normative before CAR is considered production-ready
 - Cross-channel identity resolution and mapping
 - OpenTelemetry trace integration
 - Multi-stage governance pipelines

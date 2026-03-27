@@ -1,15 +1,15 @@
 services:
-  cap-server:
+  car-server:
     build: .
     ports:
-      - "${CAP_API_PORT:-3000}:3000"
+      - "${CAR_API_PORT:-3000}:3000"
     env_file:
       - packages/server/.env
     volumes:
-      - cap-data:/app/data
+      - car-data:/app/data
     environment:
-      - CAP_SQLITE_PATH=/app/data/cap-ledger.db
+      - CAR_SQLITE_PATH=/app/data/car-ledger.db
     restart: unless-stopped
 
 volumes:
-  cap-data:
+  car-data:

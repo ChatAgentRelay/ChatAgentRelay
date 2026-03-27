@@ -1,12 +1,12 @@
 export { WebChatIngress } from "./canonicalize";
-export { validateInboundInput } from "./validate-input";
-export { deriveIdempotencyKey } from "./idempotency";
+export type { WebChatHttpConfig, WebChatPipelineFn, WebChatResponse } from "./http-transport";
 export { startWebChatServer } from "./http-transport";
+export { deriveIdempotencyKey } from "./idempotency";
 export type {
-  InboundWebChatRequest,
-  IngressError,
+  CanonicalizationFailure,
   CanonicalizationResult,
   CanonicalizationSuccess,
-  CanonicalizationFailure,
+  InboundWebChatRequest,
+  IngressError,
 } from "./types";
-export type { WebChatHttpConfig, WebChatPipelineFn, WebChatResponse } from "./http-transport";
+export { validateInboundInput } from "./validate-input";

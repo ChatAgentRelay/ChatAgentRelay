@@ -1,11 +1,12 @@
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
-import type { CanonicalEvent } from "@cap/contract-harness";
-import { ContractHarnessValidators } from "@cap/contract-harness";
-import { buildBackendRequest } from "../src/build-request";
-import { mapCompletedResponse } from "../src/map-response";
-import { GenericHttpBackend } from "../src/invoke";
-import type { BackendCompletedResponse, InvocationContext } from "../src/types";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import type { Server } from "bun";
+import { buildBackendRequest } from "../src/build-request";
+import { GenericHttpBackend } from "../src/invoke";
+import { mapCompletedResponse } from "../src/map-response";
+import type { BackendCompletedResponse, InvocationContext } from "../src/types";
+
 type BunServer = Server<unknown>;
 
 function sampleInvocationEvent(): CanonicalEvent {
@@ -59,15 +60,15 @@ function sampleCompletedResponse(): BackendCompletedResponse {
 }
 
 describe("build backend request", () => {
-  it("constructs a request with CAP identifiers and input message", () => {
+  it("constructs a request with CAR identifiers and input message", () => {
     const ctx = sampleContext();
     const request = buildBackendRequest(ctx);
 
     expect(request.request_id).toMatch(/^req_/);
-    expect(request.cap.event.event_id).toBe("evt_103");
-    expect(request.cap.input.message.text).toBe("Where is my order?");
-    expect(request.cap.context.route.route_id).toBe("default_webchat_agent");
-    expect(request.cap.context.policy.decision).toBe("allow");
+    expect(request.car.event.event_id).toBe("evt_103");
+    expect(request.car.input.message.text).toBe("Where is my order?");
+    expect(request.car.context.route.route_id).toBe("default_webchat_agent");
+    expect(request.car.context.policy.decision).toBe("allow");
   });
 
   it("includes backend_session when handle is provided", () => {
@@ -89,8 +90,8 @@ describe("build backend request", () => {
     const ctx = sampleContext({ route: undefined, policy: undefined });
     const request = buildBackendRequest(ctx);
 
-    expect(request.cap.context.route.route_id).toBe("default");
-    expect(request.cap.context.policy.decision).toBe("allow");
+    expect(request.car.context.route.route_id).toBe("default");
+    expect(request.car.context.policy.decision).toBe("allow");
   });
 });
 

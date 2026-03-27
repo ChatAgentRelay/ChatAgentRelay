@@ -81,7 +81,7 @@ export class SlackSocketConnection {
     }
 
     this.reconnectAttempts++;
-    const delay = Math.min(DEFAULT_BASE_DELAY_MS * Math.pow(2, this.reconnectAttempts - 1), 30000);
+    const delay = Math.min(DEFAULT_BASE_DELAY_MS * 2 ** (this.reconnectAttempts - 1), 30000);
     this.config.onReconnect?.(this.reconnectAttempts);
 
     await new Promise((resolve) => setTimeout(resolve, delay));
@@ -103,7 +103,7 @@ export class SlackSocketConnection {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
-        "Authorization": `Bearer ${this.config.appToken}`,
+        Authorization: `Bearer ${this.config.appToken}`,
       },
     });
 

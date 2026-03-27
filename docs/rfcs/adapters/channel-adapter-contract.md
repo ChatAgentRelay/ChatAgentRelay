@@ -1,4 +1,4 @@
-# RFC: CAP Channel Adapter Contract
+# RFC: Chat Agent Relay Channel Adapter Contract
 
 | | |
 |---|---|
@@ -10,7 +10,7 @@
 
 ## 1. Abstract
 
-This RFC defines the contract between provider-native chat transports and the CAP canonical event model.
+This RFC defines the contract between provider-native chat transports and the Chat Agent Relay (CAR) canonical event model.
 
 ## 2. Purpose
 
@@ -22,7 +22,7 @@ The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** ar
 
 ## 4. Minimum Kernel Scope
 
-The minimum CAP kernel requires only a thin but strict adapter contract:
+The minimum CAR kernel requires only a thin but strict adapter contract:
 - one inbound path
 - one outbound path
 - capability declaration

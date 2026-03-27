@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://cap.local/schemas/canonical-model/events/routing/policy-decision-made.schema.json",
-  "title": "CAP Policy Decision Made Event",
+  "$id": "https://car.local/schemas/canonical-model/events/routing/policy-decision-made.schema.json",
+  "title": "CAR Policy Decision Made Event",
   "description": "Specialized canonical event schema for policy.decision.made events.",
   "allOf": [
     {

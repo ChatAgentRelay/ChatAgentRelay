@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeAll } from "bun:test";
+import { beforeAll, describe, expect, it } from "bun:test";
 import { WebChatIngress } from "../src/canonicalize";
-import { validateInboundInput } from "../src/validate-input";
 import { deriveIdempotencyKey } from "../src/idempotency";
 import type { InboundWebChatRequest } from "../src/types";
+import { validateInboundInput } from "../src/validate-input";
 
 function validRequest(overrides?: Partial<InboundWebChatRequest>): InboundWebChatRequest {
   return {
@@ -157,9 +157,7 @@ describe("web chat ingress canonicalization", () => {
   });
 
   it("includes trace_context when trace_id is provided", () => {
-    const result = ingress.canonicalize(
-      validRequest({ trace_id: "trace_abc", span_id: "span_xyz" }),
-    );
+    const result = ingress.canonicalize(validRequest({ trace_id: "trace_abc", span_id: "span_xyz" }));
     expect(result.ok).toBe(true);
     if (!result.ok) return;
 

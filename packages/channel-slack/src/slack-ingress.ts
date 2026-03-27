@@ -1,5 +1,5 @@
-import type { CanonicalEvent, ValidationResult } from "@cap/contract-harness";
-import { ContractHarnessValidators } from "@cap/contract-harness";
+import type { CanonicalEvent, ValidationResult } from "@chat-agent-relay/contract-harness";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import type { SlackMessageEvent } from "./types";
 
 export type SlackCanonicalizationSuccess = {
@@ -33,7 +33,10 @@ export class SlackIngress {
     }
 
     if (raw.subtype !== undefined) {
-      return { ok: false, error: { code: "unsupported_subtype", message: `Unsupported message subtype: ${raw.subtype}` } };
+      return {
+        ok: false,
+        error: { code: "unsupported_subtype", message: `Unsupported message subtype: ${raw.subtype}` },
+      };
     }
 
     if (raw.bot_id !== undefined) {

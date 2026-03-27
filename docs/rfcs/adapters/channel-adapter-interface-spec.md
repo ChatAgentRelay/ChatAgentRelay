@@ -1,4 +1,4 @@
-# RFC: CAP Channel Adapter Interface Specification
+# RFC: Chat Agent Relay Channel Adapter Interface Specification
 
 | | |
 |---|---|
@@ -11,7 +11,7 @@
 
 ## 1. Abstract
 
-This document formalizes the TypeScript interface contracts that all CAP channel adapters MUST implement. It complements the high-level channel adapter contract RFC with precise type-level requirements.
+This document formalizes the TypeScript interface contracts that all Chat Agent Relay (CAR) channel adapters MUST implement. It complements the high-level channel adapter contract RFC with precise type-level requirements.
 
 ## 2. Normative Language
 
@@ -154,5 +154,5 @@ A conforming `ChannelIngress` implementation MUST:
 
 | Adapter | Package | Channel |
 |---|---|---|
-| `WebChatIngress` | `@cap/channel-web-chat` | `webchat` |
-| `SlackIngress` | `@cap/channel-slack` | `slack` |
+| `WebChatIngress` | `@chat-agent-relay/channel-web-chat` | `webchat` |
+| `SlackIngress` | `@chat-agent-relay/channel-slack` | `slack` |

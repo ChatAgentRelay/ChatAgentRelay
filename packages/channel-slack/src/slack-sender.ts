@@ -23,7 +23,7 @@ export class SlackSender {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${this.botToken}`,
+        Authorization: `Bearer ${this.botToken}`,
       },
       body: JSON.stringify(payload),
     });
@@ -42,7 +42,7 @@ export class SlackSender {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${this.botToken}`,
+        Authorization: `Bearer ${this.botToken}`,
       },
       body: JSON.stringify(payload),
     });

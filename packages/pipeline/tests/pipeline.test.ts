@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { existsSync, mkdirSync, unlinkSync } from "node:fs";
+import { join } from "node:path";
+import { GenericHttpBackend } from "@chat-agent-relay/backend-http";
+import { WebChatIngress } from "@chat-agent-relay/channel-web-chat";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
+import { SqliteLedgerStore } from "@chat-agent-relay/event-ledger";
 import type { Server } from "bun";
-import { ContractHarnessValidators } from "@cap/contract-harness";
-import { SqliteLedgerStore } from "@cap/event-ledger";
-import { GenericHttpBackend } from "@cap/backend-http";
-import { WebChatIngress } from "@cap/channel-web-chat";
 import { FirstExecutablePathPipeline } from "../src/pipeline";
 import type { PipelineConfig } from "../src/types";
-import { existsSync, unlinkSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
 
 type BunServer = Server<unknown>;
 
@@ -168,9 +168,7 @@ describe("first executable path pipeline (end-to-end)", () => {
     const conversationId = result.events[0]!.conversation_id;
     const replayed = pipeline.replayConversation(conversationId);
     expect(replayed).toHaveLength(7);
-    expect(replayed.map((e) => e.event_type)).toEqual(
-      result.events.map((e) => e.event_type),
-    );
+    expect(replayed.map((e) => e.event_type)).toEqual(result.events.map((e) => e.event_type));
   });
 
   it("works with SQLite durable ledger store", async () => {
@@ -221,7 +219,9 @@ describe("first executable path pipeline (end-to-end)", () => {
   it("produces event.blocked when delivery fails after retries exhausted", async () => {
     const config = await makeConfig({
       middleware: { route: { route_id: "r1", backend: "b1" } },
-      sendFn: async () => { throw new Error("Slack API unreachable"); },
+      sendFn: async () => {
+        throw new Error("Slack API unreachable");
+      },
       retryConfig: { maxRetries: 0 },
     });
 
@@ -252,7 +252,7 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("builds conversation history from ledger for multi-turn context", async () => {
-    const { InMemoryEventLedgerStore } = await import("@cap/event-ledger");
+    const { InMemoryEventLedgerStore } = await import("@chat-agent-relay/event-ledger");
     const sharedStore = new InMemoryEventLedgerStore();
 
     const firstInput = validInput();

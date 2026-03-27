@@ -1,9 +1,9 @@
-export { GenericHttpBackend } from "./invoke";
 export { buildBackendRequest } from "./build-request";
+export { GenericHttpBackend } from "./invoke";
 export { mapCompletedResponse } from "./map-response";
 export type {
-  BackendConfig,
   BackendCompletedResponse,
+  BackendConfig,
   BackendErrorResponse,
   BackendInvocationRequest,
   BackendResponse,

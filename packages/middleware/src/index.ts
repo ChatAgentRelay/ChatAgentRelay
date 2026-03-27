@@ -1,4 +1,12 @@
 export { MiddlewarePipeline } from "./middleware";
+export type { PolicyConfig, PolicyRule } from "./policy-engine";
 export { createPolicyFn, loadPolicyConfig } from "./policy-engine";
-export type { MiddlewareConfig, MiddlewareResult, MiddlewareAllowResult, MiddlewareDenyResult, RouteConfig, PolicyFn, PolicyDecision } from "./types";
-export type { PolicyRule, PolicyConfig } from "./policy-engine";
+export type {
+  MiddlewareAllowResult,
+  MiddlewareConfig,
+  MiddlewareDenyResult,
+  MiddlewareResult,
+  PolicyDecision,
+  PolicyFn,
+  RouteConfig,
+} from "./types";

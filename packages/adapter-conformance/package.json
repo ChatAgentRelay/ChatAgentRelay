@@ -1,5 +1,5 @@
 {
-  "name": "@cap/adapter-conformance",
+  "name": "@chat-agent-relay/adapter-conformance",
   "private": true,
   "type": "module",
   "exports": {
@@ -10,11 +10,11 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@cap/contract-harness": "workspace:*",
-    "@cap/backend-http": "workspace:*",
-    "@cap/backend-openai": "workspace:*",
-    "@cap/channel-web-chat": "workspace:*",
-    "@cap/channel-slack": "workspace:*"
+    "@chat-agent-relay/contract-harness": "workspace:*",
+    "@chat-agent-relay/backend-http": "workspace:*",
+    "@chat-agent-relay/backend-openai": "workspace:*",
+    "@chat-agent-relay/channel-web-chat": "workspace:*",
+    "@chat-agent-relay/channel-slack": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",

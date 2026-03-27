@@ -1,16 +1,16 @@
-# RFC: CAP Routing, Middleware, and Governance
+# RFC: Chat Agent Relay Routing, Middleware, and Governance
 
 | | |
 |---|---|
 | **Status** | Draft |
 | **Author** | Claude Code |
-| **Audience** | CAP core / governance / routing implementers |
+| **Audience** | CAR core / governance / routing implementers |
 | **Version** | v0.1 |
 | **Last Updated** | 2026-03-17 |
 
 ## 1. Abstract
 
-This RFC defines the ordered processing pipeline and governance responsibilities of the CAP middleware core.
+This RFC defines the ordered processing pipeline and governance responsibilities of the CAR middleware core.
 
 ## 2. Purpose
 
@@ -22,7 +22,7 @@ The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** ar
 
 ## 4. Minimum Kernel
 
-The minimum CAP kernel is not a full omnichannel product. It is the smallest coherent middleware loop that proves the architecture:
+The minimum CAR kernel is not a full omnichannel product. It is the smallest coherent middleware loop that proves the architecture:
 - one inbound adapter
 - canonical append-only ledger
 - one policy stage

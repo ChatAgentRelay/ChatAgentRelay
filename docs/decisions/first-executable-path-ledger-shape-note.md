@@ -1,4 +1,4 @@
-# CAP First Executable Path Ledger Shape Note
+# Chat Agent Relay First Executable Path Ledger Shape Note
 
 This document captures the ledger assumptions implied by `docs/decisions/first-executable-path-plan.md`.
 
@@ -90,7 +90,7 @@ At the append boundary:
 - each canonical fact should have a stable `event_id`
 - the ledger must reject duplicate appends or safely no-op equivalent duplicate append attempts
 - consumers remain idempotent
-- CAP still assumes at-least-once internal processing rather than exactly-once guarantees
+- CAR still assumes at-least-once internal processing rather than exactly-once guarantees
 
 ### Happy-path implication
 A repeated inbound request should not produce:

@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll } from "bun:test";
-import { ContractHarnessValidators } from "@cap/contract-harness";
-import type { CanonicalizationResult } from "@cap/channel-web-chat";
+import { beforeAll, describe, expect, it } from "bun:test";
+import type { CanonicalizationResult } from "@chat-agent-relay/channel-web-chat";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 
 export type ChannelIngressUnderTest = {
   canonicalize(raw: unknown): CanonicalizationResult;

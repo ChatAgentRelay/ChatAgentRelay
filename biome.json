@@ -17,11 +17,23 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "complexity": {
+        "useLiteralKeys": "off"
+      },
+      "style": {
+        "noNonNullAssertion": "warn",
+        "useTemplate": "warn",
+        "useExponentiationOperator": "warn",
+        "useNodejsImportProtocol": "warn"
+      },
+      "suspicious": {
+        "noImplicitAnyLet": "warn"
+      }
     }
   },
   "files": {
-    "ignore": ["**/dist/**", "**/*.db", "**/.cursor/**", "**/node_modules/**"]
+    "includes": ["packages/**", "examples/**", "biome.json", "package.json"]
   },
   "javascript": {
     "formatter": {

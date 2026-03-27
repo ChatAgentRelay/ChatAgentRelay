@@ -3,23 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Getting Started — CAP Documentation</title>
-  <meta name="description" content="Install CAP with Bun, configure Slack and OpenAI, run the server, test with bun test, use Docker, cap-server CLI, and the HTTP API. Open-source chat-to-agent middleware.">
-  <meta name="keywords" content="CAP, getting started, Bun, TypeScript, Slack bot, OpenAI, Docker, API, documentation">
+  <title>Getting Started — Chat Agent Relay Documentation</title>
+  <meta name="description" content="Install Chat Agent Relay with Bun, configure Slack and OpenAI, run the server, test with bun test, use Docker, car-server CLI, and the HTTP API. Open-source chat-to-agent middleware.">
+  <meta name="keywords" content="Chat Agent Relay, CAR, getting started, Bun, TypeScript, Slack bot, OpenAI, Docker, API, documentation">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
-  <meta property="og:title" content="Getting Started — CAP Documentation">
+  <meta property="og:title" content="Getting Started — Chat Agent Relay Documentation">
   <meta property="og:description" content="From clone to running server: prerequisites, install, .env, Docker, CLI, and REST API in one place.">
-  <meta property="og:url" content="https://anthropics.github.io/cap/docs/">
-  <meta property="og:site_name" content="CAP">
+  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/">
+  <meta property="og:site_name" content="Chat Agent Relay">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Getting Started — CAP">
-  <meta name="twitter:description" content="Install, configure, and run CAP: Bun, TypeScript, Slack, OpenAI, Docker, CLI, HTTP API.">
+  <meta name="twitter:title" content="Getting Started — Chat Agent Relay">
+  <meta name="twitter:description" content="Install, configure, and run Chat Agent Relay: Bun, TypeScript, Slack, OpenAI, Docker, CLI, HTTP API.">
 
-  <link rel="canonical" href="https://anthropics.github.io/cap/docs/">
+  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/">
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,13 +28,12 @@
 
   <link rel="stylesheet" href="../css/style.css">
 
-  <!-- GA4 placeholder — replace G-XXXXXXXXXX with real ID -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-XXXXXXXXXX');
+    gtag('config', 'G-7FERB87K2D');
   </script>
 
   <!-- Structured Data -->
@@ -42,9 +41,9 @@
   {
     "@context": "https://schema.org",
     "@type": "TechArticle",
-    "headline": "Getting Started with CAP",
-    "description": "How to install, configure, run, test, and integrate with CAP chat-to-agent middleware.",
-    "url": "https://anthropics.github.io/cap/docs/"
+    "headline": "Getting Started with Chat Agent Relay",
+    "description": "How to install, configure, run, test, and integrate with Chat Agent Relay chat-to-agent middleware.",
+    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/"
   }
   </script>
 </head>
@@ -53,14 +52,14 @@
 <!-- Nav -->
 <nav class="nav">
   <div class="container">
-    <a href="/cap/" class="nav-brand"><span class="prompt">$</span> cap</a>
+    <a href="/chat-agent-relay/" class="nav-brand"><span class="prompt">$</span> car</a>
     <button class="nav-toggle" aria-label="Menu">&#9776;</button>
     <div class="nav-links">
-      <a href="/cap/why-cap/">Why CAP</a>
-      <a href="/cap/docs/" class="active">Docs</a>
-      <a href="/cap/compare/diy/">Compare</a>
-      <a href="/cap/blog/">Blog</a>
-      <a href="https://github.com/anthropics/cap" class="nav-cta" data-track="nav_github">GitHub</a>
+      <a href="/chat-agent-relay/why-car/">Why CAR</a>
+      <a href="/chat-agent-relay/docs/" class="active">Docs</a>
+      <a href="/chat-agent-relay/compare/diy/">Compare</a>
+      <a href="/chat-agent-relay/blog/">Blog</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="nav-cta" data-track="nav_github">GitHub</a>
     </div>
   </div>
 </nav>
@@ -70,7 +69,7 @@
   <p class="meta">Practical setup &middot; copy-paste commands &middot; <a href="https://bun.sh">Bun</a> + TypeScript</p>
 
   <p>
-    CAP sits between your chat platform and your AI agent. This guide gets you from zero to a running server:
+    Chat Agent Relay sits between your chat platform and your AI agent. This guide gets you from zero to a running server:
     install dependencies, wire Slack and OpenAI, start the process, verify with tests or Docker, and hit the HTTP API.
   </p>
 
@@ -90,8 +89,8 @@
       <span class="terminal-title">terminal</span>
     </div>
     <div class="terminal-body">
-<span class="prompt-char">$</span> <span class="cmd">git clone https://github.com/anthropics/cap.git</span>
-<span class="prompt-char">$</span> <span class="cmd">cd cap</span>
+<span class="prompt-char">$</span> <span class="cmd">git clone https://github.com/ChatAgentRelay/ChatAgentRelay.git</span>
+<span class="prompt-char">$</span> <span class="cmd">cd ChatAgentRelay</span>
     </div>
   </div>
 
@@ -121,9 +120,9 @@
   <ul>
     <li><code>OPENAI_BASE_URL</code> — non-default API base (e.g. proxies or compatible providers).</li>
     <li><code>OPENAI_MODEL</code> — model name override.</li>
-    <li><code>CAP_STREAMING</code> — control streaming behavior.</li>
-    <li><code>CAP_API_PORT</code> — HTTP API port (default is commonly <code>3000</code>).</li>
-    <li><code>CAP_POLICY_CONFIG</code> — path or inline policy configuration for governance rules.</li>
+    <li><code>CAR_STREAMING</code> — control streaming behavior.</li>
+    <li><code>CAR_API_PORT</code> — HTTP API port (default is commonly <code>3000</code>).</li>
+    <li><code>CAR_POLICY_CONFIG</code> — path or inline policy configuration for governance rules.</li>
   </ul>
   <div class="terminal">
     <div class="terminal-header">
@@ -140,12 +139,12 @@
 <span class="comment"># Optional examples</span>
 <span class="comment"># OPENAI_BASE_URL=https://api.openai.com/v1</span>
 <span class="comment"># OPENAI_MODEL=gpt-4o</span>
-<span class="comment"># CAP_API_PORT=3000</span>
+<span class="comment"># CAR_API_PORT=3000</span>
     </div>
   </div>
 
   <h2 id="running">Running the server</h2>
-  <p>Start CAP from the server package so Bun resolves the right entrypoint and env:</p>
+  <p>Start Chat Agent Relay from the server package so Bun resolves the right entrypoint and env:</p>
   <div class="terminal">
     <div class="terminal-header">
       <span class="terminal-dot red"></span>
@@ -190,13 +189,13 @@
   </div>
   <p>Mount or inject the same environment variables your <code>.env</code> would provide so Slack and OpenAI credentials reach the container.</p>
 
-  <h2 id="cli">CLI: <code>cap-server</code></h2>
+  <h2 id="cli">CLI: <code>car-server</code></h2>
   <p>The server binary supports the usual operational flags:</p>
   <ul>
-    <li><code>cap-server --help</code> — usage and subcommands/options.</li>
-    <li><code>cap-server --version</code> — print the build or package version.</li>
-    <li><code>cap-server --check-config</code> — validate configuration without fully starting long-running services.</li>
-    <li><code>cap-server --dry-run</code> — exercise startup paths safely where supported.</li>
+    <li><code>car-server --help</code> — usage and subcommands/options.</li>
+    <li><code>car-server --version</code> — print the build or package version.</li>
+    <li><code>car-server --check-config</code> — validate configuration without fully starting long-running services.</li>
+    <li><code>car-server --dry-run</code> — exercise startup paths safely where supported.</li>
   </ul>
   <div class="terminal">
     <div class="terminal-header">
@@ -206,8 +205,8 @@
       <span class="terminal-title">terminal</span>
     </div>
     <div class="terminal-body">
-<span class="prompt-char">$</span> <span class="cmd">cap-server --check-config</span>
-<span class="prompt-char">$</span> <span class="cmd">cap-server --version</span>
+<span class="prompt-char">$</span> <span class="cmd">car-server --check-config</span>
+<span class="prompt-char">$</span> <span class="cmd">car-server --version</span>
     </div>
   </div>
 
@@ -234,16 +233,16 @@
   </div>
 
   <h2 id="custom-adapters">Custom adapters</h2>
-  <p>CAP is built so you can swap pieces without rewriting the middle:</p>
+  <p>Chat Agent Relay is built so you can swap pieces without rewriting the middle:</p>
   <ul>
-    <li><strong>New chat surface</strong> — add a channel adapter that turns platform webhooks or sockets into CAP&rsquo;s canonical message flow. Your users stay on Teams, Discord, or a custom web client; CAP keeps one internal shape.</li>
+    <li><strong>New chat surface</strong> — add a channel adapter that turns platform webhooks or sockets into Chat Agent Relay&rsquo;s canonical message flow. Your users stay on Teams, Discord, or a custom web client; Chat Agent Relay keeps one internal shape.</li>
     <li><strong>New model or agent host</strong> — plug a backend that speaks your stack (another vendor, self-hosted LLM, or internal HTTP service) while policy, routing, ledger, and delivery stay consistent.</li>
   </ul>
   <p>Implement adapters at the edges; keep governance and audit in the core pipeline so every integration gets the same guarantees.</p>
 
   <p style="margin-top:40px">
-    <a href="/cap/" class="btn btn-secondary">&larr; Back to home</a>
-    <a href="https://github.com/anthropics/cap" class="btn btn-primary" style="margin-left:8px" data-track="docs_github">Repository</a>
+    <a href="/chat-agent-relay/" class="btn btn-secondary">&larr; Back to home</a>
+    <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-primary" style="margin-left:8px" data-track="docs_github">Repository</a>
   </p>
 </article>
 
@@ -251,11 +250,11 @@
 <footer class="footer">
   <div class="container">
     <div class="footer-links">
-      <a href="https://github.com/anthropics/cap">GitHub</a>
-      <a href="/cap/docs/">Docs</a>
-      <a href="/cap/blog/">Blog</a>
-      <a href="/cap/why-cap/">Why CAP</a>
-      <a href="https://github.com/anthropics/cap/issues">Issues</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
+      <a href="/chat-agent-relay/docs/">Docs</a>
+      <a href="/chat-agent-relay/blog/">Blog</a>
+      <a href="/chat-agent-relay/why-car/">Why CAR</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
     </div>
     <p>MIT License &middot; Built with Bun and TypeScript</p>
   </div>

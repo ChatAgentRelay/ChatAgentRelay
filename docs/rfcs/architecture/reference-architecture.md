@@ -1,4 +1,4 @@
-# RFC: CAP Reference Architecture
+# RFC: Chat Agent Relay Reference Architecture
 
 | | |
 |---|---|
@@ -10,11 +10,11 @@
 
 ## 1. Abstract
 
-This RFC defines the reference architecture for CAP, including the minimum kernel, versioned delivery roadmap, trust boundaries, and subsystem responsibilities.
+This RFC defines the reference architecture for Chat Agent Relay (CAR), including the minimum kernel, versioned delivery roadmap, trust boundaries, and subsystem responsibilities.
 
 ## 2. Purpose
 
-This RFC defines the recommended reference architecture for CAP.
+This RFC defines the recommended reference architecture for CAR.
 
 ## 3. Recommended Architecture
 
@@ -25,7 +25,7 @@ This is the sole recommended reference architecture for this project.
 ## 4. Minimum Kernel and Versioned Roadmap
 
 ### Minimum Kernel
-The minimum kernel for CAP SHOULD converge on six required components:
+The minimum kernel for CAR SHOULD converge on six required components:
 1. one channel adapter
 2. one canonical event ledger
 3. one middleware / policy stage
@@ -33,7 +33,7 @@ The minimum kernel for CAP SHOULD converge on six required components:
 5. one backend agent adapter
 6. one outbound delivery path
 
-A system that cannot complete this loop is not yet CAP.
+A system that cannot complete this loop is not yet CAR.
 
 ### Versioned Roadmap
 - **v0 / Protocol Prototype**：stub-to-stub end-to-end
@@ -177,7 +177,7 @@ flowchart LR
 
 The phased roadmap exists to control scope and validate the architecture incrementally, not to redefine the core protocol at each version.
 
-A stable CAP core should remain forward-compatible across phases in its essential semantics:
+A stable CAR core should remain forward-compatible across phases in its essential semantics:
 - canonical event envelope
 - routing / governance / delivery ownership boundaries
 - append-only ledger and replay model
@@ -296,7 +296,7 @@ Important distinction:
 
 ## 10. Conformance
 
-A conforming CAP architecture MUST include the minimum kernel loop and preserve the ownership boundaries described in this RFC.
+A conforming CAR architecture MUST include the minimum kernel loop and preserve the ownership boundaries described in this RFC.
 
 ## 11. Security Considerations
 
@@ -310,7 +310,7 @@ The architecture SHOULD:
 
 - At what point should execution isolation become a first-class architectural component rather than an implementation policy?
 - Should a separate observability RFC define protocol trace lifecycle and retention more formally?
-- Which v2 enterprise features must be normative before CAP can claim production-ready status?
+- Which v2 enterprise features must be normative before CAR can claim production-ready status?
 
 ## 13. Final Decision
 

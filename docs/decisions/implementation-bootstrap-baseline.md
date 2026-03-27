@@ -1,6 +1,6 @@
-# CAP Implementation Bootstrap Baseline
+# Chat Agent Relay Implementation Bootstrap Baseline
 
-This document records the minimum repository bootstrap baseline that is allowed for CAP's first code-facing step.
+This document records the minimum repository bootstrap baseline that is allowed for CAR's first code-facing step.
 
 It does not authorize broad runtime implementation.
 It exists to make implementation readiness explicit while preserving the repository's docs-first contract hierarchy.
@@ -34,7 +34,7 @@ The repository baseline is:
 - **Bun test** as the initial test runner
 
 This choice is intentionally narrow.
-It establishes one concrete execution environment for the first code slice without expanding the CAP runtime surface.
+It establishes one concrete execution environment for the first code slice without expanding the CAR runtime surface.
 
 ### 2. TypeScript baseline
 The code baseline is:

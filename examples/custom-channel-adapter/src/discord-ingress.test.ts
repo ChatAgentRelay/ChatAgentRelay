@@ -1,5 +1,5 @@
 import { beforeAll } from "bun:test";
-import { testChannelIngress } from "@cap/adapter-conformance";
+import { testChannelIngress } from "@chat-agent-relay/adapter-conformance";
 import { DiscordIngress } from "./discord-ingress";
 
 let discordIngress: DiscordIngress;

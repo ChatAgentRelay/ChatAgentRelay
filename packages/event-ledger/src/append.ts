@@ -1,7 +1,11 @@
-import { ContractHarnessValidators, type CanonicalEvent, type ValidationIssue } from "@cap/contract-harness";
+import {
+  type CanonicalEvent,
+  ContractHarnessValidators,
+  type ValidationIssue,
+} from "@chat-agent-relay/contract-harness";
+import { REQUIRED_LEDGER_EVENT_FIELDS } from "./constants";
 import { LedgerDuplicateConflictError, LedgerValidationError } from "./errors";
 import { InMemoryEventLedgerStore } from "./ledger-store";
-import { REQUIRED_LEDGER_EVENT_FIELDS } from "./constants";
 import type { AppendResult, LedgerStore, StoredCanonicalEvent } from "./types";
 
 function isRecord(value: unknown): value is Record<string, unknown> {

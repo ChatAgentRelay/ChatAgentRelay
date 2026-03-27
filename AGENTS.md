@@ -1,6 +1,6 @@
-# AI Agent Guide for CAP
+# AI Agent Guide for Chat Agent Relay (CAR)
 
-This file helps AI coding assistants understand and work with the CAP codebase.
+This file helps AI coding assistants understand and work with the CAR codebase.
 
 ## Quick Start
 - Runtime: Bun (not Node.js)
@@ -10,7 +10,7 @@ This file helps AI coding assistants understand and work with the CAP codebase.
 - Lint: `bun run lint`
 
 ## Architecture
-CAP is a middleware framework between chat platforms and AI agents. Every message produces a 7-event chain in an append-only ledger.
+Chat Agent Relay (CAR) is a middleware framework between chat platforms and AI agents. Every message produces a 7-event chain in an append-only ledger.
 
 ## Package Map
 | Package | Purpose | Key Interface |

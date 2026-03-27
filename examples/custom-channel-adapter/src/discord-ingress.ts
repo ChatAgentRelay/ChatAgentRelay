@@ -1,13 +1,13 @@
 /**
- * Skeleton "Discord-like" channel ingress — illustrates the CAP ChannelIngress pattern only.
+ * Skeleton "Discord-like" channel ingress — illustrates the CAR ChannelIngress pattern only.
  * Replace validation and field mapping with real Discord API / Gateway types in production.
  */
 
-import type { CanonicalEvent, ValidationResult } from "@cap/contract-harness";
-import { ContractHarnessValidators } from "@cap/contract-harness";
+import type { CanonicalEvent, ValidationResult } from "@chat-agent-relay/contract-harness";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 
 // ---------------------------------------------------------------------------
-// Result types (same shape as @cap/channel-web-chat; structural typing matches conformance)
+// Result types (same shape as @chat-agent-relay/channel-web-chat; structural typing matches conformance)
 // ---------------------------------------------------------------------------
 
 export type IngressError = {

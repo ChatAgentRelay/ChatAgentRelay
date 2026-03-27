@@ -1,6 +1,6 @@
-# CAP TypeScript Validation Alignment Path
+# Chat Agent Relay TypeScript Validation Alignment Path
 
-This document defines how TypeScript implementation artifacts should align with CAP's JSON-Schema-first canonical event contract layer.
+This document defines how TypeScript implementation artifacts should align with CAR's JSON-Schema-first canonical event contract layer.
 
 It follows these already-made decisions:
 - `docs/decisions/implementation-language-runtime-evaluation.md` — TypeScript on Node.js is the chosen implementation direction
@@ -27,7 +27,7 @@ The project has already chosen:
 - a hybrid schema authoring strategy
 - JSON Schema as the first-class machine-readable contract format for the canonical event envelope
 
-That means CAP now needs a practical answer to:
+That means CAR now needs a practical answer to:
 - what validates JSON Schema in the TypeScript implementation
 - how TypeScript types relate to the schema layer
 - how to avoid drifting into a TypeScript-only source of truth
@@ -56,8 +56,8 @@ Use an **Ajv-centered alignment path** for the first implementation stage.
 - that would directly conflict with the machine-readable strategy guardrails
 
 ### 3. It preserves optionality for later type generation or helpers
-- CAP can later add generated TypeScript types from JSON Schema
-- CAP can also add helper builders or narrower internal validation layers where justified
+- CAR can later add generated TypeScript types from JSON Schema
+- CAR can also add helper builders or narrower internal validation layers where justified
 - those additions can remain subordinate to the schema layer
 
 ## Recommended Operating Model
@@ -72,7 +72,7 @@ Use an **Ajv-centered alignment path** for the first implementation stage.
 - use the schema artifacts directly where possible rather than manually rewriting equivalent rules in TypeScript
 
 ### 3. TypeScript types are derived or checked, not normative
-CAP may use one or both of these patterns later:
+CAR may use one or both of these patterns later:
 - generate TypeScript types from JSON Schema
 - define hand-written interfaces that are systematically checked against schema-backed validation boundaries
 
@@ -110,14 +110,14 @@ The first implementation phase should aim to produce:
 ## Revisit Conditions
 
 Revisit this decision if:
-- Ajv-based workflow proves too cumbersome for routine CAP iteration
+- Ajv-based workflow proves too cumbersome for routine CAR iteration
 - TypeScript developer ergonomics become a sustained drag on delivery
-- CAP later adopts a stronger schema-builder workflow that still preserves JSON Schema as primary
+- CAR later adopts a stronger schema-builder workflow that still preserves JSON Schema as primary
 - code generation needs become strong enough to justify a more automated schema-to-type pipeline
 
 ## Current Decision Statement
 
-CAP should use the following TypeScript alignment path for canonical event contracts:
+CAR should use the following TypeScript alignment path for canonical event contracts:
 - JSON Schema remains the primary machine-readable contract layer
 - Ajv is the default runtime validation path in TypeScript
 - TypeScript types and helpers must align to the schema layer rather than replace it

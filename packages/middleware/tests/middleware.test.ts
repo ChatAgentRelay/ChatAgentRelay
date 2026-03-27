@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeAll } from "bun:test";
-import type { CanonicalEvent } from "@cap/contract-harness";
-import { ContractHarnessValidators } from "@cap/contract-harness";
+import { beforeAll, describe, expect, it } from "bun:test";
+import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { MiddlewarePipeline } from "../src/middleware";
 import type { MiddlewareConfig } from "../src/types";
 

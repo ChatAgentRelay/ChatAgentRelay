@@ -1,8 +1,8 @@
-import type { CanonicalEvent, ValidationResult } from "@cap/contract-harness";
-import { ContractHarnessValidators } from "@cap/contract-harness";
-import { validateInboundInput } from "./validate-input";
+import type { CanonicalEvent, ValidationResult } from "@chat-agent-relay/contract-harness";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { deriveIdempotencyKey } from "./idempotency";
 import type { CanonicalizationResult, IngressError } from "./types";
+import { validateInboundInput } from "./validate-input";
 
 export class WebChatIngress {
   private constructor(private readonly validators: ContractHarnessValidators) {}

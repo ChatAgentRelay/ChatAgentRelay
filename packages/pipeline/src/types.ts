@@ -1,9 +1,9 @@
-import type { CanonicalEvent } from "@cap/contract-harness";
-import type { InvocationContext, InvocationResult } from "@cap/backend-http";
-import type { CanonicalizationResult } from "@cap/channel-web-chat";
-import type { SendFn, RetryConfig } from "@cap/delivery";
-import type { MiddlewareConfig } from "@cap/middleware";
-import type { LedgerStore } from "@cap/event-ledger";
+import type { InvocationContext, InvocationResult } from "@chat-agent-relay/backend-http";
+import type { CanonicalizationResult } from "@chat-agent-relay/channel-web-chat";
+import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
+import type { RetryConfig, SendFn } from "@chat-agent-relay/delivery";
+import type { LedgerStore } from "@chat-agent-relay/event-ledger";
+import type { MiddlewareConfig } from "@chat-agent-relay/middleware";
 
 export interface BackendAdapter {
   invoke(context: InvocationContext): Promise<InvocationResult>;

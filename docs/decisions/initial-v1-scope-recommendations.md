@@ -1,4 +1,4 @@
-# CAP Initial v1 Scope Recommendations
+# Chat Agent Relay Initial v1 Scope Recommendations
 
 This document applies the repository's technology selection framework to the first two high-leverage v1 scope choices:
 - first real channel
@@ -9,7 +9,7 @@ It records a recommended starting path for the minimum kernel without locking la
 ## Decision 1: First Real Channel
 
 ### Decision Scope
-Choose the first real channel implementation used to validate the CAP minimum kernel.
+Choose the first real channel implementation used to validate the CAR minimum kernel.
 
 ### Relevant RFC Constraints
 - `docs/rfcs/adapters/channel-adapter-contract.md`
@@ -65,7 +65,7 @@ Strengths:
 
 Weaknesses:
 - increases early implementation complexity significantly
-- can pull attention away from CAP core boundaries into provider details
+- can pull attention away from CAR core boundaries into provider details
 - risks letting a single provider shape the initial model prematurely
 
 ### v0 Recommendation
@@ -84,7 +84,7 @@ Add `Slack` immediately after the minimum kernel path is stable as the first ext
 ## Decision 2: First Real Backend Adapter Shape
 
 ### Decision Scope
-Choose the initial backend adapter strategy used to validate CAP's runtime-side boundary.
+Choose the initial backend adapter strategy used to validate CAR's runtime-side boundary.
 
 ### Relevant RFC Constraints
 - `docs/rfcs/adapters/backend-agent-adapter-contract.md`
@@ -176,5 +176,5 @@ This sequence fits the current repository state:
 - objective is to prove the minimum kernel before broad implementation expansion
 
 It separates two kinds of validation:
-1. prove the CAP core loop cleanly
+1. prove the CAR core loop cleanly
 2. then pressure-test it against real providers and real runtimes

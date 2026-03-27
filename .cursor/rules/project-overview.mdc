@@ -1,12 +1,12 @@
 ---
-description: CAP project overview and conventions
+description: Chat Agent Relay (CAR) project overview and conventions
 globs: **/*
 alwaysApply: true
 ---
 
-# CAP Project Context
+# Chat Agent Relay (CAR) Project Context
 
-CAP is a chat-platform <-> agent middleware framework. TypeScript + Bun runtime.
+Chat Agent Relay (CAR) is a chat-platform <-> agent middleware framework. TypeScript + Bun runtime.
 
 ## Key Conventions
 - All packages under packages/ follow the same structure: src/, tests/, package.json, tsconfig.json
@@ -15,7 +15,7 @@ CAP is a chat-platform <-> agent middleware framework. TypeScript + Bun runtime.
 - All adapters implement either ChannelIngress or BackendAdapter interface
 - Tests use bun:test, run with `bun test --recursive`
 - TypeScript strict mode everywhere
-- JSON Schema validation via @cap/contract-harness
+- JSON Schema validation via @chat-agent-relay/contract-harness
 
 ## Package Dependency Graph
 contract-harness (base) <- event-ledger <- pipeline

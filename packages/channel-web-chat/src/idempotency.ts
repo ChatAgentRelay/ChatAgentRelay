@@ -6,10 +6,6 @@ import type { InboundWebChatRequest } from "./types";
  * the same key, preventing duplicate canonical event chains.
  */
 export function deriveIdempotencyKey(request: InboundWebChatRequest): string {
-  const parts = [
-    request.tenant_id,
-    request.channel_instance_id,
-    request.client_message_id,
-  ];
+  const parts = [request.tenant_id, request.channel_instance_id, request.client_message_id];
   return `webchat:${parts.join(":")}`;
 }

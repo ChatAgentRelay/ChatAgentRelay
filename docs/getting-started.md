@@ -1,6 +1,6 @@
-# Getting Started with CAP
+# Getting Started with Chat Agent Relay
 
-This guide walks you through running CAP with Slack and OpenAI, then shows how to build your own adapter.
+This guide walks you through running Chat Agent Relay (CAR) with Slack and OpenAI, then shows how to build your own adapter.
 
 ## Prerequisites
 
@@ -11,8 +11,8 @@ This guide walks you through running CAP with Slack and OpenAI, then shows how t
 ## 1. Clone and Install
 
 ```bash
-git clone https://github.com/your-org/cap.git
-cd cap
+git clone https://github.com/ChatAgentRelay/ChatAgentRelay.git
+cd ChatAgentRelay
 bun install
 ```
 
@@ -26,7 +26,7 @@ bun test --recursive
 ## 2. Set Up a Slack App
 
 1. Go to [api.slack.com/apps](https://api.slack.com/apps) and click **Create New App** → **From scratch**
-2. Name it (e.g., "CAP Bot") and select your workspace
+2. Name it (e.g., "CAR Bot") and select your workspace
 3. Under **Socket Mode**, enable it and generate an **App-Level Token** with `connections:write` scope — this is your `SLACK_APP_TOKEN` (starts with `xapp-`)
 4. Under **OAuth & Permissions**, add these Bot Token Scopes:
    - `chat:write` — send messages
@@ -56,8 +56,8 @@ OPENAI_MODEL=gpt-4o-mini
 
 # Optional: customize behavior
 # OPENAI_SYSTEM_PROMPT=You are a helpful assistant.
-# CAP_STREAMING=true
-# CAP_API_PORT=3000
+# CAR_STREAMING=true
+# CAR_API_PORT=3000
 ```
 
 ## 4. Start the Server
@@ -76,7 +76,7 @@ You should see structured JSON log output:
 
 ## 5. Test It
 
-1. Invite the bot to a Slack channel: `/invite @CAP Bot`
+1. Invite the bot to a Slack channel: `/invite @CAR Bot`
 2. Send a message in that channel
 3. The bot should respond via OpenAI
 
@@ -111,7 +111,7 @@ If something fails, an `event.blocked` event is appended instead, recording the 
 A channel adapter implements the `ChannelIngress` interface:
 
 ```typescript
-import type { CanonicalEvent } from "@cap/contract-harness";
+import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
 
 type CanonicalizationResult =
   | { ok: true; event: CanonicalEvent; idempotencyKey: string }
@@ -133,7 +133,7 @@ See the [Channel Adapter Interface Spec](rfcs/adapters/channel-adapter-interface
 Validate your adapter with the conformance suite:
 
 ```typescript
-import { testChannelIngress } from "@cap/adapter-conformance";
+import { testChannelIngress } from "@chat-agent-relay/adapter-conformance";
 
 testChannelIngress({
   name: "MyAdapter",
@@ -151,7 +151,7 @@ testChannelIngress({
 A backend adapter implements the `BackendAdapter` interface:
 
 ```typescript
-import type { InvocationContext, InvocationResult } from "@cap/backend-http";
+import type { InvocationContext, InvocationResult } from "@chat-agent-relay/backend-http";
 
 interface BackendAdapter {
   invoke(context: InvocationContext): Promise<InvocationResult>;
@@ -177,10 +177,10 @@ See the [Backend Adapter Interface Spec](rfcs/adapters/backend-adapter-interface
 | `OPENAI_MODEL` | No | `gpt-4o-mini` | Model name |
 | `OPENAI_SYSTEM_PROMPT` | No | `You are a helpful assistant.` | System prompt |
 | `OPENAI_BASE_URL` | No | `https://api.openai.com/v1` | Custom OpenAI-compatible endpoint |
-| `CAP_TENANT_ID` | No | `default_tenant` | Tenant identifier |
-| `CAP_WORKSPACE_ID` | No | `default_workspace` | Workspace identifier |
-| `CAP_ROUTE_ID` | No | `openai_agent` | Route identifier |
-| `CAP_SQLITE_PATH` | No | `./cap-ledger.db` | SQLite database path |
-| `CAP_STREAMING` | No | `true` | Enable streaming responses |
-| `CAP_STREAMING_INTERVAL_MS` | No | `800` | Streaming update interval |
-| `CAP_API_PORT` | No | `3000` | HTTP API port |
+| `CAR_TENANT_ID` | No | `default_tenant` | Tenant identifier |
+| `CAR_WORKSPACE_ID` | No | `default_workspace` | Workspace identifier |
+| `CAR_ROUTE_ID` | No | `openai_agent` | Route identifier |
+| `CAR_SQLITE_PATH` | No | `./car-ledger.db` | SQLite database path |
+| `CAR_STREAMING` | No | `true` | Enable streaming responses |
+| `CAR_STREAMING_INTERVAL_MS` | No | `800` | Streaming update interval |
+| `CAR_API_PORT` | No | `3000` | HTTP API port |

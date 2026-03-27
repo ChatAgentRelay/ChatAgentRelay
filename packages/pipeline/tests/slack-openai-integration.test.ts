@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { existsSync, mkdirSync, unlinkSync } from "node:fs";
+import { join } from "node:path";
+import { OpenAIBackend } from "@chat-agent-relay/backend-openai";
+import { SlackIngress } from "@chat-agent-relay/channel-slack";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
+import { SqliteLedgerStore } from "@chat-agent-relay/event-ledger";
 import type { Server } from "bun";
-import { ContractHarnessValidators } from "@cap/contract-harness";
-import { SqliteLedgerStore } from "@cap/event-ledger";
-import { SlackIngress } from "@cap/channel-slack";
-import { OpenAIBackend } from "@cap/backend-openai";
 import { FirstExecutablePathPipeline } from "../src/pipeline";
 import type { PipelineConfig } from "../src/types";
-import { existsSync, unlinkSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
 
 type BunServer = Server<unknown>;
 
@@ -52,11 +52,13 @@ describe("Slack -> Pipeline -> OpenAI integration", () => {
           object: "chat.completion",
           created: 1710000000,
           model: "gpt-4o-mini",
-          choices: [{
-            index: 0,
-            message: { role: "assistant", content: "It is sunny and 22 degrees." },
-            finish_reason: "stop",
-          }],
+          choices: [
+            {
+              index: 0,
+              message: { role: "assistant", content: "It is sunny and 22 degrees." },
+              finish_reason: "stop",
+            },
+          ],
           usage: { prompt_tokens: 15, completion_tokens: 10, total_tokens: 25 },
         });
       },

@@ -1,13 +1,13 @@
-import { FirstExecutablePathPipeline } from "@cap/pipeline";
-import { SlackIngress, SlackSender, SlackSocketConnection } from "@cap/channel-slack";
-import type { SlackSocketEvent, SlackMessageEvent } from "@cap/channel-slack";
-import { OpenAIBackend } from "@cap/backend-openai";
-import { SqliteLedgerStore } from "@cap/event-ledger";
-import { loadPolicyConfig, createPolicyFn } from "@cap/middleware";
+import { OpenAIBackend } from "@chat-agent-relay/backend-openai";
+import type { SlackMessageEvent, SlackSocketEvent } from "@chat-agent-relay/channel-slack";
+import { SlackIngress, SlackSender, SlackSocketConnection } from "@chat-agent-relay/channel-slack";
+import { SqliteLedgerStore } from "@chat-agent-relay/event-ledger";
+import { createPolicyFn, loadPolicyConfig } from "@chat-agent-relay/middleware";
+import { FirstExecutablePathPipeline } from "@chat-agent-relay/pipeline";
+import { startApiServer } from "./api";
 import { loadConfig } from "./config";
 import { logger } from "./logger";
-import { startApiServer } from "./api";
-import { validateConfig, formatConfigErrors } from "./validate-config";
+import { formatConfigErrors, validateConfig } from "./validate-config";
 
 const DRAIN_TIMEOUT_MS = 30_000;
 
@@ -21,14 +21,14 @@ export async function main() {
   }
 
   logger.info("Starting server", {
-    tenant_id: config.cap.tenantId,
-    workspace_id: config.cap.workspaceId,
+    tenant_id: config.car.tenantId,
+    workspace_id: config.car.workspaceId,
     openai_model: config.openai.model,
     base_url: config.openai.baseUrl,
-    sqlite_path: config.cap.sqlitePath,
+    sqlite_path: config.car.sqlitePath,
   });
 
-  const policySource = config.cap.policyConfig;
+  const policySource = config.car.policyConfig;
   const policyConfig = loadPolicyConfig(policySource);
   const policyFn = policyConfig.rules.length > 0 ? createPolicyFn(policyConfig) : undefined;
 
@@ -36,8 +36,8 @@ export async function main() {
     logger.info("Policy engine loaded", { rule_count: policyConfig.rules.length });
   }
 
-  const ledgerStore = new SqliteLedgerStore(config.cap.sqlitePath);
-  const ingress = await SlackIngress.create(config.cap.tenantId, config.cap.workspaceId);
+  const ledgerStore = new SqliteLedgerStore(config.car.sqlitePath);
+  const ingress = await SlackIngress.create(config.car.tenantId, config.car.workspaceId);
   const backend = await OpenAIBackend.create({
     apiKey: config.openai.apiKey,
     model: config.openai.model,
@@ -100,27 +100,29 @@ export async function main() {
           const sendFn = sender.createSendFn(event.channel, event.thread_ts);
 
           let streamingMessageTs: string | undefined;
-          const streamingOptions = config.cap.streaming ? {
-            enabled: true,
-            updateIntervalMs: config.cap.streamingIntervalMs,
-            postInitial: async (placeholder: string) => {
-              const result = await sender.send(event.channel, placeholder, event.thread_ts);
-              streamingMessageTs = result.providerMessageId;
-              return result;
-            },
-            updateMessage: async (text: string) => {
-              if (streamingMessageTs) {
-                await sender.update(event.channel, streamingMessageTs, text);
+          const streamingOptions = config.car.streaming
+            ? {
+                enabled: true,
+                updateIntervalMs: config.car.streamingIntervalMs,
+                postInitial: async (placeholder: string) => {
+                  const result = await sender.send(event.channel, placeholder, event.thread_ts);
+                  streamingMessageTs = result.providerMessageId;
+                  return result;
+                },
+                updateMessage: async (text: string) => {
+                  if (streamingMessageTs) {
+                    await sender.update(event.channel, streamingMessageTs, text);
+                  }
+                },
               }
-            },
-          } : undefined;
+            : undefined;
 
           const pipelineInstance = await FirstExecutablePathPipeline.create({
             middleware: {
               policyId: "configurable_policy",
               policyFn,
               route: {
-                route_id: config.cap.routeId,
+                route_id: config.car.routeId,
                 backend: "openai",
                 reason: "slack_message",
               },
@@ -158,7 +160,7 @@ export async function main() {
     },
   });
 
-  const apiServer = startApiServer({ port: config.cap.apiPort, ledgerStore });
+  const apiServer = startApiServer({ port: config.car.apiPort, ledgerStore });
 
   logger.info("Connecting to Slack Socket Mode");
   await socket.connect();
@@ -179,6 +181,10 @@ export async function main() {
     process.exit(0);
   }
 
-  process.on("SIGINT", () => { shutdown("SIGINT"); });
-  process.on("SIGTERM", () => { shutdown("SIGTERM"); });
+  process.on("SIGINT", () => {
+    shutdown("SIGINT");
+  });
+  process.on("SIGTERM", () => {
+    shutdown("SIGTERM");
+  });
 }

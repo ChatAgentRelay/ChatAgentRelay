@@ -1,11 +1,11 @@
-import { beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll } from "bun:test";
+import { GenericHttpBackend } from "@chat-agent-relay/backend-http";
+import { OpenAIBackend } from "@chat-agent-relay/backend-openai";
+import { SlackIngress } from "@chat-agent-relay/channel-slack";
+import { WebChatIngress } from "@chat-agent-relay/channel-web-chat";
 import type { Server } from "bun";
-import { WebChatIngress } from "@cap/channel-web-chat";
-import { SlackIngress } from "@cap/channel-slack";
-import { GenericHttpBackend } from "@cap/backend-http";
-import { OpenAIBackend } from "@cap/backend-openai";
-import { testChannelIngress } from "../src/test-channel-ingress";
 import { testBackendAdapter } from "../src/test-backend-adapter";
+import { testChannelIngress } from "../src/test-channel-ingress";
 
 type BunServer = Server<unknown>;
 
@@ -42,11 +42,13 @@ beforeAll(async () => {
         object: "chat.completion",
         created: Date.now(),
         model: "gpt-4o-mini",
-        choices: [{
-          index: 0,
-          message: { role: "assistant", content: "Conformance response from OpenAI mock." },
-          finish_reason: "stop",
-        }],
+        choices: [
+          {
+            index: 0,
+            message: { role: "assistant", content: "Conformance response from OpenAI mock." },
+            finish_reason: "stop",
+          },
+        ],
         usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
       });
     },
@@ -66,7 +68,9 @@ afterAll(() => {
 
 testChannelIngress({
   name: "WebChatIngress",
-  get ingress() { return webChatIngress; },
+  get ingress() {
+    return webChatIngress;
+  },
   expectedChannel: "webchat",
   validInput: {
     client_message_id: "msg_conf_001",
@@ -78,14 +82,24 @@ testChannelIngress({
     channel_instance_id: "webchat_conf",
   },
   invalidInputs: [
-    { label: "empty text", input: { client_message_id: "m1", text: "", user_id: "u1", tenant_id: "t1", workspace_id: "ws1" }, expectedCode: "missing_field" },
-    { label: "missing client_message_id", input: { text: "hi", user_id: "u1", tenant_id: "t1", workspace_id: "ws1" }, expectedCode: "missing_field" },
+    {
+      label: "empty text",
+      input: { client_message_id: "m1", text: "", user_id: "u1", tenant_id: "t1", workspace_id: "ws1" },
+      expectedCode: "missing_field",
+    },
+    {
+      label: "missing client_message_id",
+      input: { text: "hi", user_id: "u1", tenant_id: "t1", workspace_id: "ws1" },
+      expectedCode: "missing_field",
+    },
   ],
 });
 
 testChannelIngress({
   name: "SlackIngress",
-  get ingress() { return slackIngress; },
+  get ingress() {
+    return slackIngress;
+  },
   expectedChannel: "slack",
   validInput: {
     type: "message",
@@ -97,9 +111,21 @@ testChannelIngress({
     channel_type: "channel",
   },
   invalidInputs: [
-    { label: "empty text", input: { type: "message", channel: "C1", user: "U1", text: "", ts: "1.0" }, expectedCode: "empty_text" },
-    { label: "non-message type", input: { type: "app_mention", channel: "C1", user: "U1", text: "hi", ts: "1.0" }, expectedCode: "invalid_slack_event" },
-    { label: "bot message", input: { type: "message", channel: "C1", user: "U1", text: "hi", ts: "1.0", bot_id: "B123" }, expectedCode: "bot_message" },
+    {
+      label: "empty text",
+      input: { type: "message", channel: "C1", user: "U1", text: "", ts: "1.0" },
+      expectedCode: "empty_text",
+    },
+    {
+      label: "non-message type",
+      input: { type: "app_mention", channel: "C1", user: "U1", text: "hi", ts: "1.0" },
+      expectedCode: "invalid_slack_event",
+    },
+    {
+      label: "bot message",
+      input: { type: "message", channel: "C1", user: "U1", text: "hi", ts: "1.0", bot_id: "B123" },
+      expectedCode: "bot_message",
+    },
   ],
 });
 
@@ -108,19 +134,26 @@ testChannelIngress({
 testBackendAdapter({
   name: "GenericHttpBackend",
   get adapter() {
-    return { invoke: async (ctx: import("@cap/backend-http").InvocationContext) => {
-      const backend = await GenericHttpBackend.create({ endpoint: `http://localhost:${mockBackendPort}` });
-      return backend.invoke(ctx);
-    }};
+    return {
+      invoke: async (ctx: import("@chat-agent-relay/backend-http").InvocationContext) => {
+        const backend = await GenericHttpBackend.create({ endpoint: `http://localhost:${mockBackendPort}` });
+        return backend.invoke(ctx);
+      },
+    };
   },
 });
 
 testBackendAdapter({
   name: "OpenAIBackend",
   get adapter() {
-    return { invoke: async (ctx: import("@cap/backend-http").InvocationContext) => {
-      const backend = await OpenAIBackend.create({ apiKey: "test-key", baseUrl: `http://localhost:${mockOpenAIPort}` });
-      return backend.invoke(ctx);
-    }};
+    return {
+      invoke: async (ctx: import("@chat-agent-relay/backend-http").InvocationContext) => {
+        const backend = await OpenAIBackend.create({
+          apiKey: "test-key",
+          baseUrl: `http://localhost:${mockOpenAIPort}`,
+        });
+        return backend.invoke(ctx);
+      },
+    };
   },
 });

@@ -1,4 +1,4 @@
-# CAP First Executable Path Next Implementation Step
+# Chat Agent Relay First Executable Path Next Implementation Step
 
 This document records the review-gate outcome after the first code-facing step for the frozen first executable path.
 

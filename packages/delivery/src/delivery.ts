@@ -1,5 +1,5 @@
-import type { CanonicalEvent, ValidationResult } from "@cap/contract-harness";
-import { ContractHarnessValidators } from "@cap/contract-harness";
+import type { CanonicalEvent, ValidationResult } from "@chat-agent-relay/contract-harness";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import type { DeliveryResult, RetryConfig, SendFn } from "./types";
 
 const DEFAULT_MAX_RETRIES = 3;
@@ -67,10 +67,7 @@ export class DeliveryOrchestrator {
     return new DeliveryOrchestrator(validators, retryConfig);
   }
 
-  async deliver(
-    agentResponseCompleted: CanonicalEvent,
-    sendFn: SendFn,
-  ): Promise<DeliveryResult> {
+  async deliver(agentResponseCompleted: CanonicalEvent, sendFn: SendFn): Promise<DeliveryResult> {
     if (agentResponseCompleted.event_type !== "agent.response.completed") {
       throw new Error(`Expected agent.response.completed, got ${agentResponseCompleted.event_type}`);
     }
@@ -108,10 +105,7 @@ export class DeliveryOrchestrator {
     };
   }
 
-  private async sendWithRetry(
-    sendFn: SendFn,
-    text: string,
-  ): Promise<{ providerMessageId: string }> {
+  private async sendWithRetry(sendFn: SendFn, text: string): Promise<{ providerMessageId: string }> {
     let lastError: Error | undefined;
 
     for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
@@ -120,7 +114,7 @@ export class DeliveryOrchestrator {
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
         if (attempt < this.retryConfig.maxRetries) {
-          const delay = this.retryConfig.baseDelayMs * Math.pow(2, attempt);
+          const delay = this.retryConfig.baseDelayMs * 2 ** attempt;
           await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }

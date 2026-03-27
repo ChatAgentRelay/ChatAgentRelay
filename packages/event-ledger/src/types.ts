@@ -1,4 +1,4 @@
-import type { CanonicalEvent } from "@cap/contract-harness";
+import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
 
 export type StoredCanonicalEvent = CanonicalEvent & {
   schema_version: string;

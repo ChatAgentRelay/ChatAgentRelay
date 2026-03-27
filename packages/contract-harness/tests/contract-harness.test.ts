@@ -76,7 +76,9 @@ describe("contract harness", () => {
     expect(validationResult.ok).toBe(false);
     if (!validationResult.ok) {
       expect(validationResult.failure.step).toBe("envelope");
-      expect(validationResult.failure.issues.some((issue) => issue.instancePath === "" && issue.keyword === "required")).toBe(true);
+      expect(
+        validationResult.failure.issues.some((issue) => issue.instancePath === "" && issue.keyword === "required"),
+      ).toBe(true);
     }
   });
 

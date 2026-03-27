@@ -1,4 +1,4 @@
-# RFC: CAP Backend Adapter Interface Specification
+# RFC: Chat Agent Relay Backend Adapter Interface Specification
 
 | | |
 |---|---|
@@ -11,7 +11,7 @@
 
 ## 1. Abstract
 
-This document formalizes the TypeScript interface contracts that all CAP backend adapters MUST implement. It complements the high-level backend agent adapter contract RFC with precise type-level requirements.
+This document formalizes the TypeScript interface contracts that all Chat Agent Relay (CAR) backend adapters MUST implement. It complements the high-level backend agent adapter contract RFC with precise type-level requirements.
 
 ## 2. Normative Language
 
@@ -191,5 +191,5 @@ A conforming streaming adapter additionally MUST:
 
 | Adapter | Package | Backend |
 |---|---|---|
-| `GenericHttpBackend` | `@cap/backend-http` | Generic HTTP endpoint |
-| `OpenAIBackend` | `@cap/backend-openai` | OpenAI Chat Completions API |
+| `GenericHttpBackend` | `@chat-agent-relay/backend-http` | Generic HTTP endpoint |
+| `OpenAIBackend` | `@chat-agent-relay/backend-openai` | OpenAI Chat Completions API |

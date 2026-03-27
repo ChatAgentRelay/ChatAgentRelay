@@ -1,6 +1,6 @@
-# CAP Repository Next Approved Slices
+# Chat Agent Relay Repository Next Approved Slices
 
-This document is the repository-level inventory for CAP after the current review-gate baseline.
+This document is the repository-level inventory for CAR after the current review-gate baseline.
 
 It exists to make the overall direction, current position, and later approval menu easier to read without introducing a parallel master document.
 
@@ -16,7 +16,7 @@ Nothing in this document approves broader runtime work by itself.
 Use this document as a repository-wide roadmap navigation entry for later approval discussion.
 
 Its job is to make the following easier to see in one place:
-- what minimum system boundary CAP is currently converging toward
+- what minimum system boundary CAR is currently converging toward
 - what narrow baseline and first executable path work is already complete
 - what candidate directions are available for later exact-slice approval discussion
 - how those candidate directions relate to each other without implying default sequencing
@@ -30,7 +30,7 @@ Repository roadmap mechanics in this file work as follows:
 
 ## Current Repository Direction
 
-CAP remains a docs-first repository that is converging on a minimum executable system boundary for a chat-platform <-> agent middleware.
+CAR remains a docs-first repository that is converging on a minimum executable system boundary for a chat-platform <-> agent middleware.
 
 That minimum direction is still centered on:
 - a canonical event model as the shared contract boundary

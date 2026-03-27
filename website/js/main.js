@@ -1,4 +1,4 @@
-/* CAP Website — Interactions + GA4 */
+/* Chat Agent Relay website — Interactions + GA4 */
 (function () {
   "use strict";
 

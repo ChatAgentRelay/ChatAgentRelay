@@ -2,7 +2,7 @@
 
 ## Our Pledge
 
-Contributors and maintainers should make participation in CAP respectful, constructive, and professional for everyone.
+Contributors and maintainers should make participation in Chat Agent Relay respectful, constructive, and professional for everyone.
 
 ## Expected Behavior
 

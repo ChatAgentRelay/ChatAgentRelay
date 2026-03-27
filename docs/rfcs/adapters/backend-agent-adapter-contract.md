@@ -1,4 +1,4 @@
-# RFC: CAP Backend Agent Adapter Contract
+# RFC: Chat Agent Relay Backend Agent Adapter Contract
 
 | | |
 |---|---|
@@ -10,7 +10,7 @@
 
 ## 1. Abstract
 
-This RFC defines the backend-facing contract that allows CAP to integrate multiple agent and workflow runtimes without coupling the middleware core to a single framework.
+This RFC defines the backend-facing contract that allows Chat Agent Relay (CAR) to integrate multiple agent and workflow runtimes without coupling the middleware core to a single framework.
 
 ## 2. Purpose
 
@@ -22,7 +22,7 @@ The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** ar
 
 ## 4. Minimum Kernel Scope
 
-The minimum CAP kernel does not need every possible runtime abstraction. It MUST only support enough to prove the backend boundary is stable:
+The minimum CAR kernel does not need every possible runtime abstraction. It MUST only support enough to prove the backend boundary is stable:
 - create or resume backend session mapping
 - handle one canonical invocation event
 - emit one completed response or structured error

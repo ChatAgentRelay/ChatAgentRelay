@@ -1,6 +1,6 @@
-# CAP Implementation Language and Runtime Evaluation
+# Chat Agent Relay Implementation Language and Runtime Evaluation
 
-This document evaluates the initial implementation language/runtime choice for CAP's first real middleware implementation and records the current project decision.
+This document evaluates the initial implementation language/runtime choice for CAR's first real middleware implementation and records the current project decision.
 
 It follows `docs/decisions/technology-selection-framework.md` and assumes the current repository state is:
 - storage-neutral at the RFC level
@@ -12,7 +12,7 @@ It follows `docs/decisions/technology-selection-framework.md` and assumes the cu
 
 Decision made: **TypeScript on Node.js**.
 
-This decision is not presented as a mathematically neutral winner in every category. The evidence-backed comparison showed that Go remained a strong fit for the current CAP kernel shape, while TypeScript/Node.js remained the strongest alternative.
+This decision is not presented as a mathematically neutral winner in every category. The evidence-backed comparison showed that Go remained a strong fit for the current CAR kernel shape, while TypeScript/Node.js remained the strongest alternative.
 
 The project owner has now chosen **TypeScript** as the implementation direction. This document therefore records:
 - the evidence gathered
@@ -21,7 +21,7 @@ The project owner has now chosen **TypeScript** as the implementation direction.
 
 ## Decision Scope
 
-Choose the primary language/runtime for the CAP middleware core for v0/v1.
+Choose the primary language/runtime for the CAR middleware core for v0/v1.
 
 This decision covers the likely home for:
 - ingress and egress adapters
@@ -91,7 +91,7 @@ Result:
 Result:
 - Go and TypeScript/Node are both strong
 - Python is viable but relies more on an adjacent SSE package
-- TypeScript/Node has enough evidence-backed streaming support for CAP's current needs
+- TypeScript/Node has enough evidence-backed streaming support for CAR's current needs
 
 ### Durable primary-store access
 - Go: `pgx`
@@ -119,7 +119,7 @@ Result:
 
 Result:
 - TypeScript/Node was the strongest category leader here
-- this mattered because CAP is contract-heavy and schema-sensitive
+- this mattered because CAR is contract-heavy and schema-sensitive
 - this was one of the most important reasons TypeScript remained a serious option throughout the comparison
 
 ### Observability
@@ -157,7 +157,7 @@ The final project decision to use TypeScript should be understood as a deliberat
 
 1. **Schema and contract ergonomics**
    - TypeScript/Node had the strongest evidence-backed position for schema-heavy contract work through Zod and Ajv.
-   - CAP is not just a message relay; it is a canonical-event and contract-driven middleware. That makes contract ergonomics strategically important.
+   - CAR is not just a message relay; it is a canonical-event and contract-driven middleware. That makes contract ergonomics strategically important.
 
 2. **Broad ecosystem flexibility**
    - The Node ecosystem offered multiple credible paths for storage clients, schema tooling, migrations, HTTP serving, and streaming.
@@ -168,8 +168,8 @@ The final project decision to use TypeScript should be understood as a deliberat
    - Since implementation discipline and long-term maintenance depend heavily on the primary maintainer's fluency and judgment, that preference is materially relevant.
    - In a close comparison, this is a legitimate deciding factor.
 
-4. **Future upside if CAP becomes more tooling- and schema-driven**
-   - If CAP grows into a strongly contract-oriented platform with admin surfaces, SDKs, validation-heavy tooling, or developer-facing integration UX, TypeScript's advantages become more valuable.
+4. **Future upside if CAR becomes more tooling- and schema-driven**
+   - If CAR grows into a strongly contract-oriented platform with admin surfaces, SDKs, validation-heavy tooling, or developer-facing integration UX, TypeScript's advantages become more valuable.
 
 ### What must be managed carefully because TypeScript was chosen
 
@@ -200,7 +200,7 @@ That ranking is still useful context, because it explains the main risk of the c
 Use **TypeScript on Node.js** for the first executable middleware prototype.
 
 ### v1 Recommendation
-Use **TypeScript on Node.js** as the primary implementation language/runtime for the CAP middleware core.
+Use **TypeScript on Node.js** as the primary implementation language/runtime for the CAR middleware core.
 
 ## Decision Guidance for Follow-up Work
 
@@ -221,13 +221,13 @@ This means the next decisions should focus on:
 ## Risks to Revisit Later
 
 Revisit this decision if one or more of the following happen:
-- the implementation starts drifting into framework-led architecture rather than CAP-led architecture
+- the implementation starts drifting into framework-led architecture rather than CAR-led architecture
 - schema/tooling advantages do not materialize enough to justify the extra stack complexity
 - runtime/operational requirements make a leaner service-core language materially more attractive
 - the core team composition changes significantly
 
 ## Current Decision Statement
 
-The repository now records **TypeScript on Node.js** as the chosen implementation direction for CAP v0/v1.
+The repository now records **TypeScript on Node.js** as the chosen implementation direction for CAR v0/v1.
 
 This choice is compatible with the collected evidence, but it comes with a clear requirement: the project must keep architecture and contract discipline explicit, rather than relying on the language ecosystem to enforce it automatically.

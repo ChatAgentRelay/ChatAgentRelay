@@ -402,7 +402,7 @@ RoomKit 更像一个 **multi-channel conversation framework / conversation runti
 更像 ultra-light assistant runtime，而不是 enterprise middleware。
 
 **帮助点：**
-- CAP 必须重新收敛最小内核
+- Chat Agent Relay（CAR）必须重新收敛最小内核
 - v1 应可审计、可阅读、可解释
 - 先证明最小闭环，再扩能力
 
@@ -417,7 +417,7 @@ RoomKit 更像一个 **multi-channel conversation framework / conversation runti
 更像嵌入式 / edge-friendly assistant。
 
 **帮助点：**
-- CAP 可以按部署轮廓分层：control plane 较重，edge/data plane 较轻
+- CAR 可以按部署轮廓分层：control plane 较重，edge/data plane 较轻
 - 不应默认所有组件都需要重部署形态
 
 ### 注意
@@ -425,7 +425,7 @@ RoomKit 更像一个 **multi-channel conversation framework / conversation runti
 
 ## 11. Minimum Kernel Reassessment
 
-基于 RoomKit、Nanobot、NanoClaw 等补充参考，CAP 的最小内核应重新收敛为：
+基于 RoomKit、Nanobot、NanoClaw 等补充参考，Chat Agent Relay（CAR）的最小内核应重新收敛为：
 - one inbound channel adapter
 - one canonical event ledger
 - one policy check stage

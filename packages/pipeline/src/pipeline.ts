@@ -1,10 +1,10 @@
-import type { CanonicalEvent } from "@cap/contract-harness";
-import { ContractHarnessValidators } from "@cap/contract-harness";
-import type { ConversationTurn } from "@cap/backend-http";
-import { MiddlewarePipeline } from "@cap/middleware";
-import { DeliveryOrchestrator } from "@cap/delivery";
-import { EventLedgerAppender, EventLedgerReader, InMemoryEventLedgerStore } from "@cap/event-ledger";
-import type { LedgerStore } from "@cap/event-ledger";
+import type { ConversationTurn } from "@chat-agent-relay/backend-http";
+import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
+import { DeliveryOrchestrator } from "@chat-agent-relay/delivery";
+import type { LedgerStore } from "@chat-agent-relay/event-ledger";
+import { EventLedgerAppender, EventLedgerReader, InMemoryEventLedgerStore } from "@chat-agent-relay/event-ledger";
+import { MiddlewarePipeline } from "@chat-agent-relay/middleware";
 import type { BackendAdapter, ChannelIngress, PipelineConfig, PipelineResult, StreamingOptions } from "./types";
 
 function deriveBlockedEvent(
@@ -56,7 +56,16 @@ export class FirstExecutablePathPipeline {
     ]);
     const reader = new EventLedgerReader(store);
     return new FirstExecutablePathPipeline(
-      config.ingress, middleware, config.backend, delivery, appender, reader, store, config.sendFn, validators, config.streaming,
+      config.ingress,
+      middleware,
+      config.backend,
+      delivery,
+      appender,
+      reader,
+      store,
+      config.sendFn,
+      validators,
+      config.streaming,
     );
   }
 
@@ -127,9 +136,10 @@ export class FirstExecutablePathPipeline {
       },
     };
 
-    const backendResult = this.streaming?.enabled && this.backend.invokeStreaming
-      ? await this.invokeWithStreaming(invocationContext)
-      : await this.backend.invoke(invocationContext);
+    const backendResult =
+      this.streaming?.enabled && this.backend.invokeStreaming
+        ? await this.invokeWithStreaming(invocationContext)
+        : await this.backend.invoke(invocationContext);
 
     if (!backendResult.ok) {
       const blocked = deriveBlockedEvent(
@@ -142,13 +152,7 @@ export class FirstExecutablePathPipeline {
       this.validateAndAppend(blocked);
 
       return {
-        events: [
-          messageReceived,
-          mwResult.policyEvent,
-          mwResult.routeEvent,
-          mwResult.invocationEvent,
-          blocked,
-        ],
+        events: [messageReceived, mwResult.policyEvent, mwResult.routeEvent, mwResult.invocationEvent, blocked],
         blocked: true,
         blockReason: backendResult.error.message,
         explanation: {
@@ -169,13 +173,7 @@ export class FirstExecutablePathPipeline {
       deliveryResult = await this.delivery.deliver(agentResponse, this.sendFn);
     } catch (deliveryError) {
       const reason = deliveryError instanceof Error ? deliveryError.message : String(deliveryError);
-      const blocked = deriveBlockedEvent(
-        messageReceived,
-        agentResponse.event_id,
-        reason,
-        "delivery",
-        false,
-      );
+      const blocked = deriveBlockedEvent(messageReceived, agentResponse.event_id, reason, "delivery", false);
       this.validateAndAppend(blocked);
 
       return {
@@ -228,7 +226,9 @@ export class FirstExecutablePathPipeline {
     return this.reader.replayConversation(conversationId);
   }
 
-  private async invokeWithStreaming(context: import("@cap/backend-http").InvocationContext): Promise<import("@cap/backend-http").InvocationResult> {
+  private async invokeWithStreaming(
+    context: import("@chat-agent-relay/backend-http").InvocationContext,
+  ): Promise<import("@chat-agent-relay/backend-http").InvocationResult> {
     const generator = this.backend.invokeStreaming!(context);
     const updateIntervalMs = this.streaming?.updateIntervalMs ?? 800;
 
@@ -242,7 +242,11 @@ export class FirstExecutablePathPipeline {
       const { done, value } = await generator.next();
       if (done) {
         if (accumulated) {
-          try { await this.streaming!.updateMessage(accumulated); } catch { /* best-effort final update */ }
+          try {
+            await this.streaming!.updateMessage(accumulated);
+          } catch {
+            /* best-effort final update */
+          }
         }
         return value;
       }
@@ -253,7 +257,9 @@ export class FirstExecutablePathPipeline {
         try {
           await this.streaming!.updateMessage(accumulated);
           lastUpdateTime = now;
-        } catch { /* best-effort update, continue streaming */ }
+        } catch {
+          /* best-effort update, continue streaming */
+        }
       }
     }
   }

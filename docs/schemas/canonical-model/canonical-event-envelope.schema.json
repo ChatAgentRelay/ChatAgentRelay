@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://cap.local/schemas/canonical-model/canonical-event-envelope.schema.json",
-  "title": "CAP Canonical Event Envelope",
-  "description": "Machine-readable contract for the CAP canonical event envelope. RFC semantics remain normative; this schema defines the first authoritative machine-readable contract layer for envelope shape.",
+  "$id": "https://car.local/schemas/canonical-model/canonical-event-envelope.schema.json",
+  "title": "CAR Canonical Event Envelope",
+  "description": "Machine-readable contract for the Chat Agent Relay (CAR) canonical event envelope. RFC semantics remain normative; this schema defines the first authoritative machine-readable contract layer for envelope shape.",
   "type": "object",
   "additionalProperties": false,
   "required": [

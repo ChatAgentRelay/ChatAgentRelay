@@ -39,7 +39,7 @@ export const logger = {
   },
 
   debug(message: string, context?: LogContext): void {
-    if (process.env["CAP_LOG_LEVEL"] === "debug") {
+    if (process.env["CAR_LOG_LEVEL"] === "debug") {
       process.stdout.write(formatEntry("debug", message, context) + "\n");
     }
   },

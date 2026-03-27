@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import type { InvocationContext } from "@chat-agent-relay/backend-http";
+import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import type { Server } from "bun";
-import type { CanonicalEvent } from "@cap/contract-harness";
-import { ContractHarnessValidators } from "@cap/contract-harness";
-import type { InvocationContext } from "@cap/backend-http";
 import { OpenAIBackend } from "../src/openai-backend";
 import type { OpenAIChatResponse } from "../src/types";
 
@@ -42,11 +42,13 @@ function mockOpenAIResponse(): OpenAIChatResponse {
     object: "chat.completion",
     created: 1710000000,
     model: "gpt-4o-mini",
-    choices: [{
-      index: 0,
-      message: { role: "assistant", content: "Your order shipped yesterday." },
-      finish_reason: "stop",
-    }],
+    choices: [
+      {
+        index: 0,
+        message: { role: "assistant", content: "Your order shipped yesterday." },
+        finish_reason: "stop",
+      },
+    ],
     usage: { prompt_tokens: 20, completion_tokens: 8, total_tokens: 28 },
   };
 }
@@ -237,18 +239,21 @@ describe("OpenAI backend", () => {
       "data: [DONE]\n\n",
     ];
 
-    startMock(() => new Response(
-      new ReadableStream({
-        async start(controller) {
-          for (const chunk of chunks) {
-            controller.enqueue(new TextEncoder().encode(chunk));
-            await new Promise((r) => setTimeout(r, 10));
-          }
-          controller.close();
-        },
-      }),
-      { headers: { "Content-Type": "text/event-stream" } },
-    ));
+    startMock(
+      () =>
+        new Response(
+          new ReadableStream({
+            async start(controller) {
+              for (const chunk of chunks) {
+                controller.enqueue(new TextEncoder().encode(chunk));
+                await new Promise((r) => setTimeout(r, 10));
+              }
+              controller.close();
+            },
+          }),
+          { headers: { "Content-Type": "text/event-stream" } },
+        ),
+    );
 
     const backend = await OpenAIBackend.create({
       apiKey: "test-key",

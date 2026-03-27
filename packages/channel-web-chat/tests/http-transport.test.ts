@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import type { Server } from "bun";
 import { WebChatIngress } from "../src/canonicalize";
-import { startWebChatServer } from "../src/http-transport";
 import type { WebChatResponse } from "../src/http-transport";
+import { startWebChatServer } from "../src/http-transport";
 
 type BunServer = Server<unknown>;
 
@@ -98,7 +98,9 @@ describe("WebChat HTTP transport", () => {
     const errorServer = startWebChatServer({
       port: 0,
       ingress,
-      pipelineFn: async () => { throw new Error("Backend timeout"); },
+      pipelineFn: async () => {
+        throw new Error("Backend timeout");
+      },
     });
 
     try {

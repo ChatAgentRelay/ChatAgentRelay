@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { assertFirstExecutablePathChain, loadFirstExecutablePathFixtures } from "@cap/contract-harness";
+import { assertFirstExecutablePathChain, loadFirstExecutablePathFixtures } from "@chat-agent-relay/contract-harness";
 import {
   EventLedgerAppender,
   EventLedgerReader,
+  explainFirstExecutablePath,
   LedgerAuditExplanationError,
   LedgerDuplicateConflictError,
-  explainFirstExecutablePath,
 } from "../src";
 
 function getPayloadString(event: { payload: Record<string, unknown> }, key: string): string {
@@ -119,7 +119,15 @@ describe("event ledger", () => {
       appender.append(fixture.event);
     }
 
-    const [messageReceived, policyDecision, routeDecision, agentInvocation, agentResponse, messageSendRequested, messageSent] = fixtures;
+    const [
+      messageReceived,
+      policyDecision,
+      routeDecision,
+      agentInvocation,
+      agentResponse,
+      messageSendRequested,
+      messageSent,
+    ] = fixtures;
     const explanation = explainFirstExecutablePath(reader.replayConversation(messageReceived!.event.conversation_id));
 
     expect(explanation).toEqual({

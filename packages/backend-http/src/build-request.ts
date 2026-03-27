@@ -1,4 +1,4 @@
-import type { InvocationContext, BackendInvocationRequest } from "./types";
+import type { BackendInvocationRequest, InvocationContext } from "./types";
 
 const DEFAULT_ROUTE = { route_id: "default", reason: "default_route" } as const;
 const DEFAULT_POLICY = { policy_id: "default", decision: "allow" } as const;
@@ -8,7 +8,7 @@ export function buildBackendRequest(context: InvocationContext): BackendInvocati
 
   const request: BackendInvocationRequest = {
     request_id: requestId,
-    cap: {
+    car: {
       event: context.invocationEvent,
       input: {
         message: { text: context.messageText },

@@ -3,23 +3,23 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CAP — Connect Any Chat Platform to Any AI Agent</title>
-  <meta name="description" content="CAP is open-source middleware that connects any chat platform to any AI agent with governance, audit, and zero lock-in. Slack, Teams, Discord — one integration, every channel.">
-  <meta name="keywords" content="CAP, chat platform, AI agent, middleware, Slack, OpenAI, open source, governance, audit">
+  <title>Chat Agent Relay — Connect Any Chat Platform to Any AI Agent</title>
+  <meta name="description" content="Chat Agent Relay is open-source middleware that connects any chat platform to any AI agent with governance, audit, and zero lock-in. Slack, Teams, Discord — one integration, every channel.">
+  <meta name="keywords" content="Chat Agent Relay, CAR, chat platform, AI agent, middleware, Slack, OpenAI, open source, governance, audit">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="CAP — Connect Any Chat Platform to Any AI Agent">
+  <meta property="og:title" content="Chat Agent Relay — Connect Any Chat Platform to Any AI Agent">
   <meta property="og:description" content="Open-source middleware between chat platforms and AI agents. Governance, audit, zero lock-in.">
-  <meta property="og:url" content="https://anthropics.github.io/cap/">
-  <meta property="og:site_name" content="CAP">
+  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/">
+  <meta property="og:site_name" content="Chat Agent Relay">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="CAP — Chat Platform to AI Agent Middleware">
+  <meta name="twitter:title" content="Chat Agent Relay — Chat Platform to AI Agent Middleware">
   <meta name="twitter:description" content="One integration, every channel, every agent, full audit trail. Open source.">
 
-  <link rel="canonical" href="https://anthropics.github.io/cap/">
+  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/">
 
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,13 +28,12 @@
 
   <link rel="stylesheet" href="css/style.css">
 
-  <!-- GA4 placeholder — replace G-XXXXXXXXXX with real ID -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-XXXXXXXXXX');
+    gtag('config', 'G-7FERB87K2D');
   </script>
 
   <!-- Structured Data -->
@@ -42,11 +41,11 @@
   {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "CAP",
+    "name": "Chat Agent Relay",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Linux, macOS, Windows",
     "description": "Open-source middleware that connects any chat platform to any AI agent with governance, audit, and zero lock-in.",
-    "url": "https://anthropics.github.io/cap/",
+    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/",
     "license": "https://opensource.org/licenses/MIT",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
   }
@@ -57,14 +56,14 @@
 <!-- Nav -->
 <nav class="nav">
   <div class="container">
-    <a href="/cap/" class="nav-brand"><span class="prompt">$</span> cap</a>
+    <a href="/chat-agent-relay/" class="nav-brand"><span class="prompt">$</span> car</a>
     <button class="nav-toggle" aria-label="Menu">&#9776;</button>
     <div class="nav-links">
-      <a href="/cap/why-cap/">Why CAP</a>
-      <a href="/cap/docs/">Docs</a>
-      <a href="/cap/compare/diy/">Compare</a>
-      <a href="/cap/blog/">Blog</a>
-      <a href="https://github.com/anthropics/cap" class="nav-cta" data-track="nav_github">GitHub</a>
+      <a href="/chat-agent-relay/why-car/">Why CAR</a>
+      <a href="/chat-agent-relay/docs/">Docs</a>
+      <a href="/chat-agent-relay/compare/diy/">Compare</a>
+      <a href="/chat-agent-relay/blog/">Blog</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="nav-cta" data-track="nav_github">GitHub</a>
     </div>
   </div>
 </nav>
@@ -80,12 +79,12 @@
     </h1>
     <p class="hero-sub">
       Your users are in Slack. Your AI speaks OpenAI. Tomorrow it's Teams and Claude.
-      CAP is the open-source layer that makes every combination work — with governance,
+      Chat Agent Relay is the open-source layer that makes every combination work — with governance,
       audit trail, and zero lock-in.
     </p>
     <div class="hero-actions">
-      <a href="/cap/docs/" class="btn btn-primary" data-track="hero_get_started">Get Started</a>
-      <a href="https://github.com/anthropics/cap" class="btn btn-secondary" data-track="hero_github">View on GitHub</a>
+      <a href="/chat-agent-relay/docs/" class="btn btn-primary" data-track="hero_get_started">Get Started</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-secondary" data-track="hero_github">View on GitHub</a>
     </div>
 
     <!-- Terminal demo -->
@@ -97,13 +96,13 @@
         <span class="terminal-title">terminal</span>
       </div>
       <div class="terminal-body">
-<span class="prompt-char">$</span> <span class="cmd">git clone https://github.com/anthropics/cap && cd cap</span>
+<span class="prompt-char">$</span> <span class="cmd">git clone https://github.com/ChatAgentRelay/ChatAgentRelay && cd ChatAgentRelay</span>
 <span class="prompt-char">$</span> <span class="cmd">bun install</span>
 <span class="output">installed 12 packages</span>
 <span class="prompt-char">$</span> <span class="cmd">cd packages/server && cp .env.example .env</span>
 <span class="prompt-char">$</span> <span class="cmd">bun run start</span>
-<span class="output">[cap] Slack connected &middot; OpenAI ready &middot; API on :3000</span>
-<span class="output">[cap] Listening for messages...</span>
+<span class="output">[car] Slack connected &middot; OpenAI ready &middot; API on :3000</span>
+<span class="output">[car] Listening for messages...</span>
       </div>
     </div>
   </div>
@@ -203,22 +202,22 @@
         <p>OpenAI and generic HTTP included. Add Claude, Gemini, or your custom model. Swap backends in one line.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">$ cap policy</div>
+        <div class="feature-icon">$ car policy</div>
         <h3>Governance Built-In</h3>
         <p>Keyword/regex policy engine blocks messages before they reach your agent. Every decision logged.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">$ cap audit</div>
+        <div class="feature-icon">$ car audit</div>
         <h3>Full Audit Trail</h3>
         <p>Every message produces an immutable event chain. Query conversations, correlations, and audit explanations via REST API.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">$ cap stream</div>
+        <div class="feature-icon">$ car stream</div>
         <h3>Streaming Responses</h3>
         <p>OpenAI SSE streams update Slack messages progressively. Users see the agent thinking in real-time.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">$ cap retry</div>
+        <div class="feature-icon">$ car retry</div>
         <h3>Delivery Retry + DLQ</h3>
         <p>Exponential backoff on failures. Dead-letter queue for exhausted retries. No lost messages.</p>
       </div>
@@ -230,7 +229,7 @@
 <section>
   <div class="container reveal">
     <div class="section-label">Use Cases</div>
-    <h2 class="section-title">Who is CAP for?</h2>
+    <h2 class="section-title">Who is Chat Agent Relay for?</h2>
 
     <div class="feature-grid">
       <div class="feature-card">
@@ -262,7 +261,7 @@
 <section>
   <div class="container reveal">
     <div class="section-label">Compare</div>
-    <h2 class="section-title">CAP vs building from scratch</h2>
+    <h2 class="section-title">Chat Agent Relay vs building from scratch</h2>
     <p class="section-desc">
       You can always build it yourself. Here's what you'd need to replicate.
     </p>
@@ -273,7 +272,7 @@
           <tr>
             <th>Capability</th>
             <th>DIY Integration</th>
-            <th>CAP</th>
+            <th>CAR</th>
           </tr>
         </thead>
         <tbody>
@@ -317,8 +316,8 @@
     </div>
 
     <div style="text-align:center;margin-top:24px">
-      <a href="/cap/compare/diy/" class="btn btn-secondary" data-track="compare_diy">Full comparison &rarr;</a>
-      <a href="/cap/compare/alternatives/" class="btn btn-secondary" data-track="compare_alt" style="margin-left:8px">vs Botpress, Rasa, Chatwoot &rarr;</a>
+      <a href="/chat-agent-relay/compare/diy/" class="btn btn-secondary" data-track="compare_diy">Full comparison &rarr;</a>
+      <a href="/chat-agent-relay/compare/alternatives/" class="btn btn-secondary" data-track="compare_alt" style="margin-left:8px">vs Botpress, Rasa, Chatwoot &rarr;</a>
     </div>
   </div>
 </section>
@@ -327,16 +326,16 @@
 <section class="cta-banner">
   <div class="container">
     <h2>Ready to stop rewriting integrations?</h2>
-    <p>CAP is MIT licensed and free forever. Get started in 2 minutes.</p>
+    <p>Chat Agent Relay is MIT licensed and free forever. Get started in 2 minutes.</p>
     <div class="hero-actions">
-      <a href="/cap/docs/" class="btn btn-primary" data-track="cta_get_started">Get Started</a>
-      <a href="https://github.com/anthropics/cap" class="btn btn-secondary" data-track="cta_github">Star on GitHub</a>
+      <a href="/chat-agent-relay/docs/" class="btn btn-primary" data-track="cta_get_started">Get Started</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-secondary" data-track="cta_github">Star on GitHub</a>
     </div>
 
     <div class="share-row">
-      <a href="https://twitter.com/intent/tweet?text=CAP%20%E2%80%94%20connect%20any%20chat%20platform%20to%20any%20AI%20agent.%20Open%20source.%20https%3A%2F%2Fgithub.com%2Fanthropics%2Fcap" class="share-btn" target="_blank" rel="noopener" data-track="share_twitter">Share on X</a>
-      <a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fgithub.com%2Fanthropics%2Fcap" class="share-btn" target="_blank" rel="noopener" data-track="share_linkedin">Share on LinkedIn</a>
-      <a href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fgithub.com%2Fanthropics%2Fcap&t=CAP%20%E2%80%94%20Open-source%20chat-to-agent%20middleware" class="share-btn" target="_blank" rel="noopener" data-track="share_hn">Share on HN</a>
+      <a href="https://twitter.com/intent/tweet?text=Chat%20Agent%20Relay%20%E2%80%94%20connect%20any%20chat%20platform%20to%20any%20AI%20agent.%20Open%20source.%20https%3A%2F%2Fgithub.com%2FChatAgentRelay%2FChatAgentRelay" class="share-btn" target="_blank" rel="noopener" data-track="share_twitter">Share on X</a>
+      <a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fgithub.com%2FChatAgentRelay%2FChatAgentRelay" class="share-btn" target="_blank" rel="noopener" data-track="share_linkedin">Share on LinkedIn</a>
+      <a href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fgithub.com%2FChatAgentRelay%2FChatAgentRelay&t=Chat%20Agent%20Relay%20%E2%80%94%20Open-source%20chat-to-agent%20middleware" class="share-btn" target="_blank" rel="noopener" data-track="share_hn">Share on HN</a>
     </div>
   </div>
 </section>
@@ -345,11 +344,11 @@
 <footer class="footer">
   <div class="container">
     <div class="footer-links">
-      <a href="https://github.com/anthropics/cap">GitHub</a>
-      <a href="/cap/docs/">Docs</a>
-      <a href="/cap/blog/">Blog</a>
-      <a href="/cap/why-cap/">Why CAP</a>
-      <a href="https://github.com/anthropics/cap/issues">Issues</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
+      <a href="/chat-agent-relay/docs/">Docs</a>
+      <a href="/chat-agent-relay/blog/">Blog</a>
+      <a href="/chat-agent-relay/why-car/">Why CAR</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
     </div>
     <p>MIT License &middot; Built with Bun and TypeScript</p>
   </div>

@@ -1,5 +1,5 @@
 {
-  "name": "@cap/pipeline",
+  "name": "@chat-agent-relay/pipeline",
   "private": true,
   "type": "module",
   "exports": {
@@ -10,16 +10,16 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@cap/contract-harness": "workspace:*",
-    "@cap/channel-web-chat": "workspace:*",
-    "@cap/middleware": "workspace:*",
-    "@cap/backend-http": "workspace:*",
-    "@cap/delivery": "workspace:*",
-    "@cap/event-ledger": "workspace:*"
+    "@chat-agent-relay/contract-harness": "workspace:*",
+    "@chat-agent-relay/channel-web-chat": "workspace:*",
+    "@chat-agent-relay/middleware": "workspace:*",
+    "@chat-agent-relay/backend-http": "workspace:*",
+    "@chat-agent-relay/delivery": "workspace:*",
+    "@chat-agent-relay/event-ledger": "workspace:*"
   },
   "devDependencies": {
-    "@cap/channel-slack": "workspace:*",
-    "@cap/backend-openai": "workspace:*",
+    "@chat-agent-relay/channel-slack": "workspace:*",
+    "@chat-agent-relay/backend-openai": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^5.8.2"
   }

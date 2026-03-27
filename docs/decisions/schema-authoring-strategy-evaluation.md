@@ -1,4 +1,4 @@
-# CAP Schema Authoring Strategy Evaluation
+# Chat Agent Relay Schema Authoring Strategy Evaluation
 
 This decision is intentionally separated from the language/runtime decision.
 
@@ -12,12 +12,12 @@ Specifically:
 - RFC documents remain the normative semantic source of truth
 - machine-readable schemas should exist as first-class artifacts
 - TypeScript schema definitions may be used as an implementation-facing source for selected runtime contracts where they can generate or stay aligned with machine-readable schemas
-- CAP should avoid a pure code-first model that makes TypeScript the only practical source of truth
-- CAP should also avoid a pure schema-first model that creates too much early authoring overhead for v0/v1
+- CAR should avoid a pure code-first model that makes TypeScript the only practical source of truth
+- CAR should also avoid a pure schema-first model that creates too much early authoring overhead for v0/v1
 
 ## Decision Scope
 
-Choose how CAP's canonical event schema and related contracts should be authored and maintained.
+Choose how CAR's canonical event schema and related contracts should be authored and maintained.
 
 ## Candidate Directions Considered
 
@@ -97,7 +97,7 @@ Author canonical event schemas and major contracts first in machine-readable sch
 - Strongest source-of-truth clarity for machine-readable contracts.
 - Best cross-language portability.
 - Best protection against implementation drift across multiple runtimes.
-- Strong fit if CAP later grows SDK/codegen/distributed integration surfaces.
+- Strong fit if CAR later grows SDK/codegen/distributed integration surfaces.
 
 #### Weaknesses
 - Higher early authoring overhead.
@@ -129,7 +129,7 @@ Keep semantics and precedence anchored in RFCs, introduce first-class machine-re
 - Slightly more process complexity than pure code-first.
 
 #### Assessment
-This is the best fit for the current CAP repository state.
+This is the best fit for the current CAR repository state.
 
 ## Comparison Summary
 
@@ -196,7 +196,7 @@ This approach lets the project benefit from TypeScript's strengths:
 
 without paying the full architectural cost of a pure code-first approach.
 
-It also preserves future optionality if CAP later wants:
+It also preserves future optionality if CAR later wants:
 - cross-language SDKs
 - stronger code generation
 - machine-readable public contracts
@@ -205,13 +205,13 @@ It also preserves future optionality if CAP later wants:
 ## Revisit Conditions
 
 Revisit this decision if:
-- CAP becomes strongly SDK/codegen-driven, in which case a more schema-first model may become preferable
+- CAR becomes strongly SDK/codegen-driven, in which case a more schema-first model may become preferable
 - the team repeatedly experiences drift between RFCs, schemas, and TypeScript definitions
 - the first v0/v1 implementation proves that machine-readable contract artifacts are either too heavy or not heavy enough
 
 ## Current Decision Statement
 
-CAP should use a **hybrid schema authoring strategy**:
+CAR should use a **hybrid schema authoring strategy**:
 - RFCs define semantics
 - machine-readable schemas become first-class contract artifacts where it matters most
 - TypeScript-native schema tooling serves implementation ergonomics, but does not become the sole contract authority

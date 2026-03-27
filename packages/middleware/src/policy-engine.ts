@@ -1,4 +1,4 @@
-import type { CanonicalEvent } from "@cap/contract-harness";
+import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
 import type { PolicyDecision, PolicyFn } from "./types";
 
 export type PolicyRule = {
@@ -55,9 +55,7 @@ export function loadPolicyConfig(source?: string): PolicyConfig {
     }
     return validatePolicyConfig(parsed as Record<string, unknown>);
   } catch (error) {
-    throw new Error(
-      `Failed to parse policy config: ${error instanceof Error ? error.message : String(error)}`,
-    );
+    throw new Error(`Failed to parse policy config: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

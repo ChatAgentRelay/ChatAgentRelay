@@ -41,9 +41,11 @@ const SELECT_BY_ID = "SELECT event_json FROM canonical_events WHERE event_id = $
 
 const SELECT_ALL = "SELECT event_json FROM canonical_events ORDER BY occurred_at ASC, rowid ASC";
 
-const SELECT_BY_CONVERSATION = "SELECT event_json FROM canonical_events WHERE conversation_id = $conversation_id ORDER BY occurred_at ASC, rowid ASC";
+const SELECT_BY_CONVERSATION =
+  "SELECT event_json FROM canonical_events WHERE conversation_id = $conversation_id ORDER BY occurred_at ASC, rowid ASC";
 
-const SELECT_BY_CORRELATION = "SELECT event_json FROM canonical_events WHERE correlation_id = $correlation_id ORDER BY occurred_at ASC, rowid ASC";
+const SELECT_BY_CORRELATION =
+  "SELECT event_json FROM canonical_events WHERE correlation_id = $correlation_id ORDER BY occurred_at ASC, rowid ASC";
 
 type EventRow = { event_json: string };
 

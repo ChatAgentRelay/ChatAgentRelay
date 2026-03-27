@@ -1,22 +1,15 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadPolicyConfig } from "@cap/middleware";
+import { loadPolicyConfig } from "@chat-agent-relay/middleware";
 import { loadConfig, type ServerConfig } from "./config";
-import { main } from "./main";
 import { logger } from "./logger";
-import { validateConfig, formatConfigErrors } from "./validate-config";
+import { main } from "./main";
+import { formatConfigErrors, validateConfig } from "./validate-config";
 
-const DOCS_URL = "https://github.com/your-org/cap/blob/main/docs/getting-started.md";
+const DOCS_URL = "https://github.com/ChatAgentRelay/ChatAgentRelay/blob/main/docs/getting-started.md";
 
-const KNOWN_FLAGS = new Set([
-  "-h",
-  "--help",
-  "-v",
-  "--version",
-  "--check-config",
-  "--dry-run",
-]);
+const KNOWN_FLAGS = new Set(["-h", "--help", "-v", "--version", "--check-config", "--dry-run"]);
 
 function getPackageVersion(): string {
   const dir = dirname(fileURLToPath(import.meta.url));
@@ -27,9 +20,9 @@ function getPackageVersion(): string {
 }
 
 function printHelp(): void {
-  process.stdout.write(`CAP Server - Chat Platform <-> Agent Middleware
+  process.stdout.write(`Chat Agent Relay Server - Chat Platform <-> Agent Middleware
 
-Usage: cap-server [options]
+Usage: car-server [options]
 
 Options:
   -h, --help          Show this help message
@@ -93,7 +86,7 @@ async function slackAuthTest(botToken: string): Promise<void> {
   const response = await fetch("https://slack.com/api/auth.test", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${botToken}`,
+      Authorization: `Bearer ${botToken}`,
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: "",
@@ -110,7 +103,7 @@ async function slackSocketModeHandshake(appToken: string): Promise<void> {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      "Authorization": `Bearer ${appToken}`,
+      Authorization: `Bearer ${appToken}`,
     },
     signal: AbortSignal.timeout(15_000),
   });
@@ -125,7 +118,7 @@ async function openAiConnectivity(config: ServerConfig): Promise<void> {
   const response = await fetch(`${base}/models`, {
     method: "GET",
     headers: {
-      "Authorization": `Bearer ${config.openai.apiKey}`,
+      Authorization: `Bearer ${config.openai.apiKey}`,
     },
     signal: AbortSignal.timeout(15_000),
   });
@@ -147,7 +140,7 @@ async function runDryRun(config: ServerConfig): Promise<void> {
   await openAiConnectivity(config);
   process.stdout.write("  OpenAI API: OK\n");
 
-  const policySource = config.cap.policyConfig;
+  const policySource = config.car.policyConfig;
   if (policySource !== undefined && policySource.length > 0) {
     const policyConfig = loadPolicyConfig(policySource);
     process.stdout.write(`  Policy config: OK (${policyConfig.rules.length} rule(s))\n`);
@@ -189,9 +182,7 @@ async function cliMain(): Promise<void> {
       try {
         config = loadConfig();
       } catch (error) {
-        process.stderr.write(
-          `${error instanceof Error ? error.message : String(error)}\n`,
-        );
+        process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
         process.exit(1);
       }
       runCheckConfig(config);
@@ -202,9 +193,7 @@ async function cliMain(): Promise<void> {
       try {
         config = loadConfig();
       } catch (error) {
-        process.stderr.write(
-          `${error instanceof Error ? error.message : String(error)}\n`,
-        );
+        process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
         process.exit(1);
       }
       const errors = validateConfig(config);
@@ -215,9 +204,7 @@ async function cliMain(): Promise<void> {
       try {
         await runDryRun(config);
       } catch (error) {
-        process.stderr.write(
-          `Connectivity check failed: ${error instanceof Error ? error.message : String(error)}\n`,
-        );
+        process.stderr.write(`Connectivity check failed: ${error instanceof Error ? error.message : String(error)}\n`);
         process.exit(1);
       }
       process.exit(0);
