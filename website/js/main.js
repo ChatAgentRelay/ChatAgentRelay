@@ -30,27 +30,6 @@
     reveals.forEach(function (el) { el.classList.add("visible"); });
   }
 
-  /* Terminal typing effect on hero */
-  var heroTerminal = document.querySelector(".hero-terminal .terminal-body");
-  if (heroTerminal) {
-    var lines = heroTerminal.querySelectorAll("[data-type]");
-    var delay = 0;
-    lines.forEach(function (line) {
-      var text = line.textContent;
-      line.textContent = "";
-      line.style.visibility = "visible";
-      var charDelay = 25;
-      for (var i = 0; i < text.length; i++) {
-        (function (idx, d) {
-          setTimeout(function () {
-            line.textContent = text.substring(0, idx + 1);
-          }, d + idx * charDelay);
-        })(i, delay);
-      }
-      delay += text.length * charDelay + 300;
-    });
-  }
-
   /* GA4 event tracking */
   function trackEvent(name, params) {
     if (typeof gtag === "function") {

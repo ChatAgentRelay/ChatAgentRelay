@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0d1117"/>
+  <rect x="40" y="40" width="1120" height="550" rx="16" fill="#161b22" stroke="#30363d" stroke-width="2"/>
+  <text x="100" y="200" font-family="monospace" font-weight="800" font-size="72" fill="#e6edf3">
+    <tspan fill="#3fb950">$</tspan> Chat Agent Relay
+  </text>
+  <text x="100" y="290" font-family="sans-serif" font-size="36" fill="#8b949e">Connect any chat platform to any agent</text>
+  <text x="100" y="360" font-family="sans-serif" font-size="28" fill="#6e7681">Governance · Audit · Zero lock-in</text>
+  <rect x="100" y="420" width="220" height="50" rx="8" fill="#58a6ff"/>
+  <text x="140" y="453" font-family="sans-serif" font-weight="600" font-size="20" fill="#0d1117">Get Started</text>
+  <rect x="340" y="420" width="220" height="50" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="390" y="453" font-family="sans-serif" font-weight="600" font-size="20" fill="#e6edf3">GitHub</text>
+  <text x="100" y="540" font-family="monospace" font-size="20" fill="#6e7681">open source · MIT license · TypeScript + Bun</text>
+</svg>
