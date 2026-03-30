@@ -9,15 +9,6 @@ const DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant.";
 const DEFAULT_BASE_URL = "https://api.openai.com/v1";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
-/**
- * @deprecated OpenAIBackend wraps the raw Chat Completions API (/v1/chat/completions),
- * which is an LLM API, not an agent runtime. For agent workloads, use:
- * - backend-a2a for A2A-compliant agents
- * - backend-langgraph for LangGraph Platform agents
- * - backend-http for any HTTP endpoint (including OpenAI-compatible APIs)
- *
- * This package is maintained for backward compatibility but will not receive new features.
- */
 export class OpenAIBackend {
   private readonly validators: ContractHarnessValidators;
   private readonly apiKey: string;
@@ -37,11 +28,6 @@ export class OpenAIBackend {
   }
 
   static async create(config: OpenAIBackendConfig): Promise<OpenAIBackend> {
-    console.warn(
-      "[CAR] OpenAIBackend is deprecated. It wraps raw LLM completions, not an agent runtime. " +
-        "Consider using backend-a2a, backend-langgraph, or backend-http instead. " +
-        "See: https://ChatAgentRelay.github.io/ChatAgentRelay/blog/agent-compatibility-analysis/",
-    );
     const validators = await ContractHarnessValidators.create();
     return new OpenAIBackend(config, validators);
   }

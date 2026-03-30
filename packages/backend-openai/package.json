@@ -1,6 +1,5 @@
 {
   "name": "@chat-agent-relay/backend-openai",
-  "deprecated": "Use backend-a2a, backend-langgraph, or backend-http instead. This package wraps raw LLM completions, not an agent runtime.",
   "private": true,
   "type": "module",
   "exports": {

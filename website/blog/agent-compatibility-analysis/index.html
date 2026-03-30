@@ -418,17 +418,17 @@ CAR connects to server   &rarr;   backend-a2a / backend-http / backend-langgraph
       This is a strong architectural position. Rather than building and maintaining a bespoke adapter for every framework, CAR invests in one standards-based adapter and lets the ecosystem converge toward it. The adapter count shrinks over time instead of growing.
     </p>
 
-    <!-- ─── Section 7: Why We Deprecated backend-openai ─── -->
+    <!-- ─── Section 7: backend-openai as LLM convenience adapter ─── -->
 
-    <h2 id="deprecated-openai">Why We Deprecated <code>backend-openai</code></h2>
+    <h2 id="openai-positioning">Where <code>backend-openai</code> Fits</h2>
     <p>
-      CAR originally shipped <code>backend-openai</code> as a convenience adapter that called OpenAI&rsquo;s <code>/v1/chat/completions</code> endpoint directly. We deprecated it because it contradicts CAR&rsquo;s positioning as <em>agent middleware</em>.
+      <code>backend-openai</code> wraps OpenAI&rsquo;s <code>/v1/chat/completions</code> endpoint directly. It is a raw LLM API adapter, not an agent runtime. It is useful for quick prototyping, but for production agent workloads, prefer:
     </p>
-    <p>The problems:</p>
     <ul>
-      <li><strong>It&rsquo;s a raw LLM API, not an agent.</strong> Chat Completions is a stateless text-in/text-out interface. There is no tool calling loop, no state management, no HITL, no session continuity. Calling it an &ldquo;agent backend&rdquo; is misleading.</li>
-      <li><strong>No governance surface.</strong> The model does whatever the prompt says. There is no agent-side policy, no structured task lifecycle, no artifact management. CAR&rsquo;s pipeline adds governance on the <em>relay</em> side, but the backend is a black box with a single-turn interface.</li>
-      <li><strong><code>backend-http</code> already covers it.</strong> If someone genuinely needs to call Chat Completions through CAR (for prototyping, say), <code>GenericHttpBackend</code> can POST to the same endpoint with a custom request body builder and response field extractor. No dedicated package required.</li>
+      <li><strong><code>backend-a2a</code></strong> for A2A-compliant agents</li>
+      <li><strong><code>backend-langgraph</code></strong> for LangGraph Platform agents</li>
+      <li><strong><code>backend-http</code></strong> for any HTTP endpoint (including OpenAI-compatible APIs)</li>
+      <li><strong><code>backend-acp</code></strong> for coding agents via Agent Client Protocol</li>
     </ul>
     <p>
       If users want OpenAI&rsquo;s <em>agent</em> capabilities (the Responses API, the Agents SDK), the correct path is: build an agent with the SDK, deploy it behind an HTTP or A2A server, and connect CAR to <em>that</em> server. The LLM call is an implementation detail inside the agent, not something CAR should be reaching through to invoke.

@@ -1,7 +1,5 @@
 export type { ConfigStore } from "./config-store";
 export { SqliteConfigStore } from "./config-database";
-/** @deprecated Use SqliteConfigStore */
-export { SqliteConfigStore as ConfigDatabase } from "./config-database";
 export { EncryptionEngine } from "./encryption";
 export { RouteEngine } from "./route-engine";
 export type { RouteContext, RouteDecision } from "./route-engine";
