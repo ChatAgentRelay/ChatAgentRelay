@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://car.local/schemas/canonical-model/events/agent/agent-status-changed.schema.json",
+  "title": "CAR Agent Status Changed Event",
+  "description": "Specialized canonical event schema for agent.status.changed events.",
+  "allOf": [
+    {
+      "$ref": "../../canonical-event-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_type", "payload", "actor_type"],
+      "properties": {
+        "event_type": {
+          "const": "agent.status.changed"
+        },
+        "actor_type": {
+          "const": "system"
+        },
+        "payload": {
+          "type": "object",
+          "required": ["status", "session_handle"],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "submitted",
+                "working",
+                "input-required",
+                "completed",
+                "failed",
+                "cancelled"
+              ]
+            },
+            "session_handle": {
+              "type": "string",
+              "minLength": 1
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "event_id": "evt_201",
+      "schema_version": "v1alpha1",
+      "event_type": "agent.status.changed",
+      "tenant_id": "tenant_acme",
+      "workspace_id": "ws_support",
+      "channel": "slack",
+      "channel_instance_id": "slack_support_prod",
+      "conversation_id": "conv_1",
+      "session_id": "sess_1",
+      "correlation_id": "corr_1",
+      "causation_id": "evt_200",
+      "occurred_at": "2026-03-17T12:00:05Z",
+      "actor": {
+        "id": "car_runtime"
+      },
+      "actor_type": "system",
+      "payload": {
+        "status": "input-required",
+        "session_handle": "agent_sess_42",
+        "message": "Waiting for user approval."
+      }
+    }
+  ]
+}

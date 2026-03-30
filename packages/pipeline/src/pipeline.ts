@@ -1,11 +1,40 @@
-import type { ConversationTurn } from "@chat-agent-relay/backend-http";
-import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
+import type {
+  AgentAdapter,
+  AgentEvent,
+  AgentInvocationContext,
+  AgentResult,
+  CanonicalEvent,
+  ConversationTurn,
+} from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { DeliveryOrchestrator } from "@chat-agent-relay/delivery";
 import type { LedgerStore } from "@chat-agent-relay/event-ledger";
 import { EventLedgerAppender, EventLedgerReader, InMemoryEventLedgerStore } from "@chat-agent-relay/event-ledger";
-import { MiddlewarePipeline } from "@chat-agent-relay/middleware";
-import type { BackendAdapter, ChannelIngress, PipelineConfig, PipelineResult, StreamingOptions } from "./types";
+import type { ChannelIngress, PipelineConfig, PipelineResult, RouteFn, StreamingOptions } from "./types";
+
+function deriveEvent(
+  source: CanonicalEvent,
+  causationId: string,
+  eventType: string,
+  payload: Record<string, unknown>,
+): CanonicalEvent {
+  return {
+    event_id: `evt_${crypto.randomUUID()}`,
+    schema_version: "v1alpha1",
+    event_type: eventType,
+    tenant_id: source.tenant_id,
+    workspace_id: source.workspace_id,
+    channel: source.channel,
+    channel_instance_id: source.channel_instance_id ?? source.channel,
+    conversation_id: source.conversation_id,
+    session_id: source.session_id,
+    correlation_id: source.correlation_id,
+    causation_id: causationId,
+    occurred_at: new Date().toISOString(),
+    actor_type: "system",
+    payload,
+  };
+}
 
 function deriveBlockedEvent(
   source: CanonicalEvent,
@@ -35,8 +64,11 @@ function deriveBlockedEvent(
 export class FirstExecutablePathPipeline {
   private constructor(
     private readonly ingress: ChannelIngress,
-    private readonly middleware: MiddlewarePipeline,
-    private readonly backend: BackendAdapter,
+    private readonly resolveAgent: (name: string) => AgentAdapter | undefined,
+    private readonly routeFn: RouteFn,
+    private readonly channelName: string,
+    private readonly policyId: string,
+    private readonly policyFn: ((event: CanonicalEvent) => { decision: "allow" | "deny"; reason?: string }) | undefined,
     private readonly delivery: DeliveryOrchestrator,
     private readonly appender: EventLedgerAppender,
     private readonly reader: EventLedgerReader,
@@ -48,8 +80,7 @@ export class FirstExecutablePathPipeline {
 
   static async create(config: PipelineConfig): Promise<FirstExecutablePathPipeline> {
     const store = config.ledgerStore ?? new InMemoryEventLedgerStore();
-    const [middleware, delivery, appender, validators] = await Promise.all([
-      MiddlewarePipeline.create(config.middleware),
+    const [delivery, appender, validators] = await Promise.all([
       DeliveryOrchestrator.create(config.retryConfig),
       EventLedgerAppender.create(store),
       ContractHarnessValidators.create(),
@@ -57,8 +88,11 @@ export class FirstExecutablePathPipeline {
     const reader = new EventLedgerReader(store);
     return new FirstExecutablePathPipeline(
       config.ingress,
-      middleware,
-      config.backend,
+      config.resolveAgent,
+      config.routeFn,
+      config.channelName,
+      config.policyId ?? "default_ingress",
+      config.policyFn,
       delivery,
       appender,
       reader,
@@ -90,23 +124,35 @@ export class FirstExecutablePathPipeline {
     const messageReceived = canonResult.event;
     this.appendToLedger(messageReceived);
 
-    const mwResult = this.middleware.process(messageReceived);
-    this.appendToLedger(mwResult.policyEvent);
+    if (messageReceived.event_type !== "message.received") {
+      throw new Error(`Expected message.received, got ${messageReceived.event_type}`);
+    }
 
-    if (!mwResult.allowed) {
+    const policyDecision = this.policyFn
+      ? this.policyFn(messageReceived)
+      : { decision: "allow" as const };
+
+    const policyEvent = deriveEvent(messageReceived, messageReceived.event_id, "policy.decision.made", {
+      policy: this.policyId,
+      decision: policyDecision.decision,
+      ...(policyDecision.reason !== undefined ? { reason: policyDecision.reason } : {}),
+    });
+    this.validateAndAppend(policyEvent);
+
+    if (policyDecision.decision === "deny") {
       const blocked = deriveBlockedEvent(
         messageReceived,
-        mwResult.policyEvent.event_id,
-        mwResult.denyReason,
+        policyEvent.event_id,
+        policyDecision.reason ?? "policy_deny",
         "governance",
         false,
       );
       this.validateAndAppend(blocked);
 
       return {
-        events: [messageReceived, mwResult.policyEvent, blocked],
+        events: [messageReceived, policyEvent, blocked],
         blocked: true,
-        blockReason: mwResult.denyReason,
+        blockReason: policyDecision.reason ?? "policy_deny",
         explanation: {
           inboundText: messageReceived.payload["text"] as string,
           policyDecision: "deny",
@@ -117,55 +163,111 @@ export class FirstExecutablePathPipeline {
       };
     }
 
-    this.appendToLedger(mwResult.routeEvent);
-    this.appendToLedger(mwResult.invocationEvent);
-
-    const conversationHistory = this.buildConversationHistory(messageReceived.conversation_id);
-
-    const invocationContext = {
-      invocationEvent: mwResult.invocationEvent,
-      messageText: messageReceived.payload["text"] as string,
-      conversationHistory,
-      route: {
-        route_id: mwResult.routeEvent.payload["route"] as string,
-        reason: mwResult.routeEvent.payload["reason"] as string,
-      },
-      policy: {
-        policy_id: mwResult.policyEvent.payload["policy"] as string,
-        decision: mwResult.policyEvent.payload["decision"] as string,
-      },
-    };
-
-    const backendResult =
-      this.streaming?.enabled && this.backend.invokeStreaming
-        ? await this.invokeWithStreaming(invocationContext)
-        : await this.backend.invoke(invocationContext);
-
-    if (!backendResult.ok) {
-      const blocked = deriveBlockedEvent(
-        messageReceived,
-        mwResult.invocationEvent.event_id,
-        backendResult.error.message,
-        "backend_invocation",
-        backendResult.error.retryable,
-      );
+    const messageText = messageReceived.payload["text"] as string;
+    const routeDecision = this.routeFn(this.channelName, messageText);
+    if (routeDecision === null) {
+      const blocked = deriveBlockedEvent(messageReceived, policyEvent.event_id, "no_route_matched", "routing", false);
       this.validateAndAppend(blocked);
 
       return {
-        events: [messageReceived, mwResult.policyEvent, mwResult.routeEvent, mwResult.invocationEvent, blocked],
+        events: [messageReceived, policyEvent, blocked],
         blocked: true,
-        blockReason: backendResult.error.message,
+        blockReason: "no_route_matched",
         explanation: {
-          inboundText: messageReceived.payload["text"] as string,
-          policyDecision: mwResult.policyEvent.payload["decision"] as string,
-          selectedRoute: mwResult.routeEvent.payload["route"] as string,
+          inboundText: messageText,
+          policyDecision: policyEvent.payload["decision"] as string,
+          selectedRoute: "",
           backendResponse: "",
           providerMessageId: "",
         },
       };
     }
 
-    const agentResponse = backendResult.event;
+    const routeReason =
+      routeDecision.reason.trim() || routeDecision.matchType.trim() || "route";
+    const routeEvent = deriveEvent(messageReceived, policyEvent.event_id, "route.decision.made", {
+      route: routeDecision.agentName,
+      reason: routeReason,
+    });
+    this.validateAndAppend(routeEvent);
+
+    const agent = this.resolveAgent(routeDecision.agentName);
+    if (agent === undefined) {
+      const blocked = deriveBlockedEvent(
+        messageReceived,
+        routeEvent.event_id,
+        `agent_not_found: ${routeDecision.agentName}`,
+        "routing",
+        false,
+      );
+      this.validateAndAppend(blocked);
+
+      return {
+        events: [messageReceived, policyEvent, routeEvent, blocked],
+        blocked: true,
+        blockReason: `agent_not_found: ${routeDecision.agentName}`,
+        explanation: {
+          inboundText: messageText,
+          policyDecision: policyEvent.payload["decision"] as string,
+          selectedRoute: routeEvent.payload["route"] as string,
+          backendResponse: "",
+          providerMessageId: "",
+        },
+      };
+    }
+
+    const invocationEvent = deriveEvent(messageReceived, routeEvent.event_id, "agent.invocation.requested", {
+      backend: routeDecision.agentName,
+      input_event_id: messageReceived.event_id,
+    });
+    this.validateAndAppend(invocationEvent);
+
+    const conversationHistory = this.buildConversationHistory(messageReceived.conversation_id);
+
+    const invocationContext: AgentInvocationContext = {
+      invocationEvent,
+      messageText,
+      conversationHistory,
+      route: {
+        route_id: String(routeDecision.routeId),
+        reason: routeReason,
+      },
+      policy: {
+        policy_id: policyEvent.payload["policy"] as string,
+        decision: policyEvent.payload["decision"] as string,
+      },
+    };
+
+    const agentResult =
+      this.streaming?.enabled && agent.stream
+        ? await this.invokeWithStreaming(agent, invocationContext)
+        : await agent.invoke(invocationContext);
+
+    if (!agentResult.ok) {
+      const blocked = deriveBlockedEvent(
+        messageReceived,
+        invocationEvent.event_id,
+        agentResult.error.message,
+        "backend_invocation",
+        agentResult.error.retryable,
+      );
+      this.validateAndAppend(blocked);
+
+      return {
+        events: [messageReceived, policyEvent, routeEvent, invocationEvent, blocked],
+        blocked: true,
+        blockReason: agentResult.error.message,
+        explanation: {
+          inboundText: messageText,
+          policyDecision: policyEvent.payload["decision"] as string,
+          selectedRoute: routeEvent.payload["route"] as string,
+          backendResponse: "",
+          providerMessageId: "",
+        },
+      };
+    }
+
+    const agentResponse = agentResult.event;
     this.appendToLedger(agentResponse);
 
     let deliveryResult;
@@ -177,20 +279,13 @@ export class FirstExecutablePathPipeline {
       this.validateAndAppend(blocked);
 
       return {
-        events: [
-          messageReceived,
-          mwResult.policyEvent,
-          mwResult.routeEvent,
-          mwResult.invocationEvent,
-          agentResponse,
-          blocked,
-        ],
+        events: [messageReceived, policyEvent, routeEvent, invocationEvent, agentResponse, blocked],
         blocked: true,
         blockReason: reason,
         explanation: {
-          inboundText: messageReceived.payload["text"] as string,
-          policyDecision: mwResult.policyEvent.payload["decision"] as string,
-          selectedRoute: mwResult.routeEvent.payload["route"] as string,
+          inboundText: messageText,
+          policyDecision: policyEvent.payload["decision"] as string,
+          selectedRoute: routeEvent.payload["route"] as string,
           backendResponse: agentResponse.payload["text"] as string,
           providerMessageId: "",
         },
@@ -202,9 +297,9 @@ export class FirstExecutablePathPipeline {
 
     const events = [
       messageReceived,
-      mwResult.policyEvent,
-      mwResult.routeEvent,
-      mwResult.invocationEvent,
+      policyEvent,
+      routeEvent,
+      invocationEvent,
       agentResponse,
       deliveryResult.sendRequestedEvent,
       deliveryResult.sentEvent,
@@ -212,10 +307,12 @@ export class FirstExecutablePathPipeline {
 
     return {
       events,
+      ...(agentResult.ok && agentResult.sessionHandle ? { sessionHandle: agentResult.sessionHandle } : {}),
+      ...("hitlPending" in agentResult && agentResult.hitlPending ? { hitlPending: true } : {}),
       explanation: {
-        inboundText: messageReceived.payload["text"] as string,
-        policyDecision: mwResult.policyEvent.payload["decision"] as string,
-        selectedRoute: mwResult.routeEvent.payload["route"] as string,
+        inboundText: messageText,
+        policyDecision: policyEvent.payload["decision"] as string,
+        selectedRoute: routeEvent.payload["route"] as string,
         backendResponse: agentResponse.payload["text"] as string,
         providerMessageId: deliveryResult.providerMessageId,
       },
@@ -227,9 +324,10 @@ export class FirstExecutablePathPipeline {
   }
 
   private async invokeWithStreaming(
-    context: import("@chat-agent-relay/backend-http").InvocationContext,
-  ): Promise<import("@chat-agent-relay/backend-http").InvocationResult> {
-    const generator = this.backend.invokeStreaming!(context);
+    agent: AgentAdapter,
+    context: AgentInvocationContext,
+  ): Promise<AgentResult & { hitlPending?: boolean }> {
+    const generator = agent.stream!(context);
     const updateIntervalMs = this.streaming?.updateIntervalMs ?? 800;
 
     const initialResult = await this.streaming!.postInitial("...");
@@ -237,6 +335,7 @@ export class FirstExecutablePathPipeline {
 
     let accumulated = "";
     let lastUpdateTime = Date.now();
+    let hitlPending = false;
 
     while (true) {
       const { done, value } = await generator.next();
@@ -248,18 +347,23 @@ export class FirstExecutablePathPipeline {
             /* best-effort final update */
           }
         }
-        return value;
+        return hitlPending ? { ...value, hitlPending } : value;
       }
 
-      accumulated += value;
-      const now = Date.now();
-      if (now - lastUpdateTime >= updateIntervalMs && messageTs) {
-        try {
-          await this.streaming!.updateMessage(accumulated);
-          lastUpdateTime = now;
-        } catch {
-          /* best-effort update, continue streaming */
+      const event: AgentEvent = value;
+      if (event.type === "text_delta") {
+        accumulated += event.content;
+        const now = Date.now();
+        if (now - lastUpdateTime >= updateIntervalMs && messageTs) {
+          try {
+            await this.streaming!.updateMessage(accumulated);
+            lastUpdateTime = now;
+          } catch {
+            /* best-effort update, continue streaming */
+          }
         }
+      } else if (event.type === "input_required") {
+        hitlPending = true;
       }
     }
   }

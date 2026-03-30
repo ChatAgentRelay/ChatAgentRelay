@@ -6,8 +6,9 @@ import { WebChatIngress } from "@chat-agent-relay/channel-web-chat";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { SqliteLedgerStore } from "@chat-agent-relay/event-ledger";
 import type { Server } from "bun";
+import { legacyBridge } from "../src/legacy-bridge";
 import { FirstExecutablePathPipeline } from "../src/pipeline";
-import type { PipelineConfig } from "../src/types";
+import type { BackendAdapter, PipelineConfig } from "../src/types";
 
 type BunServer = Server<unknown>;
 
@@ -67,15 +68,26 @@ describe("first executable path pipeline (end-to-end)", () => {
     cleanTestDb();
   });
 
-  async function makeConfig(overrides?: Partial<PipelineConfig>): Promise<PipelineConfig> {
+  async function makeConfig(
+    overrides?: Partial<PipelineConfig> & { httpBackend?: BackendAdapter; routeAgentName?: string },
+  ): Promise<PipelineConfig> {
+    const routeAgentName = overrides?.routeAgentName ?? "default_webchat_agent";
+    const backend =
+      overrides?.httpBackend ?? (await GenericHttpBackend.create({ endpoint: `http://localhost:${mockPort}` }));
+    const { httpBackend: _hb, routeAgentName: _rna, ...rest } = overrides ?? {};
+    const agentAdapter = legacyBridge(backend);
     return {
-      middleware: {
-        route: { route_id: "default_webchat_agent", backend: "generic-http-agent", reason: "default_first_path_route" },
-      },
-      backend: await GenericHttpBackend.create({ endpoint: `http://localhost:${mockPort}` }),
+      resolveAgent: (name) => (name === routeAgentName ? agentAdapter : undefined),
+      routeFn: () => ({
+        agentName: routeAgentName,
+        routeId: 1,
+        matchType: "default",
+        reason: "default_first_path_route",
+      }),
+      channelName: "webchat",
       ingress,
       sendFn: async () => ({ providerMessageId: "webchat_msg_9001" }),
-      ...overrides,
+      ...rest,
     };
   }
 
@@ -100,7 +112,7 @@ describe("first executable path pipeline (end-to-end)", () => {
 
   it("all seven events pass contract validation", async () => {
     const config = await makeConfig({
-      middleware: { route: { route_id: "r1", backend: "b1", reason: "test" } },
+      routeAgentName: "b1",
       sendFn: async () => ({ providerMessageId: "msg_001" }),
     });
 
@@ -115,7 +127,7 @@ describe("first executable path pipeline (end-to-end)", () => {
 
   it("maintains causal chain across all seven events", async () => {
     const config = await makeConfig({
-      middleware: { route: { route_id: "r1", backend: "b1" } },
+      routeAgentName: "b1",
       sendFn: async () => ({ providerMessageId: "msg_001" }),
     });
 
@@ -131,7 +143,7 @@ describe("first executable path pipeline (end-to-end)", () => {
 
   it("shares correlation_id across all seven events", async () => {
     const config = await makeConfig({
-      middleware: { route: { route_id: "r1", backend: "b1" } },
+      routeAgentName: "b1",
       sendFn: async () => ({ providerMessageId: "msg_001" }),
     });
 
@@ -158,7 +170,7 @@ describe("first executable path pipeline (end-to-end)", () => {
 
   it("appends all seven events to ledger and replays them", async () => {
     const config = await makeConfig({
-      middleware: { route: { route_id: "r1", backend: "b1" } },
+      routeAgentName: "b1",
       sendFn: async () => ({ providerMessageId: "msg_001" }),
     });
 
@@ -176,7 +188,7 @@ describe("first executable path pipeline (end-to-end)", () => {
     const store = new SqliteLedgerStore(TEST_DB_PATH);
     try {
       const config = await makeConfig({
-        middleware: { route: { route_id: "r1", backend: "b1" } },
+        routeAgentName: "b1",
         sendFn: async () => ({ providerMessageId: "msg_001" }),
         ledgerStore: store,
       });
@@ -195,8 +207,8 @@ describe("first executable path pipeline (end-to-end)", () => {
 
   it("produces event.blocked when backend is down", async () => {
     const config = await makeConfig({
-      backend: await GenericHttpBackend.create({ endpoint: "http://localhost:1/down" }),
-      middleware: { route: { route_id: "r1", backend: "b1" } },
+      httpBackend: await GenericHttpBackend.create({ endpoint: "http://localhost:1/down" }),
+      routeAgentName: "b1",
       sendFn: async () => ({ providerMessageId: "msg_001" }),
     });
 
@@ -218,7 +230,7 @@ describe("first executable path pipeline (end-to-end)", () => {
 
   it("produces event.blocked when delivery fails after retries exhausted", async () => {
     const config = await makeConfig({
-      middleware: { route: { route_id: "r1", backend: "b1" } },
+      routeAgentName: "b1",
       sendFn: async () => {
         throw new Error("Slack API unreachable");
       },
@@ -243,7 +255,7 @@ describe("first executable path pipeline (end-to-end)", () => {
 
   it("fails gracefully with invalid input", async () => {
     const config = await makeConfig({
-      middleware: { route: { route_id: "r1", backend: "b1" } },
+      routeAgentName: "b1",
       sendFn: async () => ({ providerMessageId: "msg_001" }),
     });
 
@@ -285,11 +297,8 @@ describe("first executable path pipeline (end-to-end)", () => {
 
   it("short-circuits with event.blocked when policy denies", async () => {
     const config = await makeConfig({
-      middleware: {
-        policyId: "content_filter",
-        policyFn: () => ({ decision: "deny", reason: "spam_detected" }),
-        route: { route_id: "r1", backend: "b1" },
-      },
+      policyId: "content_filter",
+      policyFn: () => ({ decision: "deny", reason: "spam_detected" }),
     });
 
     const pipeline = await FirstExecutablePathPipeline.create(config);

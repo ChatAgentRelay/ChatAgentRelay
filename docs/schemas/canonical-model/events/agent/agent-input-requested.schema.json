@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://car.local/schemas/canonical-model/events/agent/agent-input-requested.schema.json",
+  "title": "CAR Agent Input Requested Event",
+  "description": "Specialized canonical event schema for agent.input.requested events (HITL interrupt).",
+  "allOf": [
+    {
+      "$ref": "../../canonical-event-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_type", "payload", "actor_type"],
+      "properties": {
+        "event_type": {
+          "const": "agent.input.requested"
+        },
+        "actor_type": {
+          "const": "agent"
+        },
+        "payload": {
+          "type": "object",
+          "required": ["prompt", "session_handle"],
+          "properties": {
+            "prompt": {
+              "type": "string",
+              "minLength": 1
+            },
+            "session_handle": {
+              "type": "string",
+              "minLength": 1
+            },
+            "metadata": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "event_id": "evt_202",
+      "schema_version": "v1alpha1",
+      "event_type": "agent.input.requested",
+      "tenant_id": "tenant_acme",
+      "workspace_id": "ws_support",
+      "channel": "slack",
+      "channel_instance_id": "slack_support_prod",
+      "conversation_id": "conv_1",
+      "session_id": "sess_1",
+      "correlation_id": "corr_1",
+      "causation_id": "evt_201",
+      "occurred_at": "2026-03-17T12:00:06Z",
+      "actor": {
+        "id": "agent_support"
+      },
+      "actor_type": "agent",
+      "payload": {
+        "prompt": "Approve sending this email?",
+        "session_handle": "agent_sess_42",
+        "metadata": {
+          "interrupt_kind": "approval"
+        }
+      }
+    }
+  ]
+}

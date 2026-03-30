@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://car.local/schemas/canonical-model/events/agent/agent-input-provided.schema.json",
+  "title": "CAR Agent Input Provided Event",
+  "description": "Specialized canonical event schema for agent.input.provided events (human response after HITL).",
+  "allOf": [
+    {
+      "$ref": "../../canonical-event-envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "required": ["event_type", "payload", "actor_type"],
+      "properties": {
+        "event_type": {
+          "const": "agent.input.provided"
+        },
+        "actor_type": {
+          "const": "end_user"
+        },
+        "payload": {
+          "type": "object",
+          "required": ["text", "session_handle"],
+          "properties": {
+            "text": {
+              "type": "string",
+              "minLength": 1
+            },
+            "session_handle": {
+              "type": "string",
+              "minLength": 1
+            },
+            "input_event_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": true
+        }
+      }
+    }
+  ],
+  "examples": [
+    {
+      "event_id": "evt_203",
+      "schema_version": "v1alpha1",
+      "event_type": "agent.input.provided",
+      "tenant_id": "tenant_acme",
+      "workspace_id": "ws_support",
+      "channel": "slack",
+      "channel_instance_id": "slack_support_prod",
+      "conversation_id": "conv_1",
+      "session_id": "sess_1",
+      "correlation_id": "corr_1",
+      "causation_id": "evt_202",
+      "occurred_at": "2026-03-17T12:00:07Z",
+      "actor": {
+        "id": "user_ext_42",
+        "display_name": "Alice"
+      },
+      "actor_type": "end_user",
+      "payload": {
+        "text": "Yes, send it.",
+        "session_handle": "agent_sess_42",
+        "input_event_id": "evt_202"
+      }
+    }
+  ]
+}

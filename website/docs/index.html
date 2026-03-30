@@ -4,20 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Getting Started — Chat Agent Relay Documentation</title>
-  <meta name="description" content="Install Chat Agent Relay with Bun, configure Slack and OpenAI, run the server, test, use Docker and CLI. Chat-to-agent middleware setup guide.">
+  <meta name="description" content="Install Chat Agent Relay with Bun, configure channels and agents via the car CLI and SQLite, run the server, test, and use the HTTP API. Chat-to-agent middleware setup guide.">
   <meta name="keywords" content="Chat Agent Relay, CAR, getting started, Bun, TypeScript, Slack bot, OpenAI, Docker, API, documentation">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
   <meta property="og:title" content="Getting Started — Chat Agent Relay Documentation">
-  <meta property="og:description" content="From clone to running server: prerequisites, install, .env, Docker, CLI, and REST API in one place.">
+  <meta property="og:description" content="From clone to running server: prerequisites, install, CLI + SQLite config, Docker, and REST API in one place.">
   <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/">
   <meta property="og:site_name" content="Chat Agent Relay">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Getting Started — Chat Agent Relay">
-  <meta name="twitter:description" content="Install, configure, and run Chat Agent Relay: Bun, TypeScript, Slack, OpenAI, Docker, CLI, HTTP API.">
+  <meta name="twitter:description" content="Install, configure, and run Chat Agent Relay: Bun, TypeScript, Slack, encrypted SQLite config, Docker, CLI, HTTP API.">
 
   <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
   <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
@@ -74,15 +74,15 @@
 
   <p>
     Chat Agent Relay sits between your chat platform and your AI agent. This guide gets you from zero to a running server:
-    install dependencies, wire Slack and OpenAI, start the process, verify with tests or Docker, and hit the HTTP API.
+    install dependencies, register channels and agents with the <code>car</code> CLI (SQLite + encrypted secrets), start the process, verify with tests or Docker, and hit the HTTP API.
   </p>
 
   <h2 id="prerequisites">Prerequisites</h2>
   <p>Before you start, you need:</p>
   <ul>
     <li><strong><a href="https://bun.sh">Bun</a></strong> — runtime and package manager for this project.</li>
-    <li>A <strong>Slack app</strong> with a bot token and app-level token (Socket Mode).</li>
-    <li>An <strong>OpenAI API key</strong> (or compatible endpoint via optional env vars).</li>
+    <li>A <strong>Slack app</strong> with a bot token and app-level token (Socket Mode), or another supported channel.</li>
+    <li><strong><code>CAR_ENCRYPTION_KEY</code></strong> recommended so tokens and API keys are stored encrypted (AES-256-GCM) in the SQLite config database.</li>
   </ul>
   <p>Clone the repo if you have not already:</p>
   <div class="terminal">
@@ -114,41 +114,14 @@
   <p>That pulls everything the monorepo needs so you can run the server and the full test suite.</p>
 
   <h2 id="configuration">Configuration</h2>
-  <p>Create a <code>.env</code> for the server (start from <code>.env.example</code> in <code>packages/server</code> if the repo provides one). At minimum, set:</p>
+  <p>Runtime settings are stored in a <strong>SQLite</strong> database (default <code>./car.db</code>, override with <code>CAR_DB_PATH</code>). Set <code>CAR_ENCRYPTION_KEY</code> so sensitive fields are written with <strong>AES-256-GCM</strong>. Use the <code>car</code> CLI from <code>packages/server</code>:</p>
   <ul>
-    <li><code>SLACK_BOT_TOKEN</code> — Slack bot token (prefix <code>xoxb-</code>).</li>
-    <li><code>SLACK_APP_TOKEN</code> — Slack app-level token for Socket Mode (prefix <code>xapp-</code>).</li>
-    <li><code>OPENAI_API_KEY</code> — OpenAI secret key (prefix <code>sk-</code>).</li>
+    <li><code>car channel add|list|remove</code> — Slack, Discord, WebChat, …</li>
+    <li><code>car agent add|list|remove</code> — A2A, LangGraph, HTTP, ACP, …</li>
+    <li><code>car route add|list|remove</code> — default and pattern routes for multi-agent setups</li>
+    <li><code>car config set|get</code> — key/value settings</li>
   </ul>
-  <p><strong>Optional</strong> tuning (only if you need them):</p>
-  <ul>
-    <li><code>OPENAI_BASE_URL</code> — non-default API base (e.g. proxies or compatible providers).</li>
-    <li><code>OPENAI_MODEL</code> — model name override.</li>
-    <li><code>CAR_STREAMING</code> — control streaming behavior.</li>
-    <li><code>CAR_API_PORT</code> — HTTP API port (default is commonly <code>3000</code>).</li>
-    <li><code>CAR_POLICY_CONFIG</code> — path or inline policy configuration for governance rules.</li>
-  </ul>
-  <div class="terminal">
-    <div class="terminal-header">
-      <span class="terminal-dot red"></span>
-      <span class="terminal-dot yellow"></span>
-      <span class="terminal-dot green"></span>
-      <span class="terminal-title">.env</span>
-    </div>
-    <div class="terminal-body">
-<span class="comment"># Required</span>
-<span class="cmd">SLACK_BOT_TOKEN=xoxb-your-bot-token</span>
-<span class="cmd">SLACK_APP_TOKEN=xapp-your-app-token</span>
-<span class="cmd">OPENAI_API_KEY=sk-your-openai-key</span>
-<span class="comment"># Optional examples</span>
-<span class="comment"># OPENAI_BASE_URL=https://api.openai.com/v1</span>
-<span class="comment"># OPENAI_MODEL=gpt-4o</span>
-<span class="comment"># CAR_API_PORT=3000</span>
-    </div>
-  </div>
-
-  <h2 id="running">Running the server</h2>
-  <p>Start Chat Agent Relay from the server package so Bun resolves the right entrypoint and env:</p>
+  <p>The same data can be managed via <code>/api/channels</code>, <code>/api/agents</code>, <code>/api/routes</code>, and <code>/api/config</code> for automation.</p>
   <div class="terminal">
     <div class="terminal-header">
       <span class="terminal-dot red"></span>
@@ -157,7 +130,24 @@
       <span class="terminal-title">terminal</span>
     </div>
     <div class="terminal-body">
-<span class="prompt-char">$</span> <span class="cmd">cd packages/server && bun run start</span>
+<span class="cmd">export CAR_ENCRYPTION_KEY=$(openssl rand -hex 32)</span>
+<span class="cmd">car channel add my-slack --type=slack --bot-token=xoxb-... --app-token=xapp-...</span>
+<span class="cmd">car agent add my-bot --type=a2a --endpoint=http://...</span>
+<span class="cmd">car route add --default --agent=my-bot</span>
+    </div>
+  </div>
+
+  <h2 id="running">Running the server</h2>
+  <p>Start Chat Agent Relay from the server package so Bun resolves the right entrypoint:</p>
+  <div class="terminal">
+    <div class="terminal-header">
+      <span class="terminal-dot red"></span>
+      <span class="terminal-dot yellow"></span>
+      <span class="terminal-dot green"></span>
+      <span class="terminal-title">terminal</span>
+    </div>
+    <div class="terminal-body">
+<span class="prompt-char">$</span> <span class="cmd">cd packages/server && car start</span>
     </div>
   </div>
   <p>When it is up, the HTTP API is available on the configured port (typically <code>localhost:3000</code>). Use <code>/api/health</code> to confirm the process is live.</p>
@@ -173,7 +163,7 @@
     </div>
     <div class="terminal-body">
 <span class="prompt-char">$</span> <span class="cmd">bun test --recursive</span>
-<span class="output"># 222 tests across packages (run from repo root).</span>
+<span class="output"># ~542 tests across 43 files (run from repo root).</span>
     </div>
   </div>
   <p>Use this after dependency upgrades or local changes to ensure nothing regressed at the boundaries.</p>
@@ -191,15 +181,16 @@
 <span class="prompt-char">$</span> <span class="cmd">docker compose up -d</span>
     </div>
   </div>
-  <p>Mount or inject the same environment variables your <code>.env</code> would provide so Slack and OpenAI credentials reach the container.</p>
+  <p>Mount the SQLite file (or set <code>CAR_DB_PATH</code>) and provide <code>CAR_ENCRYPTION_KEY</code> so the container can read the same encrypted config.</p>
 
-  <h2 id="cli">CLI: <code>car-server</code></h2>
-  <p>The server binary supports the usual operational flags:</p>
+  <h2 id="cli">CLI: <code>car</code></h2>
+  <p>The <code>car</code> binary manages configuration and runs the server:</p>
   <ul>
-    <li><code>car-server --help</code> — usage and subcommands/options.</li>
-    <li><code>car-server --version</code> — print the build or package version.</li>
-    <li><code>car-server --check-config</code> — validate configuration without fully starting long-running services.</li>
-    <li><code>car-server --dry-run</code> — exercise startup paths safely where supported.</li>
+    <li><code>car channel|agent|route|config</code> — add, list, remove resources in the SQLite config DB.</li>
+    <li><code>car start</code> — run the relay (same entry as a bare <code>car</code> invocation where supported).</li>
+    <li><code>car --help</code> — usage.</li>
+    <li><code>car --version</code> — package version.</li>
+    <li><code>car --check-config</code> — open the config database and print a summary.</li>
   </ul>
   <div class="terminal">
     <div class="terminal-header">
@@ -209,8 +200,8 @@
       <span class="terminal-title">terminal</span>
     </div>
     <div class="terminal-body">
-<span class="prompt-char">$</span> <span class="cmd">car-server --check-config</span>
-<span class="prompt-char">$</span> <span class="cmd">car-server --version</span>
+<span class="prompt-char">$</span> <span class="cmd">car --check-config</span>
+<span class="prompt-char">$</span> <span class="cmd">car --version</span>
     </div>
   </div>
 
@@ -245,8 +236,8 @@
   </ul>
   <p>For non-HTTP protocols or more advanced integration patterns:</p>
   <ul>
-    <li><strong>New chat surface</strong> &mdash; add a channel adapter that turns platform webhooks or sockets into Chat Agent Relay&rsquo;s canonical message flow. Your users stay on Teams, Discord, or a custom web client; Chat Agent Relay keeps one internal shape.</li>
-    <li><strong>New agent backend</strong> &mdash; implement the <code>BackendAdapter</code> interface for protocols beyond HTTP while policy, routing, ledger, and delivery stay consistent.</li>
+    <li><strong>New chat surface</strong> &mdash; add a channel adapter for platforms beyond the built-in Slack, Discord, and WebChat (e.g. Teams, Telegram, or a custom web client); Chat Agent Relay keeps one internal shape.</li>
+    <li><strong>New agent backend</strong> &mdash; implement the <code>AgentAdapter</code> interface (or legacy <code>BackendAdapter</code> via bridge) for any agent runtime while policy, routing, ledger, and delivery stay consistent. Built-in support for A2A, LangGraph, OpenAI, and generic HTTP.</li>
   </ul>
 
   <p style="margin-top:40px">

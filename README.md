@@ -34,7 +34,7 @@ This is not your product. This is overhead. And it multiplies every time require
 | Pain | Without CAR | With CAR |
 |------|------------|----------|
 | New chat platform needed | Weeks of integration work | Implement one interface, done |
-| Switch agent backends | Rewrite integration logic | Change one config |
+| Switch agent backends | Rewrite integration logic | Add or select another agent in the config DB; route rules pick the handler |
 | Compliance asks for audit logs | Build a logging system from scratch | Already there — every message is a 7-event chain in an append-only ledger |
 | Agent call fails | Hope your try/catch was good enough | Automatic retry with exponential backoff + dead-letter queue |
 | "What happened to that message?" | Dig through scattered logs | `curl localhost:3000/api/conversations/{id}/audit` |
@@ -47,15 +47,20 @@ This is not your product. This is overhead. And it multiplies every time require
 git clone https://github.com/ChatAgentRelay/ChatAgentRelay && cd ChatAgentRelay
 bun install
 cd packages/server
-cp .env.example .env    # add your chat platform + agent credentials
-bun run start
+export CAR_ENCRYPTION_KEY="$(openssl rand -hex 32)"   # encrypts tokens and API keys at rest
+car channel add my-slack --type=slack --bot-token=xoxb-... --app-token=xapp-...
+car agent add my-bot --type=a2a --endpoint=http://...
+car route add --default --agent=my-bot
+car start
 ```
+
+For day-to-day operation you typically set `CAR_ENCRYPTION_KEY` (so secrets in the DB are encrypted) and optionally `CAR_DB_PATH` (defaults to `./car.db`).
 
 **Just explore (no tokens needed):**
 
 ```bash
 git clone https://github.com/ChatAgentRelay/ChatAgentRelay && cd ChatAgentRelay
-bun install && bun test --recursive    # 222 tests, ~5 seconds
+bun install && bun test --recursive    # ~542 tests across 43 files
 ```
 
 ## How It Works
@@ -76,22 +81,29 @@ If anything fails, `event.blocked` records what went wrong, at which stage, and 
 
 ## Connect Your Agent
 
-CAR doesn't care what your agent is — an internal tool, a LangChain pipeline, a self-hosted model, or a commercial API. If it can receive an HTTP request and return a response, CAR can talk to it.
+CAR doesn't care what your agent is — an A2A-compatible agent, a LangGraph pipeline, a self-hosted model, or a commercial API. The `AgentAdapter` interface connects to any agent runtime with structured events, HITL support, and session management.
 
 ```typescript
-const backend: BackendAdapter = {
-  async invoke(context: InvocationContext): Promise<InvocationResult> {
-    // call YOUR agent — any HTTP endpoint, any framework, any model
-    // map the response to a canonical event
+const adapter: AgentAdapter = {
+  describeCapabilities() { return { streaming: true, hitl: true, cancel: false, artifacts: false }; },
+  async invoke(context: AgentInvocationContext): Promise<AgentResult> {
+    // call YOUR agent runtime — any protocol, any framework
   }
 };
 ```
 
-Built-in backends: **OpenAI Chat Completions** (with SSE streaming) and **configurable generic HTTP** — supports custom headers, request body builders, and response field extraction, so you can connect any HTTP agent without modifying its code. The conformance test suite validates your adapter automatically: run `testBackendAdapter()` and you know it's correct.
+Built-in agent backends:
+- **A2A protocol** — connect to any A2A-compatible agent with native streaming and HITL
+- **ACP (Agent Client Protocol)** — connect to coding agents (e.g. Claude Code, Gemini CLI) via stdin/stdout subprocess
+- **LangGraph Platform** — connect to LangGraph agents with thread-based sessions
+- **OpenAI Chat Completions** — with SSE streaming (legacy adapter, auto-bridged)
+- **Configurable generic HTTP** — custom headers, request body builders, and response field extraction (legacy adapter, auto-bridged)
+
+The conformance test suite validates your adapter automatically: run `testAgentAdapter()` and you know it's correct.
 
 ## Connect Your Chat Platform
 
-Same story on the chat side. Slack and WebChat are built-in. Need Discord? Teams? Telegram? One interface:
+Same story on the chat side. Slack, Discord, and WebChat are built-in. Need Teams? Telegram? One interface:
 
 ```typescript
 const ingress: ChannelIngress = {
@@ -101,15 +113,22 @@ const ingress: ChannelIngress = {
 };
 ```
 
-Run `testChannelIngress()` to validate. See the [example Discord adapter](examples/custom-channel-adapter/) for a walkthrough.
+Run `testChannelIngress()` to validate. See `packages/channel-discord` for a full adapter example.
 
 ## What You Get Out of the Box
 
 - **Governance** — keyword/regex policy engine blocks messages before they reach your agent
+- **Access control** — DM/channel policies, guild allowlists, mention gating
 - **Full audit trail** — every message is a 7-event chain in an append-only ledger, queryable via REST
 - **Streaming** — SSE responses stream directly to chat with progressive message updates
 - **Delivery retry** — exponential backoff + dead-letter queue, no lost messages
 - **Multi-turn context** — automatic conversation history replay from the ledger
+- **Ack reactions** — configurable emoji feedback on message receive/complete/error
+- **Slash commands** — native slash command handling for Slack and Discord
+- **Multi-agent routing** — register several agents at once; route rules decide which handles each message (hot-pluggable at runtime)
+- **CLI-first configuration** — channels, agents, routes, and settings live in SQLite; no wall of environment variables
+- **Encrypted credentials** — AES-256-GCM for tokens and API keys via `config-store`
+- **Human-in-the-loop (HITL)** — agents can request human input mid-execution and resume after
 - **Conformance testing** — validate any adapter with a single function call
 
 ## Roadmap
@@ -120,19 +139,22 @@ We're building the connective layer between chat and agents. Here's what's alrea
 - [x] Slack
 - [x] Web chat
 - [ ] Microsoft Teams
-- [ ] Discord
+- [x] Discord
 - [ ] Telegram
 - [ ] WhatsApp Business
 - [ ] LINE
 - [ ] Custom web widget SDK
 
-**Agent backends** — connecting to any agent, regardless of how it's built:
+**Agent backends** — connecting to any agent runtime, regardless of how it's built:
+- [x] A2A protocol (Agent-to-Agent)
+- [x] ACP (Agent Client Protocol) for coding-agent CLIs
+- [x] LangGraph Platform
 - [x] OpenAI Chat Completions
 - [x] Generic HTTP backend
 - [ ] Any SSE-streaming agent (generic SSE adapter)
 - [ ] Webhook / async callback agents
 - [ ] MCP (Model Context Protocol) compatible agents
-- [ ] Multi-agent routing (fan-out to multiple agents per message)
+- [x] Multi-agent routing (multiple registered agents; route rules per channel or pattern)
 
 **Platform capabilities:**
 - [x] Governance / policy engine
@@ -160,17 +182,21 @@ We're building the connective layer between chat and agents. Here's what's alrea
 ## CLI
 
 ```bash
-car-server --help            # usage
-car-server --version         # version
-car-server --check-config    # validate config
-car-server --dry-run         # test connectivity
+car --help                   # usage (also: car channel|agent|route|config subcommands)
+car --version                # version
+car --check-config           # open config DB and print summary
+car channel add|list|remove  # manage chat channels (Slack, Discord, WebChat, …)
+car agent add|list|remove    # register agent backends (A2A, LangGraph, HTTP, …)
+car route add|list|remove    # routing rules (default, channel match, pattern)
+car config set|get           # arbitrary settings key/value store
+car start                    # run the relay (same entry as `car` with no subcommand, per install)
 ```
 
 ## Built With
 
 - **[Bun](https://bun.sh)** — runtime, package manager, test runner, bundler
 - **TypeScript** — strict mode everywhere
-- **SQLite** — durable event ledger (via `bun:sqlite`)
+- **SQLite** — durable event ledger and configuration database (via `bun:sqlite`)
 - **JSON Schema** — contract validation for all events
 
 ## Contributing

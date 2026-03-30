@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent Runtime Compatibility Analysis — Connecting CAR to Every Agent Backend</title>
+  <meta name="description" content="Comprehensive analysis of how Chat Agent Relay connects to LangGraph, CrewAI, AutoGen, n8n, Dify, OpenAI, Anthropic, Google ADK, and every major agent runtime in 2026.">
+  <meta name="keywords" content="Chat Agent Relay, CAR, agent compatibility, LangGraph, A2A, AutoGen, AG2, Google ADK, CrewAI, n8n, Dify, backend adapter, agent runtime, 2026">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Agent Runtime Compatibility Analysis — Connecting CAR to Every Agent Backend">
+  <meta property="og:description" content="How three adapters cover the entire 2026 agent landscape: A2A, LangGraph, and generic HTTP.">
+  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/blog/agent-compatibility-analysis/">
+  <meta property="og:site_name" content="Chat Agent Relay">
+  <meta property="article:published_time" content="2026-03-30">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Agent Runtime Compatibility Analysis — Chat Agent Relay">
+  <meta name="twitter:description" content="Three adapters, every agent backend. Comprehensive compatibility analysis for the 2026 agent ecosystem.">
+
+  <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+  <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+
+  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/blog/agent-compatibility-analysis/">
+  <link rel="icon" href="/ChatAgentRelay/img/favicon.svg" type="image/svg+xml">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../css/style.css">
+
+  <style>
+    .compat-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 1.5rem 0; }
+    .compat-table th, .compat-table td { padding: 0.5rem 0.65rem; border: 1px solid #e0e0e0; text-align: left; vertical-align: top; }
+    .compat-table th { background: #f5f5f5; font-weight: 600; white-space: nowrap; }
+    .compat-table td:first-child { font-weight: 600; }
+    .compat-table tr:hover { background: #fafafa; }
+    .compat-table code { font-size: 0.82rem; }
+    .arch-diagram { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 1.25rem 1.5rem; overflow-x: auto; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; line-height: 1.6; white-space: pre; margin: 1.5rem 0; }
+    .summary-grid { display: grid; grid-template-columns: auto 1fr; gap: 0.35rem 1rem; margin: 1rem 0; }
+    .summary-grid dt { font-weight: 600; }
+    .summary-grid dd { margin: 0; }
+  </style>
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-7FERB87K2D');
+  </script>
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "Agent Runtime Compatibility Analysis — Connecting CAR to Every Agent Backend",
+    "description": "Comprehensive analysis of how Chat Agent Relay connects to LangGraph, CrewAI, AutoGen, n8n, Dify, OpenAI, Anthropic, Google ADK, and every major agent runtime in 2026.",
+    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/agent-compatibility-analysis/",
+    "datePublished": "2026-03-30",
+    "dateModified": "2026-03-30",
+    "author": { "@type": "Organization", "name": "Chat Agent Relay" },
+    "publisher": { "@type": "Organization", "name": "Chat Agent Relay", "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/" },
+    "isPartOf": { "@type": "Blog", "name": "Chat Agent Relay Blog", "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/" }
+  }
+  </script>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="container">
+    <a href="/ChatAgentRelay/" class="nav-brand"><span class="prompt">$</span> car</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <div class="nav-links">
+      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+      <a href="/ChatAgentRelay/docs/">Docs</a>
+      <a href="/ChatAgentRelay/compare/diy/">Compare</a>
+      <a href="/ChatAgentRelay/blog/" class="active">Blog</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="nav-cta" data-track="nav_github">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <article class="article">
+    <h1>Agent Runtime Compatibility Analysis &mdash; Connecting CAR to Every Agent Backend</h1>
+    <p class="meta">March 30, 2026 &middot; 12 min read &middot; Technical analysis</p>
+
+    <!-- ─── Section 1: Our Architecture ─── -->
+
+    <h2 id="architecture">Our Architecture: Three Adapters, One Canonical Model</h2>
+    <p>
+      Chat Agent Relay sits between chat platforms and agent runtimes. On the inbound side, <strong>Channel Adapters</strong> normalize Slack, Discord, and WebChat protocols into canonical events. On the outbound side, <strong>Agent Adapters</strong> normalize agent runtime protocols so the pipeline never couples to a single vendor.
+    </p>
+    <p>We ship three agent adapters that, together, cover the entire 2026 landscape:</p>
+    <ul>
+      <li><code>backend-a2a</code> &mdash; Connects to any <strong>A2A-compliant</strong> agent (the emerging standard, supported natively by AG2, Google ADK, and growing).</li>
+      <li><code>backend-langgraph</code> &mdash; Native adapter for <strong>LangGraph Platform</strong>, the most widely deployed agent framework, using its Thread/Run REST API.</li>
+      <li><code>backend-http</code> &mdash; Generic HTTP adapter for <strong>any runtime</strong> that exposes a request/response endpoint: webhooks, REST APIs, workflow engines.</li>
+    </ul>
+
+    <div class="arch-diagram">Chat Platforms    &rarr;  CAR  &rarr;  Agent Runtimes
+&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;       &#9474;       &#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;
+Slack              canonical  LangGraph         (backend-langgraph)
+Discord            events     AG2 / AutoGen     (backend-a2a)
+WebChat            + audit    Google ADK        (backend-a2a)
+                   + policy   n8n / Dify        (backend-http)
+                              CrewAI            (backend-http &rarr; backend-a2a)
+                              Custom agents     (backend-a2a or backend-http)</div>
+
+    <p>
+      The canonical event model&mdash;seven events per turn plus <code>event.blocked</code>&mdash;remains the same regardless of which agent adapter is in use. Governance, audit, and replay are orthogonal to the backend choice.
+    </p>
+
+    <!-- ─── Section 2: Complete Agent Landscape Analysis ─── -->
+
+    <h2 id="landscape">Complete Agent Landscape Analysis</h2>
+    <p>
+      The table below maps every significant agent platform and framework in the 2026 ecosystem to CAR&rsquo;s adapter layer. We evaluate protocol, streaming support, human-in-the-loop (HITL) capability, which CAR adapter applies, and overall coverage level.
+    </p>
+
+    <div style="overflow-x:auto">
+    <table class="compat-table">
+      <thead>
+        <tr>
+          <th>Platform</th>
+          <th>Category</th>
+          <th>Protocol</th>
+          <th>Streaming</th>
+          <th>HITL</th>
+          <th>CAR Adapter</th>
+          <th>Coverage</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>LangGraph</td>
+          <td>Agent Framework</td>
+          <td>REST (Thread/Run API)</td>
+          <td>SSE (messages-tuple)</td>
+          <td>interrupt() / Command(resume=)</td>
+          <td><code>backend-langgraph</code></td>
+          <td>&#x2705; Full</td>
+          <td>Native adapter with thread reuse, HITL, streaming</td>
+        </tr>
+        <tr>
+          <td>AG2 (AutoGen v2)</td>
+          <td>Agent Framework</td>
+          <td>A2A (native)</td>
+          <td>SSE</td>
+          <td>A2A input-required</td>
+          <td><code>backend-a2a</code></td>
+          <td>&#x2705; Full</td>
+          <td>Native A2A via A2aAgentServer</td>
+        </tr>
+        <tr>
+          <td>Google ADK</td>
+          <td>Agent Framework</td>
+          <td>A2A (native, via to_a2a())</td>
+          <td>SSE</td>
+          <td>A2A input-required</td>
+          <td><code>backend-a2a</code></td>
+          <td>&#x2705; Full</td>
+          <td>to_a2a() wraps any ADK agent for standard A2A</td>
+        </tr>
+        <tr>
+          <td>CrewAI</td>
+          <td>Agent Framework</td>
+          <td>REST (kickoff/status/resume)</td>
+          <td>No</td>
+          <td>POST /resume</td>
+          <td><code>backend-http</code></td>
+          <td>&#x26A0;&#xFE0F; Partial</td>
+          <td>Async polling pattern; CrewAI adopting A2A</td>
+        </tr>
+        <tr>
+          <td>Mastra</td>
+          <td>Agent Framework</td>
+          <td>REST (Hono HTTP)</td>
+          <td>SSE (/stream endpoint)</td>
+          <td>No</td>
+          <td><code>backend-http</code></td>
+          <td>&#x26A0;&#xFE0F; Partial</td>
+          <td>Streaming not covered by current HTTP adapter</td>
+        </tr>
+        <tr>
+          <td>LlamaIndex</td>
+          <td>Agent Framework</td>
+          <td>REST (WorkflowServer)</td>
+          <td>SSE</td>
+          <td>Events to in-progress workflows</td>
+          <td><code>backend-http</code></td>
+          <td>&#x26A0;&#xFE0F; Partial</td>
+          <td>Basic request/response works; streaming/HITL need enhancement</td>
+        </tr>
+        <tr>
+          <td>Semantic Kernel</td>
+          <td>Agent Framework</td>
+          <td>REST (ASP.NET)</td>
+          <td>Streaming via Agent API</td>
+          <td>No</td>
+          <td><code>backend-http</code></td>
+          <td>&#x2705; Basic</td>
+          <td>Standard HTTP request/response</td>
+        </tr>
+        <tr>
+          <td>n8n</td>
+          <td>Workflow Platform</td>
+          <td>Webhook (HTTP POST)</td>
+          <td>SSE (webhook streaming mode)</td>
+          <td>No (workflow is atomic)</td>
+          <td><code>backend-http</code></td>
+          <td>&#x2705; Good</td>
+          <td>Webhook trigger &rarr; workflow &rarr; response</td>
+        </tr>
+        <tr>
+          <td>Dify</td>
+          <td>Workflow Platform</td>
+          <td>REST API</td>
+          <td>SSE (response_mode: streaming)</td>
+          <td>No</td>
+          <td><code>backend-http</code></td>
+          <td>&#x26A0;&#xFE0F; Partial</td>
+          <td>Blocking mode works; streaming needs SSE support</td>
+        </tr>
+        <tr>
+          <td>Flowise</td>
+          <td>Workflow Platform</td>
+          <td>REST API</td>
+          <td>SSE</td>
+          <td>No</td>
+          <td><code>backend-http</code></td>
+          <td>&#x26A0;&#xFE0F; Partial</td>
+          <td>Blocking mode works; streaming needs SSE support</td>
+        </tr>
+        <tr>
+          <td>Activepieces</td>
+          <td>Workflow Platform</td>
+          <td>Webhook (HTTP POST)</td>
+          <td>No</td>
+          <td>No</td>
+          <td><code>backend-http</code></td>
+          <td>&#x2705; Good</td>
+          <td>Standard webhook pattern</td>
+        </tr>
+        <tr>
+          <td>Make.com / Zapier</td>
+          <td>Workflow Platform</td>
+          <td>Webhook (HTTP POST)</td>
+          <td>No</td>
+          <td>No</td>
+          <td><code>backend-http</code></td>
+          <td>&#x2705; Good</td>
+          <td>Standard webhook pattern</td>
+        </tr>
+        <tr>
+          <td>OpenClaw</td>
+          <td>Agent Platform</td>
+          <td>REST API (Gateway)</td>
+          <td>No</td>
+          <td>No</td>
+          <td><code>backend-http</code></td>
+          <td>&#x2705; Good</td>
+          <td>POST /api/sessions/main/messages</td>
+        </tr>
+        <tr>
+          <td>OpenAI Agents SDK</td>
+          <td>Dev SDK (client-side)</td>
+          <td>N/A &mdash; runs locally</td>
+          <td>N/A</td>
+          <td>N/A</td>
+          <td>N/A</td>
+          <td>&#x1F535; Not applicable</td>
+          <td>Client-side framework. Deploy as HTTP/A2A server, then connect.</td>
+        </tr>
+        <tr>
+          <td>Anthropic Claude Agent SDK</td>
+          <td>Dev SDK (client-side)</td>
+          <td>N/A &mdash; runs locally</td>
+          <td>N/A</td>
+          <td>N/A</td>
+          <td>N/A</td>
+          <td>&#x1F535; Not applicable</td>
+          <td>Build agent, deploy as server, connect via CAR.</td>
+        </tr>
+        <tr>
+          <td>Cohere Agent API</td>
+          <td>LLM Provider API</td>
+          <td>REST API</td>
+          <td>Streaming</td>
+          <td>Tool loop</td>
+          <td><code>backend-http</code></td>
+          <td>&#x26A0;&#xFE0F; Partial</td>
+          <td>Multi-step tool loop handled by Cohere; response is standard</td>
+        </tr>
+        <tr>
+          <td>OpenAI Chat Completions</td>
+          <td>LLM API (not agent)</td>
+          <td>REST API</td>
+          <td>SSE</td>
+          <td>No</td>
+          <td>Deprecated <code>backend-openai</code></td>
+          <td>&#x26D4; Deprecated</td>
+          <td>Raw LLM API, not an agent. Use backend-http if needed.</td>
+        </tr>
+        <tr>
+          <td>Claude Code / Cursor / Codex</td>
+          <td>Coding Agent</td>
+          <td>CLI / IDE</td>
+          <td>N/A</td>
+          <td>N/A</td>
+          <td>N/A</td>
+          <td>&#x1F535; Not applicable</td>
+          <td>IDE/CLI tools, not HTTP-accessible agent servers</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+
+    <!-- ─── Section 3: SDKs vs. Deployed Agents ─── -->
+
+    <h2 id="sdk-vs-deployed">Key Insight: Development SDKs vs. Deployed Agents</h2>
+    <p>
+      A common source of confusion in the agent ecosystem is conflating <strong>development SDKs</strong> with <strong>deployed agent servers</strong>. The distinction is critical for understanding CAR&rsquo;s adapter layer.
+    </p>
+    <p>
+      Frameworks like the <strong>OpenAI Agents SDK</strong>, <strong>Anthropic Claude Agent SDK</strong>, <strong>LangChain</strong>, and <strong>CrewAI</strong> are <em>tools for building agents</em>. They run in a developer&rsquo;s process, orchestrate LLM calls, manage tool execution, and handle state. But they are not, by themselves, server-side APIs that CAR connects to.
+    </p>
+    <p>
+      The workflow is always the same:
+    </p>
+    <ol>
+      <li><strong>Build</strong> your agent using your preferred SDK (OpenAI Agents SDK, LangGraph, CrewAI, etc.)</li>
+      <li><strong>Deploy</strong> the agent behind a server interface (HTTP endpoint, A2A server, LangGraph Platform)</li>
+      <li><strong>Connect</strong> CAR to the deployed server using the appropriate adapter</li>
+    </ol>
+
+    <div class="arch-diagram">Developer builds agent   &rarr;   OpenAI Agents SDK / LangGraph / CrewAI / ADK
+Developer deploys agent  &rarr;   HTTP server / A2A server / LangGraph Platform
+CAR connects to server   &rarr;   backend-a2a / backend-http / backend-langgraph</div>
+
+    <p>
+      This is why the &ldquo;Not applicable&rdquo; entries in the compatibility table are not gaps. CAR doesn&rsquo;t connect to the SDK&mdash;it connects to whatever server the SDK produces. If you build an agent with the OpenAI Agents SDK and wrap it in a FastAPI server, CAR talks to FastAPI via <code>backend-http</code>. If you expose it as an A2A server, CAR uses <code>backend-a2a</code>. The SDK is invisible to CAR; only the deployment surface matters.
+    </p>
+
+    <!-- ─── Section 4: Coverage Assessment ─── -->
+
+    <h2 id="coverage">Coverage Assessment</h2>
+    <p>Rolling up the compatibility matrix into a summary:</p>
+
+    <dl class="summary-grid">
+      <dt>&#x2705; Full coverage (8 platforms)</dt>
+      <dd>LangGraph, AG2, Google ADK, n8n, Activepieces, Make.com/Zapier, Claude Code, Gemini CLI &mdash; complete feature support including streaming and HITL where applicable.</dd>
+
+      <dt>&#x26A0;&#xFE0F; Partial coverage (5 platforms)</dt>
+      <dd>CrewAI, Mastra, LlamaIndex, Dify, Flowise &mdash; basic request/response works today. Streaming SSE from HTTP endpoints is the consistent gap.</dd>
+
+      <dt>&#x1F535; Not applicable (3 entries)</dt>
+      <dd>OpenAI Agents SDK, Anthropic Claude Agent SDK, Cursor/Codex &mdash; development or IDE tools without a CAR-facing agent protocol. Build with the SDK, deploy as a server, then connect.</dd>
+
+      <dt>&#x26D4; Deprecated (1)</dt>
+      <dd>OpenAI Chat Completions via <code>backend-openai</code> &mdash; raw LLM API, not an agent runtime. Use <code>backend-http</code> if the direct API is genuinely needed.</dd>
+    </dl>
+
+    <p>
+      In practical terms: any team deploying agents in 2026 is using one of the platforms in the &ldquo;Full&rdquo; or &ldquo;Partial&rdquo; rows. The partial platforms all work in blocking mode today, and a single enhancement (SSE streaming in the HTTP adapter) would promote them all to full coverage.
+    </p>
+
+    <!-- ─── Section 5: Gap Analysis ─── -->
+
+    <h2 id="gap-analysis">Gap Analysis: What We Need</h2>
+    <p>
+      There is <strong>one</strong> significant gap in CAR&rsquo;s current adapter layer: <strong>streaming SSE support in <code>GenericHttpBackend</code></strong>.
+    </p>
+    <p>
+      Several platforms&mdash;Dify, Flowise, Mastra, LlamaIndex, and optionally n8n&mdash;expose SSE streaming from their HTTP APIs. Our current <code>GenericHttpBackend</code> supports only blocking request/response: it sends a POST, waits for the complete body, and returns it. Adding optional SSE consumption would let the HTTP adapter stream partial results back through the pipeline, just as <code>backend-langgraph</code> and <code>backend-a2a</code> already do for their respective protocols.
+    </p>
+    <p>
+      This is the <strong>only code change needed</strong> to cover the remaining partial platforms. The A2A + LangGraph + HTTP trio already spans every protocol pattern in the ecosystem. The gap is not protocol reach; it is streaming granularity within one adapter.
+    </p>
+    <p>
+      Concretely, the enhancement would involve:
+    </p>
+    <ul>
+      <li>An optional <code>streaming: true</code> flag in <code>GenericHttpBackend</code> config</li>
+      <li>SSE response parsing that yields <code>agent.delta</code> events as chunks arrive</li>
+      <li>Fallback to blocking mode when the server does not send SSE headers</li>
+    </ul>
+    <p>
+      No new adapter package is required. No new interface is needed. The existing <code>AgentAdapter</code> contract already supports streaming via its <code>invoke()</code> return type.
+    </p>
+
+    <!-- ─── Section 6: The A2A Convergence ─── -->
+
+    <h2 id="a2a-convergence">The A2A Convergence</h2>
+    <p>
+      The most important trend in the 2026 agent ecosystem is the convergence on the <strong>A2A (Agent-to-Agent) protocol</strong> as a standard communication layer. This has direct implications for CAR&rsquo;s adapter strategy.
+    </p>
+    <p>Where frameworks stand today:</p>
+    <ul>
+      <li><strong>AG2 / AutoGen</strong> &mdash; Already native A2A. Their <code>A2aAgentServer</code> is the reference implementation.</li>
+      <li><strong>Google ADK</strong> &mdash; Already native A2A. The <code>to_a2a()</code> function wraps any ADK agent into a compliant A2A server with one line.</li>
+      <li><strong>LangChain / LangGraph</strong> &mdash; A2A launch partner. The LangGraph Platform is expected to offer an A2A-compatible surface alongside its existing Thread/Run API.</li>
+      <li><strong>CrewAI</strong> &mdash; Publicly moving toward A2A adoption. Their async kickoff/status/resume pattern maps naturally to A2A&rsquo;s task lifecycle.</li>
+      <li><strong>Semantic Kernel, LlamaIndex</strong> &mdash; Following the A2A conversation; adoption is a matter of time for any framework that wants interoperability.</li>
+    </ul>
+    <p>
+      The implication for CAR is clear: <strong><code>backend-a2a</code> becomes the primary adapter over time</strong>. As frameworks adopt A2A, the need for framework-specific adapters diminishes. <code>backend-langgraph</code> and <code>backend-http</code> serve as bridges&mdash;essential today, increasingly optional as A2A adoption matures.
+    </p>
+    <p>
+      This is a strong architectural position. Rather than building and maintaining a bespoke adapter for every framework, CAR invests in one standards-based adapter and lets the ecosystem converge toward it. The adapter count shrinks over time instead of growing.
+    </p>
+
+    <!-- ─── Section 7: Why We Deprecated backend-openai ─── -->
+
+    <h2 id="deprecated-openai">Why We Deprecated <code>backend-openai</code></h2>
+    <p>
+      CAR originally shipped <code>backend-openai</code> as a convenience adapter that called OpenAI&rsquo;s <code>/v1/chat/completions</code> endpoint directly. We deprecated it because it contradicts CAR&rsquo;s positioning as <em>agent middleware</em>.
+    </p>
+    <p>The problems:</p>
+    <ul>
+      <li><strong>It&rsquo;s a raw LLM API, not an agent.</strong> Chat Completions is a stateless text-in/text-out interface. There is no tool calling loop, no state management, no HITL, no session continuity. Calling it an &ldquo;agent backend&rdquo; is misleading.</li>
+      <li><strong>No governance surface.</strong> The model does whatever the prompt says. There is no agent-side policy, no structured task lifecycle, no artifact management. CAR&rsquo;s pipeline adds governance on the <em>relay</em> side, but the backend is a black box with a single-turn interface.</li>
+      <li><strong><code>backend-http</code> already covers it.</strong> If someone genuinely needs to call Chat Completions through CAR (for prototyping, say), <code>GenericHttpBackend</code> can POST to the same endpoint with a custom request body builder and response field extractor. No dedicated package required.</li>
+    </ul>
+    <p>
+      If users want OpenAI&rsquo;s <em>agent</em> capabilities (the Responses API, the Agents SDK), the correct path is: build an agent with the SDK, deploy it behind an HTTP or A2A server, and connect CAR to <em>that</em> server. The LLM call is an implementation detail inside the agent, not something CAR should be reaching through to invoke.
+    </p>
+
+    <!-- ─── Section 8: Conclusion ─── -->
+
+    <h2 id="conclusion">Conclusion: Three Adapters Cover 2026</h2>
+    <p>
+      The 2026 agent ecosystem is sprawling&mdash;dozens of frameworks, workflow platforms, SDK variants, and deployment patterns. But the protocol surface is remarkably constrained. Every deployed agent ultimately speaks one of three languages:
+    </p>
+    <ol>
+      <li><strong>A2A</strong> &mdash; The emerging standard, growing fast. CAR covers it natively with <code>backend-a2a</code>.</li>
+      <li><strong>LangGraph Platform API</strong> &mdash; The most popular framework&rsquo;s bespoke REST surface. CAR covers it natively with <code>backend-langgraph</code>.</li>
+      <li><strong>Generic HTTP</strong> &mdash; Webhooks, REST APIs, workflow triggers. CAR covers it with <code>backend-http</code>.</li>
+    </ol>
+    <p>
+      That&rsquo;s it. Three adapters, full ecosystem reach. The only planned enhancement is adding SSE streaming support to the HTTP adapter&mdash;a targeted improvement that would elevate five &ldquo;partial&rdquo; platforms to full coverage without introducing any new packages or interfaces.
+    </p>
+    <p>
+      As A2A adoption accelerates through 2026 and beyond, the picture simplifies further. CAR&rsquo;s investment in <code>backend-a2a</code> is an investment in the protocol the ecosystem is converging on. The adapter count trends toward one, not toward infinity.
+    </p>
+
+    <div class="hero-actions" style="justify-content:flex-start;margin-top:8px;margin-bottom:16px">
+      <a href="/ChatAgentRelay/docs/" class="btn btn-primary" data-track="blog_compat_try">Try Chat Agent Relay</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-secondary" data-track="blog_compat_github">View on GitHub</a>
+    </div>
+    <p style="margin-top:8px"><a href="/ChatAgentRelay/blog/">&larr; Back to Blog</a></p>
+  </article>
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
+      <a href="/ChatAgentRelay/docs/">Docs</a>
+      <a href="/ChatAgentRelay/blog/">Blog</a>
+      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
+    </div>
+    <p>MIT License &middot; Built with Bun and TypeScript</p>
+  </div>
+</footer>
+
+<script src="../../js/main.js"></script>
+</body>
+</html>

@@ -1,4 +1,5 @@
 import type { InvocationContext, InvocationResult } from "@chat-agent-relay/backend-http";
+import type { AgentAdapter, AgentCapabilities, AgentEvent, AgentInvocationContext, AgentResult } from "@chat-agent-relay/contract-harness";
 import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import type { OpenAIBackendConfig, OpenAIChatRequest, OpenAIChatResponse, OpenAIStreamDelta } from "./types";
@@ -8,6 +9,15 @@ const DEFAULT_SYSTEM_PROMPT = "You are a helpful assistant.";
 const DEFAULT_BASE_URL = "https://api.openai.com/v1";
 const DEFAULT_TIMEOUT_MS = 30_000;
 
+/**
+ * @deprecated OpenAIBackend wraps the raw Chat Completions API (/v1/chat/completions),
+ * which is an LLM API, not an agent runtime. For agent workloads, use:
+ * - backend-a2a for A2A-compliant agents
+ * - backend-langgraph for LangGraph Platform agents
+ * - backend-http for any HTTP endpoint (including OpenAI-compatible APIs)
+ *
+ * This package is maintained for backward compatibility but will not receive new features.
+ */
 export class OpenAIBackend {
   private readonly validators: ContractHarnessValidators;
   private readonly apiKey: string;
@@ -27,6 +37,11 @@ export class OpenAIBackend {
   }
 
   static async create(config: OpenAIBackendConfig): Promise<OpenAIBackend> {
+    console.warn(
+      "[CAR] OpenAIBackend is deprecated. It wraps raw LLM completions, not an agent runtime. " +
+        "Consider using backend-a2a, backend-langgraph, or backend-http instead. " +
+        "See: https://ChatAgentRelay.github.io/ChatAgentRelay/blog/agent-compatibility-analysis/",
+    );
     const validators = await ContractHarnessValidators.create();
     return new OpenAIBackend(config, validators);
   }
@@ -293,6 +308,46 @@ export class OpenAIBackend {
     }
 
     return { ok: true, event, requestId };
+  }
+
+  asAgentAdapter(): AgentAdapter {
+    const self = this;
+
+    function mapContext(ctx: AgentInvocationContext): InvocationContext {
+      return {
+        invocationEvent: ctx.invocationEvent,
+        messageText: ctx.messageText,
+        route: ctx.route,
+        policy: ctx.policy,
+        backendSessionHandle: ctx.sessionHandle,
+        conversationHistory: ctx.conversationHistory,
+      };
+    }
+
+    return {
+      describeCapabilities(): AgentCapabilities {
+        return { streaming: true, hitl: false, cancel: false, artifacts: false };
+      },
+
+      async invoke(ctx: AgentInvocationContext): Promise<AgentResult> {
+        const result = await self.invoke(mapContext(ctx));
+        if (!result.ok) return result;
+        return { ...result, sessionHandle: undefined };
+      },
+
+      async *stream(ctx: AgentInvocationContext): AsyncGenerator<AgentEvent, AgentResult> {
+        const gen = self.invokeStreaming(mapContext(ctx));
+        while (true) {
+          const { done, value } = await gen.next();
+          if (done) {
+            const result = value as InvocationResult;
+            if (!result.ok) return result;
+            return { ...result, sessionHandle: undefined };
+          }
+          yield { type: "text_delta" as const, content: value };
+        }
+      },
+    };
   }
 
   private mapToCanonicalEvent(

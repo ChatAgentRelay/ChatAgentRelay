@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "bin": {
-    "car-server": "src/cli.ts"
+    "car": "src/cli.ts"
   },
   "scripts": {
     "start": "bun run src/cli.ts",
@@ -12,9 +12,17 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@chat-agent-relay/config-store": "workspace:*",
+    "@chat-agent-relay/channel-web-chat": "workspace:*",
     "@chat-agent-relay/pipeline": "workspace:*",
     "@chat-agent-relay/channel-slack": "workspace:*",
+    "@chat-agent-relay/channel-discord": "workspace:*",
     "@chat-agent-relay/backend-openai": "workspace:*",
+    "@chat-agent-relay/backend-http": "workspace:*",
+    "@chat-agent-relay/backend-a2a": "workspace:*",
+    "@chat-agent-relay/backend-acp": "workspace:*",
+    "@chat-agent-relay/backend-langgraph": "workspace:*",
+    "@chat-agent-relay/contract-harness": "workspace:*",
     "@chat-agent-relay/event-ledger": "workspace:*",
     "@chat-agent-relay/middleware": "workspace:*"
   },

@@ -14,3 +14,4 @@ export type {
   InvocationResult,
   InvocationSuccess,
 } from "./types";
+export type { AgentAdapter, AgentCapabilities, AgentInvocationContext, AgentResult } from "@chat-agent-relay/contract-harness";

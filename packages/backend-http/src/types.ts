@@ -6,6 +6,11 @@ export type BackendConfig = {
   headers?: Record<string, string>;
   buildRequestBody?: (messageText: string, conversationHistory?: ConversationTurn[]) => unknown;
   responseTextField?: string;
+  streaming?: {
+    endpoint?: string;
+    enabled?: boolean;
+    deltaTextField?: string;
+  };
 };
 
 export type ConversationTurn = {

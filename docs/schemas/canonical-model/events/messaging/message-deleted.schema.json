@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://car.local/schemas/canonical-model/events/messaging/message-deleted.schema.json",
+  "title": "CAR Message Deleted Event",
+  "description": "Specialized canonical event schema for message.deleted events.",
+  "allOf": [
+    { "$ref": "../../canonical-event-envelope.schema.json" },
+    {
+      "type": "object",
+      "required": ["event_type", "payload"],
+      "properties": {
+        "event_type": { "const": "message.deleted" },
+        "payload": {
+          "type": "object",
+          "required": ["deleted_message_id"],
+          "properties": {
+            "deleted_message_id": { "type": "string", "minLength": 1 },
+            "deleted_text": { "type": "string" }
+          },
+          "additionalProperties": true
+        }
+      }
+    }
+  ]
+}

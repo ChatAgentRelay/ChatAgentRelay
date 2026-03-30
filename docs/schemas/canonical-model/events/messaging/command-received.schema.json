@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://car.local/schemas/canonical-model/events/messaging/command-received.schema.json",
+  "title": "CAR Command Received Event",
+  "description": "Specialized canonical event schema for command.received events (slash commands).",
+  "allOf": [
+    { "$ref": "../../canonical-event-envelope.schema.json" },
+    {
+      "type": "object",
+      "required": ["event_type", "payload", "actor_type"],
+      "properties": {
+        "event_type": { "const": "command.received" },
+        "actor_type": { "const": "end_user" },
+        "payload": {
+          "type": "object",
+          "required": ["command_name", "text"],
+          "properties": {
+            "command_name": { "type": "string", "minLength": 1 },
+            "text": { "type": "string" },
+            "arguments": { "type": "object", "additionalProperties": true }
+          },
+          "additionalProperties": true
+        }
+      }
+    }
+  ]
+}

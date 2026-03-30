@@ -1,4 +1,4 @@
-import type { SlackSocketEvent } from "./types";
+import type { SlackSlashCommandPayload, SlackSocketEvent } from "./types";
 
 const SLACK_API_BASE = "https://slack.com/api";
 const DEFAULT_MAX_RECONNECT_ATTEMPTS = 10;
@@ -7,6 +7,7 @@ const DEFAULT_BASE_DELAY_MS = 1000;
 export type SlackSocketConfig = {
   appToken: string;
   onMessage: (event: SlackSocketEvent) => void | Promise<void>;
+  onCommand?: ((payload: SlackSlashCommandPayload) => void | Promise<void>) | undefined;
   onError?: ((error: Error) => void) | undefined;
   onReconnect?: ((attempt: number) => void) | undefined;
   maxReconnectAttempts?: number | undefined;
@@ -48,6 +49,13 @@ export class SlackSocketConnection {
           const socketEvent = data as unknown as SlackSocketEvent;
           this.ws?.send(JSON.stringify({ envelope_id: socketEvent.envelope_id }));
           void this.config.onMessage(socketEvent);
+        } else if (data["type"] === "slash_commands") {
+          const envelopeId = data["envelope_id"] as string;
+          this.ws?.send(JSON.stringify({ envelope_id: envelopeId }));
+          if (this.config.onCommand) {
+            const payload = data["payload"] as SlackSlashCommandPayload;
+            void this.config.onCommand(payload);
+          }
         }
       } catch (error) {
         this.config.onError?.(error instanceof Error ? error : new Error(String(error)));

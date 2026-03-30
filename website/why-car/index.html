@@ -118,7 +118,7 @@
       </div>
       <div class="feature-card">
         <h3>Zero lock-in</h3>
-        <p>Channel adapters and backend adapters are pluggable interfaces.</p>
+        <p>Channel adapters and agent adapters are pluggable interfaces. Register multiple agents, swap or add backends with CLI + SQLite config &mdash; hot-plug channels and agents at runtime without rewriting integration code.</p>
       </div>
       <div class="feature-card">
         <h3>Auditable by default</h3>
@@ -130,7 +130,7 @@
       </div>
       <div class="feature-card">
         <h3>Developer-first</h3>
-        <p>TypeScript, Bun, JSON Schema, conformance test suite.</p>
+        <p>TypeScript, Bun, JSON Schema, conformance test suite, multi-agent routing via route rules.</p>
       </div>
     </div>
 
@@ -144,7 +144,7 @@
 
     <h2>Technical Details</h2>
     <ul>
-      <li>12 packages, 222 tests, TypeScript strict mode</li>
+      <li>16 packages, ~542 tests, TypeScript strict mode</li>
       <li>Built on Bun for speed</li>
       <li>SQLite for durable event storage</li>
       <li>JSON Schema for contract validation</li>

@@ -1,8 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { ConfigDatabase } from "@chat-agent-relay/config-store";
 import type { StoredCanonicalEvent } from "@chat-agent-relay/event-ledger";
 import { InMemoryEventLedgerStore } from "@chat-agent-relay/event-ledger";
 import type { Server } from "bun";
+import { AgentRegistry } from "../src/agent-registry";
 import { startApiServer } from "../src/api";
+import { ChannelRegistry } from "../src/channel-registry";
 
 type BunServer = Server<unknown>;
 
@@ -47,7 +50,10 @@ describe("replay/query API", () => {
     store.append(event2);
     store.append(event3);
 
-    server = startApiServer({ port: 0, ledgerStore: store });
+    const configDb = new ConfigDatabase(":memory:");
+    const agentRegistry = new AgentRegistry();
+    const channelRegistry = new ChannelRegistry(async () => {});
+    server = startApiServer({ port: 0, ledgerStore: store, configDb, agentRegistry, channelRegistry });
     baseUrl = `http://localhost:${server.port}`;
   });
 

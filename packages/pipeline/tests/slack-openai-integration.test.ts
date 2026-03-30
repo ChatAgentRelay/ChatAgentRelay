@@ -6,6 +6,7 @@ import { SlackIngress } from "@chat-agent-relay/channel-slack";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { SqliteLedgerStore } from "@chat-agent-relay/event-ledger";
 import type { Server } from "bun";
+import { legacyBridge } from "../src/legacy-bridge";
 import { FirstExecutablePathPipeline } from "../src/pipeline";
 import type { PipelineConfig } from "../src/types";
 
@@ -87,10 +88,11 @@ describe("Slack -> Pipeline -> OpenAI integration", () => {
 
   async function createPipeline(ledgerStore?: SqliteLedgerStore): Promise<FirstExecutablePathPipeline> {
     const ingress = await SlackIngress.create("tenant_acme", "ws_support");
-    const backend = await OpenAIBackend.create({
+    const openaiBackend = await OpenAIBackend.create({
       apiKey: "test-key",
       baseUrl: `http://localhost:${mockOpenAIPort}`,
     });
+    const agentAdapter = legacyBridge(openaiBackend);
 
     const originalFetch = globalThis.fetch;
     const mockSendFn = async (text: string) => {
@@ -104,10 +106,14 @@ describe("Slack -> Pipeline -> OpenAI integration", () => {
     };
 
     const config: PipelineConfig = {
-      middleware: {
-        route: { route_id: "openai_agent", backend: "openai", reason: "slack_integration" },
-      },
-      backend,
+      resolveAgent: (name) => (name === "openai" ? agentAdapter : undefined),
+      routeFn: () => ({
+        agentName: "openai",
+        routeId: 0,
+        matchType: "default",
+        reason: "slack_integration",
+      }),
+      channelName: "C1234567890",
       ingress,
       sendFn: mockSendFn,
       ledgerStore,

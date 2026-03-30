@@ -6,7 +6,7 @@ This guide walks you through running Chat Agent Relay (CAR) with Slack and an ag
 
 - [Bun](https://bun.sh/) v1.2+
 - A Slack workspace where you can create apps
-- An OpenAI API key (or any OpenAI-compatible endpoint)
+- An agent endpoint (for example A2A) or another supported backend type
 
 ## 1. Clone and Install
 
@@ -20,84 +20,105 @@ Verify everything works:
 
 ```bash
 bun test --recursive
-# Expected: 222 pass, 0 fail
+# Expected: all tests pass (~542 tests across 43 files)
 ```
 
-## 2. Set Up a Slack App
+## 2. Environment (minimal)
+
+CAR keeps **channels, agents, routes, and settings** in a SQLite database — not in environment variables.
+
+| Variable | Required | Default | Purpose |
+|----------|----------|---------|---------|
+| `CAR_DB_PATH` | No | `./car.db` | Path to the SQLite config + ledger database |
+| `CAR_ENCRYPTION_KEY` | Recommended | — | Key for **AES-256-GCM** encryption of tokens and API keys at rest |
+
+Generate a key for local use:
+
+```bash
+export CAR_ENCRYPTION_KEY="$(openssl rand -hex 32)"
+```
+
+## 3. Set Up a Slack App
 
 1. Go to [api.slack.com/apps](https://api.slack.com/apps) and click **Create New App** → **From scratch**
 2. Name it (e.g., "CAR Bot") and select your workspace
-3. Under **Socket Mode**, enable it and generate an **App-Level Token** with `connections:write` scope — this is your `SLACK_APP_TOKEN` (starts with `xapp-`)
+3. Under **Socket Mode**, enable it and generate an **App-Level Token** with `connections:write` scope — this is your app token (starts with `xapp-`)
 4. Under **OAuth & Permissions**, add these Bot Token Scopes:
    - `chat:write` — send messages
    - `channels:history` — read channel messages
    - `groups:history` — read private channel messages
    - `im:history` — read DM messages
-5. Install the app to your workspace. Copy the **Bot User OAuth Token** — this is your `SLACK_BOT_TOKEN` (starts with `xoxb-`)
-6. Under **Event Subscriptions**, enable events and subscribe to `message.channels`, `message.groups`, `message.im`
+   - `reactions:write` — add/remove ack reactions
+5. Install the app to your workspace. Copy the **Bot User OAuth Token** (starts with `xoxb-`)
+6. Under **Event Subscriptions**, enable events and subscribe to `message.channels`, `message.groups`, `message.im`, and `app_mention`
 
-## 3. Configure Environment
+## 4. Register Channels, Agents, and Routes (CLI)
+
+From `packages/server`, use the `car` CLI so configuration is written to the database (encrypted where applicable):
 
 ```bash
 cd packages/server
-cp .env.example .env
+export CAR_ENCRYPTION_KEY="$(openssl rand -hex 32)"   # if not already set
+
+car channel add my-slack --type=slack --bot-token=xoxb-... --app-token=xapp-...
+car agent add my-bot --type=a2a --endpoint=http://...
+car route add --default --agent=my-bot
+car start
 ```
 
-Edit `.env`:
+- **`car channel add|list|remove`** — Slack, Discord, WebChat, etc.
+- **`car agent add|list|remove`** — backend types such as `a2a`, `langgraph`, `http`, `acp`
+- **`car route add|list|remove`** — which agent handles traffic (default route, channel match, or pattern)
+- **`car config set|get`** — arbitrary settings in the config store
+
+Channels and agents can be **added or updated at runtime** without restarting the process (where the adapter supports it).
+
+Equivalent operations are exposed over the HTTP API (`/api/channels`, `/api/agents`, `/api/routes`, `/api/config`) if you prefer automation or a UI.
+
+## 5. Discord (Optional)
+
+1. Go to the [Discord Developer Portal](https://discord.com/developers/applications) and create an application and bot; copy the bot token
+2. Enable **MESSAGE CONTENT INTENT** under **Bot** → **Privileged Gateway Intents**
+3. Invite the bot with the permissions you need (`Send Messages`, `Add Reactions`, `Use Slash Commands`, etc.)
+4. Register the channel with the CLI, for example:
 
 ```bash
-SLACK_BOT_TOKEN=xoxb-your-bot-token
-SLACK_APP_TOKEN=xapp-your-app-token
-OPENAI_API_KEY=sk-your-openai-key
-OPENAI_MODEL=gpt-4o-mini
-
-# Optional: use any OpenAI-compatible endpoint
-# OPENAI_BASE_URL=http://localhost:8317
-
-# Optional: customize behavior
-# OPENAI_SYSTEM_PROMPT=You are a helpful assistant.
-# CAR_STREAMING=true
-# CAR_API_PORT=3000
+car channel add my-discord --type=discord --bot-token=...
 ```
 
-## 4. Start the Server
+## 6. Start the Server
+
+If you did not use `car start` above:
 
 ```bash
-bun run start
+cd packages/server
+car
+# or: bun run start
 ```
 
-You should see structured JSON log output:
+You should see structured JSON log output indicating channels, agents, and the API port.
 
-```json
-{"ts":"...","level":"info","msg":"Starting server","tenant_id":"default_tenant",...}
-{"ts":"...","level":"info","msg":"API server started","port":3000}
-{"ts":"...","level":"info","msg":"Connected, listening for messages"}
-```
+## 7. Test It
 
-## 5. Test It
+1. Invite the Slack bot to a channel: `/invite @CAR Bot`
+2. Send a message (or @mention if your route/policy requires it)
+3. Confirm the agent responds
 
-1. Invite the bot to a Slack channel: `/invite @CAR Bot`
-2. Send a message in that channel
-3. The bot should respond via OpenAI
-
-Check the event ledger:
+Check health and the ledger:
 
 ```bash
 curl http://localhost:3000/api/health
-# {"status":"ok","timestamp":"..."}
-
-# After sending a message, find conversations:
 curl http://localhost:3000/api/conversations/<conversation_id>/events
 ```
 
-## 6. Understanding the Event Chain
+## 8. Understanding the Event Chain
 
 Every message produces a seven-event chain in the ledger:
 
 ```
 message.received          — user's message canonicalized from Slack
   → policy.decision.made  — governance decision (allow/deny)
-  → route.decision.made   — backend selection
+  → route.decision.made   — which agent handles this (multi-agent routing)
   → agent.invocation.requested — dispatch to backend
   → agent.response.completed  — agent's reply
   → message.send.requested    — outbound delivery queued
@@ -106,7 +127,7 @@ message.received          — user's message canonicalized from Slack
 
 If something fails, an `event.blocked` event is appended instead, recording the failure stage and reason.
 
-## 7. Writing a Custom Channel Adapter
+## 9. Writing a Custom Channel Adapter
 
 A channel adapter implements the `ChannelIngress` interface:
 
@@ -146,17 +167,34 @@ testChannelIngress({
 });
 ```
 
-## 8. Writing a Custom Backend Adapter
+## 10. Connecting to Agent Runtimes
 
-A backend adapter implements the `BackendAdapter` interface:
+Register agents with **`car agent add`** (or `POST /api/agents`) using the appropriate `type` and config:
+
+| Type | Typical config keys |
+|------|---------------------|
+| `a2a` | `endpoint`, optional `headers` |
+| `langgraph` | `endpoint`, `apiKey`, assistant IDs |
+| `http` | `endpoint`, headers, body/response mapping |
+| `acp` | command, args, working directory |
+
+OpenAI-style chat can be reached via the generic **`http`** adapter pointed at an OpenAI-compatible URL. Legacy `BackendAdapter` implementations are wrapped with `legacyBridge()` inside the pipeline.
+
+## 11. Writing a Custom Agent Adapter
+
+New agent adapters should implement the `AgentAdapter` interface:
 
 ```typescript
-import type { InvocationContext, InvocationResult } from "@chat-agent-relay/backend-http";
+import type { AgentAdapter, AgentInvocationContext, AgentResult } from "@chat-agent-relay/contract-harness";
 
-interface BackendAdapter {
-  invoke(context: InvocationContext): Promise<InvocationResult>;
-  invokeStreaming?(context: InvocationContext): AsyncGenerator<string, InvocationResult>;
-}
+const adapter: AgentAdapter = {
+  describeCapabilities() {
+    return { streaming: false, hitl: false, cancel: false, artifacts: false };
+  },
+  async invoke(context: AgentInvocationContext): Promise<AgentResult> {
+    // call your agent runtime and map the response to a canonical event
+  }
+};
 ```
 
 Key rules:
@@ -164,23 +202,13 @@ Key rules:
 - Produce a valid `agent.response.completed` event on success
 - Preserve `correlation_id` and `causation_id` from the invocation event
 - Set `error.retryable` accurately
+- Return `sessionHandle` if your runtime supports sessions
+
+Legacy `BackendAdapter` implementations still work — wrap them with `legacyBridge()`:
+
+```typescript
+import { legacyBridge } from "@chat-agent-relay/pipeline";
+const agentAdapter = legacyBridge(myBackendAdapter);
+```
 
 See the [Backend Adapter Interface Spec](rfcs/adapters/backend-adapter-interface-spec.md) for full requirements.
-
-## 9. Environment Variables Reference
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `SLACK_BOT_TOKEN` | Yes | — | Slack Bot User OAuth Token |
-| `SLACK_APP_TOKEN` | Yes | — | Slack App-Level Token (Socket Mode) |
-| `OPENAI_API_KEY` | Yes | — | OpenAI API key |
-| `OPENAI_MODEL` | No | `gpt-4o-mini` | Model name |
-| `OPENAI_SYSTEM_PROMPT` | No | `You are a helpful assistant.` | System prompt |
-| `OPENAI_BASE_URL` | No | `https://api.openai.com/v1` | Custom OpenAI-compatible endpoint |
-| `CAR_TENANT_ID` | No | `default_tenant` | Tenant identifier |
-| `CAR_WORKSPACE_ID` | No | `default_workspace` | Workspace identifier |
-| `CAR_ROUTE_ID` | No | `openai_agent` | Route identifier |
-| `CAR_SQLITE_PATH` | No | `./car-ledger.db` | SQLite database path |
-| `CAR_STREAMING` | No | `true` | Enable streaming responses |
-| `CAR_STREAMING_INTERVAL_MS` | No | `800` | Streaming update interval |
-| `CAR_API_PORT` | No | `3000` | HTTP API port |

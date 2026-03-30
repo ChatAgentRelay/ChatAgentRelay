@@ -5,21 +5,23 @@
 | **Status** | Draft |
 | **Author** | Claude Code |
 | **Audience** | Backend adapter implementers |
-| **Version** | v0.2 |
-| **Last Updated** | 2026-03-25 |
+| **Version** | v0.3 |
+| **Last Updated** | 2026-03-30 |
 | **Companion** | `backend-agent-adapter-contract.md` (high-level contract) |
 
 ## 1. Abstract
 
-This document formalizes the TypeScript interface contracts that all Chat Agent Relay (CAR) backend adapters MUST implement. It complements the high-level backend agent adapter contract RFC with precise type-level requirements.
+This document formalizes the TypeScript interface contracts that all Chat Agent Relay (CAR) backend adapters MUST implement. It covers both the **AgentAdapter** interface (v2, primary) and the legacy **BackendAdapter** interface (v1). It complements the high-level backend agent adapter contract RFC with precise type-level requirements.
 
 ## 2. Normative Language
 
 The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as described in RFC 2119.
 
-## 3. BackendAdapter Interface
+## 3. BackendAdapter Interface (Legacy v1)
 
-A conforming backend adapter MUST implement the following interface:
+The legacy `BackendAdapter` interface remains valid for adapters that do not need HITL, structured events, or artifact support. Legacy adapters are automatically wrapped via `legacyBridge()` for use with the pipeline (see section 10).
+
+A conforming legacy backend adapter MUST implement the following interface:
 
 ```typescript
 interface BackendAdapter {
@@ -169,9 +171,9 @@ Adapters SHOULD use the following error codes:
 | `empty_response` | `dependency_failure` | No | Response contained no content |
 | `contract_violation` | `invalid_request` | No | Mapped event failed schema validation |
 
-## 8. Conformance Checklist
+## 8. Legacy Conformance Checklist
 
-A conforming `BackendAdapter` implementation MUST:
+A conforming legacy `BackendAdapter` implementation MUST:
 
 - [ ] Implement `invoke()` accepting `InvocationContext` and returning `InvocationResult`
 - [ ] Never throw from `invoke()` — all errors returned as `InvocationFailure`
@@ -189,10 +191,13 @@ A conforming streaming adapter additionally MUST:
 
 ## 9. Existing Implementations
 
-| Adapter | Package | Backend |
-|---|---|---|
-| `GenericHttpBackend` | `@chat-agent-relay/backend-http` | Configurable HTTP endpoint |
-| `OpenAIBackend` | `@chat-agent-relay/backend-openai` | OpenAI Chat Completions API |
+| Adapter | Package | Status | Backend |
+|---|---|---|---|
+| `GenericHttpBackend` | `backend-http` | Active | Configurable HTTP endpoint |
+| `OpenAIBackend` | `backend-openai` | **Deprecated** | OpenAI Chat Completions API |
+| `A2AAgentAdapter` | `backend-a2a` | Active | A2A protocol agents |
+| `LangGraphAdapter` | `backend-langgraph` | Active | LangGraph Platform |
+| `ACPAgentAdapter` | `backend-acp` | Active | ACP (stdio subprocess) |
 
 ### 9.1 GenericHttpBackend Configuration
 
@@ -207,3 +212,208 @@ A conforming streaming adapter additionally MUST:
 | `responseTextField` | `string` | `"output.text"` | Dot-path to extract response text (e.g. `"answer"`, `"result.data.text"`) |
 
 When `buildRequestBody` and `responseTextField` are omitted, the adapter uses CAR's native request/response format for backward compatibility.
+
+## 10. AgentAdapter Interface (v2)
+
+The `AgentAdapter` interface is the primary agent-side boundary, replacing `BackendAdapter` for new implementations. It is aligned with the [A2A (Agent-to-Agent) protocol](https://google.github.io/A2A/) and supports structured events, human-in-the-loop (HITL) signaling, artifacts, and session management.
+
+### 10.1 Evolution from BackendAdapter
+
+The legacy `BackendAdapter` was designed for simple request/response LLM wrappers:
+- `invoke()` returns a single `InvocationResult`
+- `invokeStreaming()` yields raw `string` deltas
+
+This model is insufficient for modern agent runtimes that:
+- Report task lifecycle status (submitted → working → completed)
+- Request human input mid-execution (HITL)
+- Produce structured artifacts (files, data)
+- Maintain sessions across multiple interactions
+
+`AgentAdapter` addresses all of these. Legacy `BackendAdapter` implementations are supported via `legacyBridge()`, which wraps them as `AgentAdapter` with `{ streaming, hitl: false, cancel: false, artifacts: false }`.
+
+### 10.2 Interface Definition
+
+```typescript
+interface AgentAdapter {
+  describeCapabilities(): AgentCapabilities;
+  invoke(context: AgentInvocationContext): Promise<AgentResult>;
+  stream?(context: AgentInvocationContext): AsyncGenerator<AgentEvent, AgentResult>;
+  resume?(sessionHandle: string, input: AgentResumeInput): Promise<AgentResult>;
+  resumeStream?(sessionHandle: string, input: AgentResumeInput): AsyncGenerator<AgentEvent, AgentResult>;
+  cancel?(sessionHandle: string): Promise<void>;
+}
+
+type AgentCapabilities = {
+  streaming: boolean;
+  hitl: boolean;
+  cancel: boolean;
+  artifacts: boolean;
+};
+```
+
+Requirements:
+
+- All implementations MUST implement `describeCapabilities()` and `invoke()`.
+- `stream()`, `resume()`, `resumeStream()`, and `cancel()` are OPTIONAL.
+- Implementations MUST NOT throw from `invoke()` or `stream()` — all failures MUST be returned as `AgentFailure`.
+
+### 10.3 AgentEvent Types
+
+Unlike `BackendAdapter` which only yields `string` deltas, `AgentAdapter.stream()` yields structured `AgentEvent` values:
+
+```typescript
+type AgentEvent =
+  | AgentStatusEvent
+  | AgentTextDeltaEvent
+  | AgentArtifactEvent
+  | AgentInputRequiredEvent;
+
+type AgentStatusEvent = { type: "status"; status: AgentTaskStatus; message?: string };
+type AgentTextDeltaEvent = { type: "text_delta"; content: string };
+type AgentArtifactEvent = { type: "artifact"; artifact: AgentArtifact };
+type AgentInputRequiredEvent = {
+  type: "input_required";
+  prompt: string;
+  metadata?: Record<string, unknown>;
+};
+
+type AgentTaskStatus =
+  | "submitted"
+  | "working"
+  | "input-required"
+  | "completed"
+  | "failed"
+  | "cancelled";
+```
+
+Status events SHOULD be emitted at lifecycle transitions. `text_delta` events carry progressive response content. `input_required` signals HITL (see section 10.6). `artifact` events carry structured output.
+
+### 10.4 AgentInvocationContext
+
+```typescript
+type AgentInvocationContext = {
+  invocationEvent: CanonicalEvent;
+  messageText: string;
+  parts?: AgentPart[];
+  route?: { route_id: string; reason: string };
+  policy?: { policy_id: string; decision: string };
+  sessionHandle?: string;
+  conversationHistory?: ConversationTurn[];
+};
+```
+
+Differences from legacy `InvocationContext`:
+- `parts` supports multi-modal input (text, file, data) aligned with A2A's Part model.
+- `sessionHandle` replaces `backendSessionHandle` for session continuity.
+
+### 10.5 AgentResult
+
+```typescript
+type AgentResult = AgentSuccess | AgentFailure;
+
+type AgentSuccess = {
+  ok: true;
+  event: CanonicalEvent;
+  requestId: string;
+  sessionHandle?: string;
+  artifacts?: AgentArtifact[];
+};
+
+type AgentFailure = {
+  ok: false;
+  requestId: string;
+  error: {
+    code: string;
+    message: string;
+    retryable: boolean;
+    category: string;
+    details?: Record<string, unknown>;
+  };
+};
+```
+
+`sessionHandle` is returned on success to allow session continuity across turns. `artifacts` carries structured output from the agent (files, data).
+
+### 10.6 HITL Flow (Human-in-the-Loop)
+
+When an agent requires human input mid-execution:
+
+1. The agent adapter yields `{ type: "input_required", prompt: "..." }` during streaming (or returns status `"input-required"` in sync mode).
+2. The pipeline emits an `agent.input.requested` canonical event and surfaces the prompt to the user via the chat channel.
+3. The user replies. The pipeline emits an `agent.input.provided` canonical event.
+4. The pipeline calls `resume(sessionHandle, input)` or `resumeStream(sessionHandle, input)` to continue agent execution.
+
+Canonical events involved:
+- `agent.status.changed` — records task lifecycle transitions
+- `agent.input.requested` — agent asks for human input
+- `agent.input.provided` — human provides the requested input
+
+### 10.7 Content Parts (A2A Part Model)
+
+```typescript
+type TextPart = { kind: "text"; text: string };
+type FilePart = { kind: "file"; name: string; mimeType: string; uri?: string; bytes?: string };
+type DataPart = { kind: "data"; data: Record<string, unknown> };
+type AgentPart = TextPart | FilePart | DataPart;
+```
+
+Parts are used in `AgentInvocationContext.parts`, `AgentResumeInput.parts`, and `AgentArtifact.parts`.
+
+### 10.8 Legacy Bridge
+
+The `legacyBridge()` function wraps a `BackendAdapter` as an `AgentAdapter`:
+
+```typescript
+import { legacyBridge } from "@chat-agent-relay/pipeline";
+
+const agentAdapter = legacyBridge(myBackendAdapter);
+```
+
+Behavior:
+- `describeCapabilities()` returns `{ streaming: !!backend.invokeStreaming, hitl: false, cancel: false, artifacts: false }`.
+- `invoke()` delegates to `backend.invoke()` and maps the result.
+- `stream()` (if the backend has `invokeStreaming`) converts `string` deltas to `{ type: "text_delta", content }` events.
+- `resume()`, `resumeStream()`, `cancel()` are not supported.
+
+Both `GenericHttpBackend` and `OpenAIBackend` also expose an `asAgentAdapter()` convenience method.
+
+### 10.9 ACP (Agent Client Protocol) adapter
+
+`ACPAgentAdapter` (`packages/backend-acp`) implements `AgentAdapter` for coding agents that speak the **Agent Client Protocol** over **stdin/stdout**: CAR spawns a subprocess (configurable command and working directory), exchanges JSON-RPC messages on the process pipes, and maps ACP session lifecycle, streaming text, permission requests, and HITL-style prompts into `AgentEvent` streams and canonical events. **Permission handling** is configurable (for example auto-approve vs. denying tool calls vs. surfacing prompts through the relay) so deployments can match their security posture.
+
+### 10.10 AgentAdapter Conformance Checklist
+
+A conforming `AgentAdapter` implementation MUST:
+
+- [ ] Implement `describeCapabilities()` returning accurate `AgentCapabilities`
+- [ ] Implement `invoke()` accepting `AgentInvocationContext` and returning `AgentResult`
+- [ ] Never throw from `invoke()` — all errors returned as `AgentFailure`
+- [ ] Produce schema-valid `agent.response.completed` events on success
+- [ ] Preserve `correlation_id` and `causation_id` from invocation event
+- [ ] Set `error.retryable` accurately on failure
+- [ ] Include a unique `requestId` in all results
+
+A conforming streaming adapter additionally MUST:
+
+- [ ] Yield `AgentEvent` values from `stream()` (not raw strings)
+- [ ] Return a final `AgentResult` with complete assembled text
+- [ ] Emit `{ type: "status", status: "working" }` at stream start
+
+A conforming HITL adapter additionally MUST:
+
+- [ ] Yield `{ type: "input_required", prompt }` when human input is needed
+- [ ] Implement `resume()` to continue execution after input is provided
+- [ ] Return a `sessionHandle` in `AgentSuccess` for session continuity
+
+## 11. Dynamic agent registration and AgentRegistry
+
+Implementations MAY register **multiple** `AgentAdapter` instances at runtime (for example after loading rows from a configuration database). The server-side **`AgentRegistry`** holds named agent instances; **`routeFn`** (together with stored route rules) selects which registered agent receives each `agent.invocation.requested` flow.
+
+Requirements:
+
+- Each registered adapter MUST be addressable by a stable **name** aligned with route configuration.
+- Adding, updating, disabling, or removing an agent SHOULD NOT require a full process restart when the deployment supports hot reload (channels likewise use a **ChannelRegistry**).
+- The pipeline MUST receive a **`resolveAgent(agentName)`** (or equivalent) callback rather than assuming a single global backend instance.
+- Legacy `BackendAdapter` instances remain valid; they are wrapped once at registration time when exposed through the registry.
+
+This section does not change the `AgentAdapter` or `BackendAdapter` contracts themselves — it describes how the runtime **selects** which conforming adapter executes for a given conversation turn.

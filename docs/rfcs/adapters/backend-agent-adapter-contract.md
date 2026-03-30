@@ -5,8 +5,8 @@
 | **Status** | Draft |
 | **Author** | Claude Code |
 | **Audience** | Backend runtime / workflow adapter implementers |
-| **Version** | v0.1 |
-| **Last Updated** | 2026-03-17 |
+| **Version** | v0.2 |
+| **Last Updated** | 2026-03-30 |
 
 ## 1. Abstract
 
@@ -274,8 +274,45 @@ Backend adapters SHOULD:
 - support tenant-scoped credentials and policy-aware invocation contexts
 - treat tool execution privileges as explicit runtime or platform policy, not ambient host access
 
-## 10. Open Questions
+## 10. Phase 1 Implementation Status
+
+Phase 1 (Minimum Kernel) is now complete. The following have been implemented and validated:
+
+### Native AgentAdapter Implementations
+
+- **A2A adapter** (`@chat-agent-relay/backend-a2a`) — native A2A protocol adapter with streaming, HITL signaling, and session management via A2A's task lifecycle.
+- **LangGraph adapter** (`@chat-agent-relay/backend-langgraph`) — LangGraph Platform adapter with streaming, thread-based sessions, and interrupt/resume for HITL.
+
+### Legacy Adapters via Bridge
+
+- **GenericHttpBackend** (`@chat-agent-relay/backend-http`) — wrapped via `legacyBridge()` for pipeline compatibility. Also exposes `asAgentAdapter()`.
+- **OpenAIBackend** (`@chat-agent-relay/backend-openai`) — wrapped via `legacyBridge()` for pipeline compatibility. Also exposes `asAgentAdapter()`.
+
+### HITL Signaling
+
+HITL is supported via three new canonical event types:
+- `agent.status.changed` — records task lifecycle transitions (submitted, working, input-required, completed, failed, cancelled)
+- `agent.input.requested` — agent signals that human input is required, with a prompt and optional metadata
+- `agent.input.provided` — human provides the requested input; pipeline resumes agent execution
+
+### Session Management
+
+Session continuity is maintained via `sessionHandle`:
+- Returned in `AgentSuccess.sessionHandle` after initial invocation
+- Passed to `resume()` / `resumeStream()` for HITL continuation
+- Maps to runtime-specific identifiers (A2A task ID, LangGraph thread ID)
+- Platform `conversation_id` and runtime `sessionHandle` remain distinct per the ownership boundary
+
+### Server Integration
+
+The server supports 4 backend types via the `AGENT_TYPE` environment variable:
+- `openai` (default) — OpenAI Chat Completions, wrapped via legacy bridge
+- `http` — configurable HTTP backend, wrapped via legacy bridge
+- `a2a` — A2A protocol endpoint, native AgentAdapter
+- `langgraph` — LangGraph Platform API, native AgentAdapter
+
+## 11. Open Questions
 
 - Should execution isolation and sandbox policy be standardized in this RFC or in a future companion RFC?
-- How much checkpoint / resume behavior should be mandatory before v2?
 - Should async callback mode and streaming mode share one normative envelope or remain two bindings?
+- How should multi-agent fan-out interact with HITL signaling when multiple agents request input simultaneously?

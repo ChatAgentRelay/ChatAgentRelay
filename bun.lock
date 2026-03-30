@@ -19,10 +19,34 @@
     "packages/adapter-conformance": {
       "name": "@chat-agent-relay/adapter-conformance",
       "dependencies": {
+        "@chat-agent-relay/backend-a2a": "workspace:*",
+        "@chat-agent-relay/backend-acp": "workspace:*",
         "@chat-agent-relay/backend-http": "workspace:*",
+        "@chat-agent-relay/backend-langgraph": "workspace:*",
         "@chat-agent-relay/backend-openai": "workspace:*",
+        "@chat-agent-relay/channel-discord": "workspace:*",
         "@chat-agent-relay/channel-slack": "workspace:*",
         "@chat-agent-relay/channel-web-chat": "workspace:*",
+        "@chat-agent-relay/contract-harness": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^6.0.2",
+      },
+    },
+    "packages/backend-a2a": {
+      "name": "@chat-agent-relay/backend-a2a",
+      "dependencies": {
+        "@chat-agent-relay/contract-harness": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^6.0.2",
+      },
+    },
+    "packages/backend-acp": {
+      "name": "@chat-agent-relay/backend-acp",
+      "dependencies": {
         "@chat-agent-relay/contract-harness": "workspace:*",
       },
       "devDependencies": {
@@ -40,10 +64,30 @@
         "typescript": "^6.0.2",
       },
     },
+    "packages/backend-langgraph": {
+      "name": "@chat-agent-relay/backend-langgraph",
+      "dependencies": {
+        "@chat-agent-relay/contract-harness": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^6.0.2",
+      },
+    },
     "packages/backend-openai": {
       "name": "@chat-agent-relay/backend-openai",
       "dependencies": {
         "@chat-agent-relay/backend-http": "workspace:*",
+        "@chat-agent-relay/contract-harness": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^6.0.2",
+      },
+    },
+    "packages/channel-discord": {
+      "name": "@chat-agent-relay/channel-discord",
+      "dependencies": {
         "@chat-agent-relay/contract-harness": "workspace:*",
       },
       "devDependencies": {
@@ -66,6 +110,13 @@
       "dependencies": {
         "@chat-agent-relay/contract-harness": "workspace:*",
       },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^6.0.2",
+      },
+    },
+    "packages/config-store": {
+      "name": "@chat-agent-relay/config-store",
       "devDependencies": {
         "@types/bun": "latest",
         "typescript": "^6.0.2",
@@ -120,10 +171,10 @@
         "@chat-agent-relay/contract-harness": "workspace:*",
         "@chat-agent-relay/delivery": "workspace:*",
         "@chat-agent-relay/event-ledger": "workspace:*",
-        "@chat-agent-relay/middleware": "workspace:*",
       },
       "devDependencies": {
         "@chat-agent-relay/backend-openai": "workspace:*",
+        "@chat-agent-relay/channel-discord": "workspace:*",
         "@chat-agent-relay/channel-slack": "workspace:*",
         "@types/bun": "latest",
         "typescript": "^6.0.2",
@@ -136,8 +187,16 @@
         "car-server": "src/cli.ts",
       },
       "dependencies": {
+        "@chat-agent-relay/backend-a2a": "workspace:*",
+        "@chat-agent-relay/backend-acp": "workspace:*",
+        "@chat-agent-relay/backend-http": "workspace:*",
+        "@chat-agent-relay/backend-langgraph": "workspace:*",
         "@chat-agent-relay/backend-openai": "workspace:*",
+        "@chat-agent-relay/channel-discord": "workspace:*",
         "@chat-agent-relay/channel-slack": "workspace:*",
+        "@chat-agent-relay/channel-web-chat": "workspace:*",
+        "@chat-agent-relay/config-store": "workspace:*",
+        "@chat-agent-relay/contract-harness": "workspace:*",
         "@chat-agent-relay/event-ledger": "workspace:*",
         "@chat-agent-relay/middleware": "workspace:*",
         "@chat-agent-relay/pipeline": "workspace:*",
@@ -151,13 +210,23 @@
   "packages": {
     "@chat-agent-relay/adapter-conformance": ["@chat-agent-relay/adapter-conformance@workspace:packages/adapter-conformance"],
 
+    "@chat-agent-relay/backend-a2a": ["@chat-agent-relay/backend-a2a@workspace:packages/backend-a2a"],
+
+    "@chat-agent-relay/backend-acp": ["@chat-agent-relay/backend-acp@workspace:packages/backend-acp"],
+
     "@chat-agent-relay/backend-http": ["@chat-agent-relay/backend-http@workspace:packages/backend-http"],
 
+    "@chat-agent-relay/backend-langgraph": ["@chat-agent-relay/backend-langgraph@workspace:packages/backend-langgraph"],
+
     "@chat-agent-relay/backend-openai": ["@chat-agent-relay/backend-openai@workspace:packages/backend-openai"],
+
+    "@chat-agent-relay/channel-discord": ["@chat-agent-relay/channel-discord@workspace:packages/channel-discord"],
 
     "@chat-agent-relay/channel-slack": ["@chat-agent-relay/channel-slack@workspace:packages/channel-slack"],
 
     "@chat-agent-relay/channel-web-chat": ["@chat-agent-relay/channel-web-chat@workspace:packages/channel-web-chat"],
+
+    "@chat-agent-relay/config-store": ["@chat-agent-relay/config-store@workspace:packages/config-store"],
 
     "@chat-agent-relay/contract-harness": ["@chat-agent-relay/contract-harness@workspace:packages/contract-harness"],
 

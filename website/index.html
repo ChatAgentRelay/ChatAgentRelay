@@ -102,9 +102,11 @@
       <div class="terminal-body">
 <span class="prompt-char">$</span> <span class="cmd">git clone https://github.com/ChatAgentRelay/ChatAgentRelay && cd ChatAgentRelay</span>
 <span class="prompt-char">$</span> <span class="cmd">bun install</span>
-<span class="output">installed 12 packages</span>
-<span class="prompt-char">$</span> <span class="cmd">cd packages/server && cp .env.example .env</span>
-<span class="prompt-char">$</span> <span class="cmd">bun run start</span>
+<span class="output">installed workspace packages</span>
+<span class="prompt-char">$</span> <span class="cmd">cd packages/server &amp;&amp; export CAR_ENCRYPTION_KEY=$(openssl rand -hex 32)</span>
+<span class="prompt-char">$</span> <span class="cmd">car channel add slack --type=slack --bot-token=xoxb-... --app-token=xapp-...</span>
+<span class="prompt-char">$</span> <span class="cmd">car agent add bot --type=a2a --endpoint=http://localhost:9000 &amp;&amp; car route add --default --agent=bot</span>
+<span class="prompt-char">$</span> <span class="cmd">car start</span>
 <span class="output">[car] Slack connected &middot; Agent ready &middot; API on :3000</span>
 <span class="output">[car] Listening for messages...</span>
       </div>
@@ -131,7 +133,7 @@
     <div class="section-label">The Solution</div>
     <h2 class="section-title">One layer between chat and agent &mdash; with everything built in</h2>
     <p class="section-desc">
-      Every message flows through a 7-event chain. Chat platforms and agents are pluggable adapters on both sides. Swap either without touching business logic.
+      Every message flows through a 7-event chain. Chat platforms and agents are hot-pluggable adapters on both sides &mdash; register them via the CLI and SQLite-backed config, with encrypted tokens and route rules for multi-agent setups.
     </p>
 
     <div class="terminal" style="max-width:100%;margin:24px auto">
@@ -213,14 +215,14 @@
 
     <div class="feature-grid">
       <div class="feature-card">
-        <div class="feature-icon">$ plug --channel</div>
+        <div class="feature-icon">$ car channel</div>
         <h3>Any Chat Platform</h3>
-        <p>Slack and WebChat built-in. Add Teams, Discord, Telegram, or your custom surface with one interface.</p>
+        <p>Slack, Discord, and WebChat built-in; add more via one interface. Hot-plug channels at runtime; CLI + SQLite config with encrypted tokens.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">$ plug --agent</div>
-        <h3>Any Agent</h3>
-        <p>Your internal agent, a LangChain pipeline, a self-hosted model, or a commercial API. Configure custom headers, request format, and response mapping &mdash; no need to modify your agent.</p>
+        <div class="feature-icon">$ car agent</div>
+        <h3>Any Agent Runtime</h3>
+        <p>A2A, LangGraph, ACP, generic HTTP, and more. Register multiple agents; route rules pick who answers &mdash; structured events, HITL, sessions.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">$ car policy</div>
@@ -305,7 +307,7 @@
           <tr>
             <td class="highlight">Switch agents</td>
             <td>Rewrite integration logic</td>
-            <td class="check">Change one config</td>
+            <td class="check">Register another agent; adjust route rules</td>
           </tr>
           <tr>
             <td class="highlight">Audit trail</td>
@@ -358,7 +360,7 @@
       </div>
       <div class="feature-card">
         <h3>More agent patterns</h3>
-        <p>Any SSE-streaming agent, webhook/async agents, MCP-compatible agents, multi-agent fan-out routing.</p>
+        <p>Webhook/async agents, MCP-compatible agents. Multi-agent routing via CLI and route rules is supported; A2A and LangGraph are already first-class.</p>
       </div>
       <div class="feature-card">
         <h3>Enterprise capabilities</h3>

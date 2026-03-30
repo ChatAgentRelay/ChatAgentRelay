@@ -1,9 +1,16 @@
+import type { ConfigDatabase } from "@chat-agent-relay/config-store";
+import { SENSITIVE_FIELDS } from "@chat-agent-relay/config-store";
 import type { LedgerStore, StoredCanonicalEvent } from "@chat-agent-relay/event-ledger";
+import type { AgentRegistry } from "./agent-registry";
+import type { ChannelRegistry } from "./channel-registry";
 import { logger } from "./logger";
 
 export type ApiConfig = {
   port: number;
   ledgerStore: LedgerStore;
+  configDb: ConfigDatabase;
+  agentRegistry: AgentRegistry;
+  channelRegistry: ChannelRegistry;
 };
 
 function jsonResponse(data: unknown, status = 200): Response {
@@ -15,6 +22,32 @@ function jsonResponse(data: unknown, status = 200): Response {
 
 function errorResponse(message: string, status: number): Response {
   return jsonResponse({ error: message }, status);
+}
+
+async function readJsonBody(req: Request): Promise<Record<string, unknown> | null> {
+  try {
+    return (await req.json()) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function maskValue(value: unknown): string {
+  if (typeof value !== "string") return "***";
+  if (value.length <= 6) return "***";
+  return value.slice(0, 4) + "...***";
+}
+
+function maskConfig(type: string, config: Record<string, unknown>): Record<string, unknown> {
+  const fields = SENSITIVE_FIELDS[type] ?? [];
+  if (fields.length === 0) return config;
+  const masked = { ...config };
+  for (const field of fields) {
+    if (field in masked) {
+      masked[field] = maskValue(masked[field]);
+    }
+  }
+  return masked;
 }
 
 type AuditTurn = {
@@ -74,14 +107,16 @@ function buildAuditExplanation(conversationId: string, events: StoredCanonicalEv
 }
 
 export function startApiServer(config: ApiConfig): ReturnType<typeof Bun.serve> {
-  const { ledgerStore, port } = config;
+  const { ledgerStore, configDb, agentRegistry, channelRegistry, port } = config;
 
   const server = Bun.serve({
     port,
-    fetch(req) {
+    async fetch(req) {
       const url = new URL(req.url);
       const path = url.pathname;
+      const method = req.method;
 
+      // ── Health ──────────────────────────────────────────────────────
       if (path === "/api/health") {
         const ledgerHealth = ledgerStore.healthCheck();
         const status = ledgerHealth.healthy ? "ok" : "degraded";
@@ -96,6 +131,192 @@ export function startApiServer(config: ApiConfig): ReturnType<typeof Bun.serve> 
         );
       }
 
+      // ── Agents CRUD ────────────────────────────────────────────────
+      if (path === "/api/agents" && method === "GET") {
+        const agents = await configDb.listAgents();
+        return jsonResponse(agents.map((a) => ({ ...a, config: maskConfig(a.type, a.config) })));
+      }
+
+      if (path === "/api/agents" && method === "POST") {
+        const body = await readJsonBody(req);
+        if (!body) return errorResponse("Invalid JSON body", 400);
+        const { name, type, config: agentConfig } = body;
+        if (typeof name !== "string" || !name) return errorResponse("name is required", 400);
+        if (typeof type !== "string" || !type) return errorResponse("type is required", 400);
+        try {
+          const record = await configDb.addAgent(name as string, type as "a2a" | "langgraph" | "acp" | "http", (agentConfig ?? {}) as Record<string, unknown>);
+          await agentRegistry.register(record);
+          return jsonResponse(
+            { ...record, config: maskConfig(record.type, record.config) },
+            201,
+          );
+        } catch (err) {
+          return errorResponse(err instanceof Error ? err.message : String(err), 409);
+        }
+      }
+
+      const agentNameMatch = path.match(/^\/api\/agents\/([^/]+)$/);
+      if (agentNameMatch && method === "PUT") {
+        const name = decodeURIComponent(agentNameMatch[1]!);
+        const body = await readJsonBody(req);
+        if (!body) return errorResponse("Invalid JSON body", 400);
+        const updates: { config?: Record<string, unknown>; enabled?: boolean } = {};
+        if (body["config"] !== undefined) updates.config = body["config"] as Record<string, unknown>;
+        if (body["enabled"] !== undefined) updates.enabled = Boolean(body["enabled"]);
+        const updated = await configDb.updateAgent(name, updates);
+        if (!updated) return errorResponse("Agent not found", 404);
+        await agentRegistry.register(updated);
+        return jsonResponse({ ...updated, config: maskConfig(updated.type, updated.config) });
+      }
+
+      if (agentNameMatch && method === "DELETE") {
+        const name = decodeURIComponent(agentNameMatch[1]!);
+        const removed = configDb.removeAgent(name);
+        if (!removed) return errorResponse("Agent not found", 404);
+        await agentRegistry.unregister(name);
+        return jsonResponse({ ok: true });
+      }
+
+      const agentEnableMatch = path.match(/^\/api\/agents\/([^/]+)\/enable$/);
+      if (agentEnableMatch && method === "POST") {
+        const name = decodeURIComponent(agentEnableMatch[1]!);
+        const updated = await configDb.updateAgent(name, { enabled: true });
+        if (!updated) return errorResponse("Agent not found", 404);
+        await agentRegistry.register(updated);
+        return jsonResponse({ ...updated, config: maskConfig(updated.type, updated.config) });
+      }
+
+      const agentDisableMatch = path.match(/^\/api\/agents\/([^/]+)\/disable$/);
+      if (agentDisableMatch && method === "POST") {
+        const name = decodeURIComponent(agentDisableMatch[1]!);
+        const updated = await configDb.updateAgent(name, { enabled: false });
+        if (!updated) return errorResponse("Agent not found", 404);
+        await agentRegistry.unregister(name);
+        return jsonResponse({ ...updated, config: maskConfig(updated.type, updated.config) });
+      }
+
+      // ── Channels CRUD ──────────────────────────────────────────────
+      if (path === "/api/channels" && method === "GET") {
+        const channels = await configDb.listChannels();
+        return jsonResponse(channels.map((c) => ({ ...c, config: maskConfig(c.type, c.config) })));
+      }
+
+      if (path === "/api/channels" && method === "POST") {
+        const body = await readJsonBody(req);
+        if (!body) return errorResponse("Invalid JSON body", 400);
+        const { name, type, config: channelConfig } = body;
+        if (typeof name !== "string" || !name) return errorResponse("name is required", 400);
+        if (typeof type !== "string" || !type) return errorResponse("type is required", 400);
+        try {
+          const record = await configDb.addChannel(name as string, type as "slack" | "discord" | "webchat", (channelConfig ?? {}) as Record<string, unknown>);
+          await channelRegistry.register(record);
+          return jsonResponse(
+            { ...record, config: maskConfig(record.type, record.config) },
+            201,
+          );
+        } catch (err) {
+          return errorResponse(err instanceof Error ? err.message : String(err), 409);
+        }
+      }
+
+      const channelNameMatch = path.match(/^\/api\/channels\/([^/]+)$/);
+      if (channelNameMatch && method === "PUT") {
+        const name = decodeURIComponent(channelNameMatch[1]!);
+        const body = await readJsonBody(req);
+        if (!body) return errorResponse("Invalid JSON body", 400);
+        const updates: { config?: Record<string, unknown>; enabled?: boolean } = {};
+        if (body["config"] !== undefined) updates.config = body["config"] as Record<string, unknown>;
+        if (body["enabled"] !== undefined) updates.enabled = Boolean(body["enabled"]);
+        const updated = await configDb.updateChannel(name, updates);
+        if (!updated) return errorResponse("Channel not found", 404);
+        await channelRegistry.register(updated);
+        return jsonResponse({ ...updated, config: maskConfig(updated.type, updated.config) });
+      }
+
+      if (channelNameMatch && method === "DELETE") {
+        const name = decodeURIComponent(channelNameMatch[1]!);
+        const removed = configDb.removeChannel(name);
+        if (!removed) return errorResponse("Channel not found", 404);
+        await channelRegistry.unregister(name);
+        return jsonResponse({ ok: true });
+      }
+
+      const channelEnableMatch = path.match(/^\/api\/channels\/([^/]+)\/enable$/);
+      if (channelEnableMatch && method === "POST") {
+        const name = decodeURIComponent(channelEnableMatch[1]!);
+        const updated = await configDb.updateChannel(name, { enabled: true });
+        if (!updated) return errorResponse("Channel not found", 404);
+        await channelRegistry.register(updated);
+        return jsonResponse({ ...updated, config: maskConfig(updated.type, updated.config) });
+      }
+
+      const channelDisableMatch = path.match(/^\/api\/channels\/([^/]+)\/disable$/);
+      if (channelDisableMatch && method === "POST") {
+        const name = decodeURIComponent(channelDisableMatch[1]!);
+        const updated = await configDb.updateChannel(name, { enabled: false });
+        if (!updated) return errorResponse("Channel not found", 404);
+        await channelRegistry.unregister(name);
+        return jsonResponse({ ...updated, config: maskConfig(updated.type, updated.config) });
+      }
+
+      // ── Routes CRUD ────────────────────────────────────────────────
+      if (path === "/api/routes" && method === "GET") {
+        const routes = configDb.listRoutes();
+        return jsonResponse(routes);
+      }
+
+      if (path === "/api/routes" && method === "POST") {
+        const body = await readJsonBody(req);
+        if (!body) return errorResponse("Invalid JSON body", 400);
+        const { match_type, match_value, agent_name, priority } = body;
+        if (typeof match_type !== "string") return errorResponse("match_type is required", 400);
+        if (typeof agent_name !== "string") return errorResponse("agent_name is required", 400);
+        try {
+          const route = configDb.addRoute(
+            match_type as "channel" | "pattern" | "default",
+            (match_value as string | null) ?? null,
+            agent_name as string,
+            typeof priority === "number" ? priority : 0,
+          );
+          return jsonResponse(route, 201);
+        } catch (err) {
+          return errorResponse(err instanceof Error ? err.message : String(err), 409);
+        }
+      }
+
+      const routeIdMatch = path.match(/^\/api\/routes\/(\d+)$/);
+      if (routeIdMatch && method === "DELETE") {
+        const id = Number(routeIdMatch[1]);
+        const removed = configDb.removeRoute(id);
+        if (!removed) return errorResponse("Route not found", 404);
+        return jsonResponse({ ok: true });
+      }
+
+      // ── Config/Settings CRUD ───────────────────────────────────────
+      if (path === "/api/config" && method === "GET") {
+        const settings = configDb.listSettings();
+        return jsonResponse(settings);
+      }
+
+      const configKeyMatch = path.match(/^\/api\/config\/([^/]+)$/);
+      if (configKeyMatch && method === "PUT") {
+        const key = decodeURIComponent(configKeyMatch[1]!);
+        const body = await readJsonBody(req);
+        if (!body) return errorResponse("Invalid JSON body", 400);
+        const { value } = body;
+        if (typeof value !== "string") return errorResponse("value (string) is required", 400);
+        configDb.setSetting(key, value as string);
+        return jsonResponse({ key, value });
+      }
+
+      if (configKeyMatch && method === "DELETE") {
+        const key = decodeURIComponent(configKeyMatch[1]!);
+        const removed = configDb.deleteSetting(key);
+        if (!removed) return errorResponse("Setting not found", 404);
+        return jsonResponse({ ok: true });
+      }
+
+      // ── Ledger query endpoints (existing) ──────────────────────────
       const conversationMatch = path.match(/^\/api\/conversations\/([^/]+)\/events$/);
       if (conversationMatch) {
         const conversationId = conversationMatch[1]!;

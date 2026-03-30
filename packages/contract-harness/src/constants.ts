@@ -27,6 +27,13 @@ export const SPECIALIZED_SCHEMA_PATHS: Record<FirstExecutablePathEventType, stri
 export const EXTENDED_SCHEMA_PATHS: Record<string, string> = {
   ...SPECIALIZED_SCHEMA_PATHS,
   "event.blocked": "docs/schemas/canonical-model/events/error/event-blocked.schema.json",
+  "message.updated": "docs/schemas/canonical-model/events/messaging/message-updated.schema.json",
+  "message.deleted": "docs/schemas/canonical-model/events/messaging/message-deleted.schema.json",
+  "reaction.received": "docs/schemas/canonical-model/events/messaging/reaction-received.schema.json",
+  "command.received": "docs/schemas/canonical-model/events/messaging/command-received.schema.json",
+  "agent.status.changed": "docs/schemas/canonical-model/events/agent/agent-status-changed.schema.json",
+  "agent.input.requested": "docs/schemas/canonical-model/events/agent/agent-input-requested.schema.json",
+  "agent.input.provided": "docs/schemas/canonical-model/events/agent/agent-input-provided.schema.json",
 };
 
 export const FIXTURE_DIR_PATH = "docs/schemas/fixtures/first-executable-path";
