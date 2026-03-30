@@ -126,8 +126,8 @@ Run `testChannelIngress()` to validate. See `packages/channel-discord` for a ful
 - **Ack reactions** — configurable emoji feedback on message receive/complete/error
 - **Slash commands** — native slash command handling for Slack and Discord
 - **Multi-agent routing** — register several agents at once; route rules decide which handles each message (hot-pluggable at runtime)
-- **CLI-first configuration** — channels, agents, routes, and settings live in SQLite; no wall of environment variables
-- **Encrypted credentials** — AES-256-GCM for tokens and API keys via `config-store`
+- **CLI-first configuration** — channels, agents, routes, and settings managed via `ConfigStore` interface (SQLite default, swappable for PostgreSQL etc.); no wall of environment variables
+- **Encrypted credentials** — AES-256-GCM for tokens and API keys at rest
 - **Human-in-the-loop (HITL)** — agents can request human input mid-execution and resume after
 - **Conformance testing** — validate any adapter with a single function call
 
@@ -196,7 +196,7 @@ car start                    # run the relay (same entry as `car` with no subcom
 
 - **[Bun](https://bun.sh)** — runtime, package manager, test runner, bundler
 - **TypeScript** — strict mode everywhere
-- **SQLite** — durable event ledger and configuration database (via `bun:sqlite`)
+- **SQLite** — default storage for event ledger (`LedgerStore`) and configuration (`ConfigStore`); both interfaces are pluggable
 - **JSON Schema** — contract validation for all events
 
 ## Contributing

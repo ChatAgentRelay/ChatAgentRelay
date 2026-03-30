@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { ConfigDatabase } from "../src/config-database";
+import { SqliteConfigStore } from "../src/config-database";
 
-describe("ConfigDatabase", () => {
-  const dbs: ConfigDatabase[] = [];
-  function createDb(encKey?: string): ConfigDatabase {
-    const db = new ConfigDatabase(":memory:", encKey);
+describe("SqliteConfigStore", () => {
+  const dbs: SqliteConfigStore[] = [];
+  function createDb(encKey?: string): SqliteConfigStore {
+    const db = new SqliteConfigStore(":memory:", encKey);
     dbs.push(db);
     return db;
   }

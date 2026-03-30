@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { ConfigDatabase } from "@chat-agent-relay/config-store";
+import { SqliteConfigStore } from "@chat-agent-relay/config-store";
 
 describe("CLI config operations (direct DB)", () => {
-  const dbs: ConfigDatabase[] = [];
-  function createDb(): ConfigDatabase {
-    const db = new ConfigDatabase(":memory:", "test-cli-key-1234567890");
+  const dbs: SqliteConfigStore[] = [];
+  function createDb(): SqliteConfigStore {
+    const db = new SqliteConfigStore(":memory:", "test-cli-key-1234567890");
     dbs.push(db);
     return db;
   }

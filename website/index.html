@@ -133,7 +133,7 @@
     <div class="section-label">The Solution</div>
     <h2 class="section-title">One layer between chat and agent &mdash; with everything built in</h2>
     <p class="section-desc">
-      Every message flows through a 7-event chain. Chat platforms and agents are hot-pluggable adapters on both sides &mdash; register them via the CLI and SQLite-backed config, with encrypted tokens and route rules for multi-agent setups.
+      Every message flows through a 7-event chain. Chat platforms and agents are hot-pluggable adapters on both sides &mdash; register them via the CLI and a pluggable config store (SQLite default, swap for PostgreSQL etc.), with encrypted tokens and route rules for multi-agent setups.
     </p>
 
     <div class="terminal" style="max-width:100%;margin:24px auto">
@@ -217,7 +217,7 @@
       <div class="feature-card">
         <div class="feature-icon">$ car channel</div>
         <h3>Any Chat Platform</h3>
-        <p>Slack, Discord, and WebChat built-in; add more via one interface. Hot-plug channels at runtime; CLI + SQLite config with encrypted tokens.</p>
+        <p>Slack, Discord, and WebChat built-in; add more via one interface. Hot-plug channels at runtime; pluggable config store (SQLite default) with encrypted tokens.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">$ car agent</div>

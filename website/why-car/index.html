@@ -118,7 +118,7 @@
       </div>
       <div class="feature-card">
         <h3>Zero lock-in</h3>
-        <p>Channel adapters and agent adapters are pluggable interfaces. Register multiple agents, swap or add backends with CLI + SQLite config &mdash; hot-plug channels and agents at runtime without rewriting integration code.</p>
+        <p>Channel adapters, agent adapters, and config storage are all pluggable interfaces. Register multiple agents, swap backends with the CLI &mdash; hot-plug channels and agents at runtime. ConfigStore defaults to SQLite, swappable for PostgreSQL or any backend.</p>
       </div>
       <div class="feature-card">
         <h3>Auditable by default</h3>
@@ -146,7 +146,7 @@
     <ul>
       <li>16 packages, ~542 tests, TypeScript strict mode</li>
       <li>Built on Bun for speed</li>
-      <li>SQLite for durable event storage</li>
+      <li>Pluggable storage (SQLite default for ledger + config)</li>
       <li>JSON Schema for contract validation</li>
       <li>Conformance test suite for adapter validation</li>
     </ul>

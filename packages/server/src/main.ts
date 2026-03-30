@@ -1,6 +1,6 @@
 import { DiscordIngress, DiscordSender } from "@chat-agent-relay/channel-discord";
 import { SlackIngress, SlackSender } from "@chat-agent-relay/channel-slack";
-import { ConfigDatabase, RouteEngine } from "@chat-agent-relay/config-store";
+import { SqliteConfigStore, RouteEngine } from "@chat-agent-relay/config-store";
 import { SqliteLedgerStore } from "@chat-agent-relay/event-ledger";
 import { createPolicyFn, loadPolicyConfig } from "@chat-agent-relay/middleware";
 import { FirstExecutablePathPipeline } from "@chat-agent-relay/pipeline";
@@ -16,7 +16,7 @@ export async function main() {
   const dbPath = process.env["CAR_DB_PATH"] ?? "./car.db";
   const encKey = process.env["CAR_ENCRYPTION_KEY"];
 
-  const configDb = new ConfigDatabase(dbPath, encKey);
+  const configDb = new SqliteConfigStore(dbPath, encKey);
 
   const apiPort = Number(configDb.getSetting("api.port") ?? "3000");
   const streamingEnabled = configDb.getSetting("streaming.enabled") !== "false";

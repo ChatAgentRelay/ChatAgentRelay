@@ -25,7 +25,7 @@ bun test --recursive
 
 ## 2. Environment (minimal)
 
-CAR keeps **channels, agents, routes, and settings** in a SQLite database — not in environment variables.
+CAR keeps **channels, agents, routes, and settings** in a pluggable config store (SQLite by default) — not in environment variables. The `ConfigStore` interface can be swapped for PostgreSQL or other backends.
 
 | Variable | Required | Default | Purpose |
 |----------|----------|---------|---------|

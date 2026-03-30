@@ -11,8 +11,8 @@ There has been no formal versioned release yet. The following summarizes work on
 
 ### Changed
 
-- **Configuration model** — Replaced environment-variable configuration with a CLI + SQLite-based workflow (`CAR_DB_PATH`, default `./car.db`; `CAR_ENCRYPTION_KEY` for encrypted secrets). Hot-pluggable channel and agent registration at runtime; multi-agent routing via stored route rules. Pipeline now accepts `resolveAgent` and `routeFn` instead of a single backend instance.
-- Added `@chat-agent-relay/config-store` (16th package): SQLite schema for channels, agents, routes, and settings; AES-256-GCM for sensitive fields.
+- **Configuration model** — Replaced environment-variable configuration with a CLI + interface-driven config store. `ConfigStore` interface with `SqliteConfigStore` default (pluggable for PostgreSQL etc.). Hot-pluggable channel and agent registration at runtime; multi-agent routing via stored route rules. Pipeline now accepts `resolveAgent` and `routeFn` instead of a single backend instance.
+- Added `@chat-agent-relay/config-store` (16th package): `ConfigStore` interface, `SqliteConfigStore` implementation, `RouteEngine`, AES-256-GCM encrypted credential storage.
 - Removed the starter template in favor of the CLI-first onboarding flow.
 
 ### Added

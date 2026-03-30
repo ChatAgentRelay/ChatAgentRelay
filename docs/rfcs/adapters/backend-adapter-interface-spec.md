@@ -407,7 +407,7 @@ A conforming HITL adapter additionally MUST:
 
 ## 11. Dynamic agent registration and AgentRegistry
 
-Implementations MAY register **multiple** `AgentAdapter` instances at runtime (for example after loading rows from a configuration database). The server-side **`AgentRegistry`** holds named agent instances; **`routeFn`** (together with stored route rules) selects which registered agent receives each `agent.invocation.requested` flow.
+Implementations MAY register **multiple** `AgentAdapter` instances at runtime (for example after loading rows from a config store). The server-side **`AgentRegistry`** holds named agent instances; **`routeFn`** (together with stored route rules) selects which registered agent receives each `agent.invocation.requested` flow.
 
 Requirements:
 
@@ -417,3 +417,12 @@ Requirements:
 - Legacy `BackendAdapter` instances remain valid; they are wrapped once at registration time when exposed through the registry.
 
 This section does not change the `AgentAdapter` or `BackendAdapter` contracts themselves — it describes how the runtime **selects** which conforming adapter executes for a given conversation turn.
+
+## 12. ConfigStore interface
+
+Configuration persistence follows an interface-driven pattern parallel to the event ledger's `LedgerStore`:
+
+- **`ConfigStore`** defines the CRUD contract for channels, agents, routes, and settings.
+- **`SqliteConfigStore`** is the built-in default implementation using `bun:sqlite`.
+- Implementers MAY provide alternative backends (PostgreSQL, MySQL, etc.) by implementing the `ConfigStore` interface.
+- Sensitive configuration fields (tokens, API keys) SHOULD be encrypted at rest; the default implementation uses AES-256-GCM via the `EncryptionEngine` utility.

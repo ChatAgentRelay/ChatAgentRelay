@@ -18,7 +18,7 @@ Chat Agent Relay (CAR) is a middleware framework between chat platforms and AI a
 | Package | Purpose | Key Interface |
 |---------|---------|--------------|
 | contract-harness | Schema validation + AgentAdapter types | ContractHarnessValidators, AgentAdapter |
-| config-store | Encrypted SQLite config + routes | ConfigDatabase, route engine |
+| config-store | Config storage (ConfigStore interface) | ConfigStore, SqliteConfigStore, RouteEngine |
 | event-ledger | Event storage | LedgerStore |
 | channel-web-chat | WebChat adapter | ChannelIngress |
 | channel-slack | Slack adapter | ChannelIngress |

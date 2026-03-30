@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { ConfigDatabase } from "@chat-agent-relay/config-store";
+import { SqliteConfigStore } from "@chat-agent-relay/config-store";
 import type { StoredCanonicalEvent } from "@chat-agent-relay/event-ledger";
 import { InMemoryEventLedgerStore } from "@chat-agent-relay/event-ledger";
 import type { Server } from "bun";
@@ -50,7 +50,7 @@ describe("replay/query API", () => {
     store.append(event2);
     store.append(event3);
 
-    const configDb = new ConfigDatabase(":memory:");
+    const configDb = new SqliteConfigStore(":memory:");
     const agentRegistry = new AgentRegistry();
     const channelRegistry = new ChannelRegistry(async () => {});
     server = startApiServer({ port: 0, ledgerStore: store, configDb, agentRegistry, channelRegistry });

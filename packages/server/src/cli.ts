@@ -1,4 +1,4 @@
-import { ConfigDatabase } from "@chat-agent-relay/config-store";
+import { SqliteConfigStore } from "@chat-agent-relay/config-store";
 import type { AgentType, ChannelType, RouteMatchType } from "@chat-agent-relay/config-store";
 
 const DEFAULT_DB_PATH = "./car.db";
@@ -87,8 +87,8 @@ async function apiCall(port: number, method: string, path: string, body?: unknow
   return resp.json();
 }
 
-function openDb(): ConfigDatabase {
-  return new ConfigDatabase(getDbPath(), getEncKey());
+function openDb(): SqliteConfigStore {
+  return new SqliteConfigStore(getDbPath(), getEncKey());
 }
 
 // ── Channel commands ─────────────────────────────────────────────────

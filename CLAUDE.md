@@ -70,7 +70,7 @@ The repository has a complete first executable path and hardened feature set:
 - `packages/backend-acp` — ACP Agent Client Protocol adapter for coding agents via stdin/stdout subprocess
 - `packages/delivery` — delivery orchestration with retry (exponential backoff) and `DeliveryExhaustedError`
 - `packages/pipeline` — end-to-end orchestration with error paths (`event.blocked`), deny path, conversation context, streaming, `AgentAdapter` support via `legacyBridge()`; resolves agents via `resolveAgent` and routes via `routeFn` (multi-agent)
-- `packages/config-store` — SQLite-backed configuration database, AES-256-GCM encryption for sensitive fields (tokens, API keys), route engine tables, and settings
+- `packages/config-store` — `ConfigStore` interface with `SqliteConfigStore` default implementation, AES-256-GCM encryption for sensitive fields (tokens, API keys), `RouteEngine` for dynamic routing; interface-driven so users can swap in PostgreSQL or other backends
 - `packages/server` — runtime entry point: CLI (`car`) + HTTP API; SQLite config/ledger; hot-pluggable channel and agent registries; multi-agent routing from stored route rules; structured logging + graceful shutdown
 - `packages/adapter-conformance` — reusable conformance test suite for channel adapters, backend adapters, and agent adapters (`testAgentAdapter`)
 
@@ -99,7 +99,7 @@ The repository has a complete first executable path and hardened feature set:
 - AgentAdapter interface and legacy bridge
 - A2A, LangGraph, and ACP agent adapter conformance
 - HITL signaling (agent.input.requested / agent.input.provided)
-- CLI + SQLite configuration (`config-store`, AES-256-GCM for secrets) replacing environment-variable-based config
+- CLI + SQLite configuration (`ConfigStore` interface, `SqliteConfigStore` default, AES-256-GCM for secrets) replacing environment-variable-based config
 - multi-agent routing (several agents registered; route rules select the handler per message)
 
 ## Implementation Structure

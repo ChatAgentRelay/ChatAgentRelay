@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite";
+import type { ConfigStore } from "./config-store";
 import { EncryptionEngine } from "./encryption";
 import {
   SENSITIVE_FIELDS,
@@ -55,7 +56,7 @@ const INDEXES = [
 
 type RawRow = Record<string, unknown>;
 
-export class ConfigDatabase {
+export class SqliteConfigStore implements ConfigStore {
   private readonly db: Database;
   private readonly encryption: EncryptionEngine | null;
 

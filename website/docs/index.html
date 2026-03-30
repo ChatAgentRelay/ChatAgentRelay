@@ -4,20 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Getting Started — Chat Agent Relay Documentation</title>
-  <meta name="description" content="Install Chat Agent Relay with Bun, configure channels and agents via the car CLI and SQLite, run the server, test, and use the HTTP API. Chat-to-agent middleware setup guide.">
+  <meta name="description" content="Install Chat Agent Relay with Bun, configure channels and agents via the car CLI and pluggable config store (SQLite default), run the server, test, and use the HTTP API. Chat-to-agent middleware setup guide.">
   <meta name="keywords" content="Chat Agent Relay, CAR, getting started, Bun, TypeScript, Slack bot, OpenAI, Docker, API, documentation">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
   <meta property="og:title" content="Getting Started — Chat Agent Relay Documentation">
-  <meta property="og:description" content="From clone to running server: prerequisites, install, CLI + SQLite config, Docker, and REST API in one place.">
+  <meta property="og:description" content="From clone to running server: prerequisites, install, CLI + pluggable config store (SQLite default), Docker, and REST API in one place.">
   <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/">
   <meta property="og:site_name" content="Chat Agent Relay">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Getting Started — Chat Agent Relay">
-  <meta name="twitter:description" content="Install, configure, and run Chat Agent Relay: Bun, TypeScript, Slack, encrypted SQLite config, Docker, CLI, HTTP API.">
+  <meta name="twitter:description" content="Install, configure, and run Chat Agent Relay: Bun, TypeScript, Slack, encrypted config store (SQLite default), Docker, CLI, HTTP API.">
 
   <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
   <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
@@ -74,7 +74,7 @@
 
   <p>
     Chat Agent Relay sits between your chat platform and your AI agent. This guide gets you from zero to a running server:
-    install dependencies, register channels and agents with the <code>car</code> CLI (SQLite + encrypted secrets), start the process, verify with tests or Docker, and hit the HTTP API.
+    install dependencies, register channels and agents with the <code>car</code> CLI (pluggable config store with SQLite default + encrypted secrets), start the process, verify with tests or Docker, and hit the HTTP API.
   </p>
 
   <h2 id="prerequisites">Prerequisites</h2>
@@ -114,7 +114,7 @@
   <p>That pulls everything the monorepo needs so you can run the server and the full test suite.</p>
 
   <h2 id="configuration">Configuration</h2>
-  <p>Runtime settings are stored in a <strong>SQLite</strong> database (default <code>./car.db</code>, override with <code>CAR_DB_PATH</code>). Set <code>CAR_ENCRYPTION_KEY</code> so sensitive fields are written with <strong>AES-256-GCM</strong>. Use the <code>car</code> CLI from <code>packages/server</code>:</p>
+  <p>Runtime settings are stored via the <strong>ConfigStore</strong> interface (default: <strong>SqliteConfigStore</strong> at <code>./car.db</code>, override with <code>CAR_DB_PATH</code>; swappable for PostgreSQL or other backends). Set <code>CAR_ENCRYPTION_KEY</code> so sensitive fields are written with <strong>AES-256-GCM</strong>. Use the <code>car</code> CLI from <code>packages/server</code>:</p>
   <ul>
     <li><code>car channel add|list|remove</code> — Slack, Discord, WebChat, …</li>
     <li><code>car agent add|list|remove</code> — A2A, LangGraph, HTTP, ACP, …</li>

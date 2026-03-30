@@ -1,4 +1,4 @@
-import type { ConfigDatabase } from "@chat-agent-relay/config-store";
+import type { ConfigStore } from "@chat-agent-relay/config-store";
 import { SENSITIVE_FIELDS } from "@chat-agent-relay/config-store";
 import type { LedgerStore, StoredCanonicalEvent } from "@chat-agent-relay/event-ledger";
 import type { AgentRegistry } from "./agent-registry";
@@ -8,7 +8,7 @@ import { logger } from "./logger";
 export type ApiConfig = {
   port: number;
   ledgerStore: LedgerStore;
-  configDb: ConfigDatabase;
+  configDb: ConfigStore;
   agentRegistry: AgentRegistry;
   channelRegistry: ChannelRegistry;
 };
