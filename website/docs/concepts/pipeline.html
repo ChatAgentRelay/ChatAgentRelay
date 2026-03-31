@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pipeline — Chat Agent Relay</title>
+  <meta name="description" content="Chat Agent Relay pipeline: FirstExecutablePathPipeline orchestrates canonicalize, policy, route, agent invocation, and delivery. Streaming, error handling, and HITL flow.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Pipeline — Chat Agent Relay">
+  <meta property="og:description" content="FirstExecutablePathPipeline: the core orchestrator for policy, routing, agent invocation, streaming, error handling, and HITL.">
+  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/concepts/pipeline.html">
+  <meta property="og:site_name" content="Chat Agent Relay">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Pipeline — Chat Agent Relay">
+  <meta name="twitter:description" content="Core pipeline orchestrator: policy, routing, agent invocation, streaming, error handling, and human-in-the-loop.">
+
+  <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+  <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+
+  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/concepts/pipeline.html">
+  <link rel="icon" href="/ChatAgentRelay/img/favicon.svg" type="image/svg+xml">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../css/style.css">
+  <link rel="stylesheet" href="../../css/docs.css">
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-7FERB87K2D');
+  </script>
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "Pipeline — Chat Agent Relay",
+    "description": "FirstExecutablePathPipeline orchestrates canonicalize, policy, route, agent invocation, and delivery with streaming and HITL support.",
+    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/concepts/pipeline.html"
+  }
+  </script>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav"><div class="container nav-inner">
+  <a href="/ChatAgentRelay/" class="nav-logo">Chat Agent Relay</a>
+  <div class="nav-links">
+    <a href="/ChatAgentRelay/docs/">Docs</a>
+    <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+    <a href="/ChatAgentRelay/blog/">Blog</a>
+    <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" target="_blank">GitHub</a>
+  </div>
+</div></nav>
+
+<div class="doc-shell">
+
+<!-- Sidebar -->
+<aside class="doc-sidebar">
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Getting Started</span>
+    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Quick Start</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Channels</span>
+    <a href="/ChatAgentRelay/docs/channels/" class="sidebar-link">Overview</a>
+    <a href="/ChatAgentRelay/docs/channels/slack.html" class="sidebar-link">Slack</a>
+    <a href="/ChatAgentRelay/docs/channels/discord.html" class="sidebar-link">Discord</a>
+    <a href="/ChatAgentRelay/docs/channels/webchat.html" class="sidebar-link">WebChat</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Agents</span>
+    <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
+    <a href="/ChatAgentRelay/docs/agents/langgraph.html" class="sidebar-link">LangGraph</a>
+    <a href="/ChatAgentRelay/docs/agents/http.html" class="sidebar-link">HTTP</a>
+    <a href="/ChatAgentRelay/docs/agents/acp.html" class="sidebar-link">ACP</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Configuration</span>
+    <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
+    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Multi-Agent Routing</a>
+    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage Backends</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Concepts</span>
+    <a href="/ChatAgentRelay/docs/concepts/" class="sidebar-link">Architecture</a>
+    <a href="/ChatAgentRelay/docs/concepts/events.html" class="sidebar-link">Event Model</a>
+    <a href="/ChatAgentRelay/docs/concepts/pipeline.html" class="sidebar-link active">Pipeline</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Reference</span>
+    <a href="/ChatAgentRelay/docs/api/" class="sidebar-link">HTTP API</a>
+  </div>
+</aside>
+
+<!-- Content -->
+<main class="doc-content">
+  <h1>Pipeline</h1>
+  <p class="subtitle">The <code>FirstExecutablePathPipeline</code> is the core orchestrator that ties together policy, routing, agent invocation, and delivery into a single coherent flow.</p>
+
+  <h2 id="overview">Overview</h2>
+  <p>
+    The pipeline receives a canonical <code>message.received</code> event and drives it through every stage: governance, routing, agent invocation, and delivery. Each stage emits events to the ledger, building the causal chain. If any stage fails or denies, the pipeline emits <code>event.blocked</code> and stops.
+  </p>
+
+  <h2 id="flow">Pipeline Flow</h2>
+  <pre><code>message.received
+  │
+  ├─▶ canonicalize     Convert platform message to canonical event
+  │
+  ├─▶ policy           Evaluate governance rules (policyFn)
+  │     ├─ allow ──▶ continue
+  │     └─ deny  ──▶ event.blocked → stop
+  │
+  ├─▶ route            Select agent (routeFn → resolveAgent)
+  │
+  ├─▶ agent            Invoke the selected agent
+  │     ├─ success ──▶ agent.response.completed
+  │     ├─ stream  ──▶ deltas → agent.response.completed
+  │     └─ error   ──▶ event.blocked → stop
+  │
+  └─▶ delivery         Send response via channel adapter (sendFn)
+        ├─ success ──▶ message.sent
+        └─ exhaust ──▶ event.blocked (DeliveryExhaustedError)</code></pre>
+
+  <h2 id="config">PipelineConfig</h2>
+  <p>The pipeline is configured with a <code>PipelineConfig</code> object that wires together all the components:</p>
+
+  <table>
+    <thead>
+      <tr><th>Property</th><th>Type</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>ingress</code></td><td><code>ChannelIngress</code></td><td>The channel adapter that produced the incoming event</td></tr>
+      <tr><td><code>resolveAgent</code></td><td><code>(name: string) =&gt; AgentAdapter</code></td><td>Resolves an agent adapter by name from the registry</td></tr>
+      <tr><td><code>routeFn</code></td><td><code>(event) =&gt; string</code></td><td>Returns the agent name for a given event (from route rules)</td></tr>
+      <tr><td><code>policyFn</code></td><td><code>(event) =&gt; PolicyResult</code></td><td>Evaluates governance rules; returns allow or deny with reason</td></tr>
+      <tr><td><code>sendFn</code></td><td><code>(event) =&gt; Promise&lt;void&gt;</code></td><td>Delivers the response back to the chat platform</td></tr>
+      <tr><td><code>ledgerStore</code></td><td><code>LedgerStore</code></td><td>Where events are appended</td></tr>
+      <tr><td><code>streaming</code></td><td><code>boolean</code></td><td>Whether to use streaming invocation when the agent supports it</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="streaming">Streaming</h2>
+  <p>
+    When <code>streaming</code> is enabled and the agent adapter implements <code>invokeStreaming()</code>, the pipeline receives incremental deltas as the agent generates its response. Each delta can be forwarded to the chat platform in real time (e.g., updating a Slack message progressively).
+  </p>
+  <p>The flow for streaming:</p>
+  <ol>
+    <li>Pipeline calls <code>agent.invokeStreaming(event)</code></li>
+    <li>Agent yields deltas via an async iterable</li>
+    <li>Each delta is forwarded to the channel adapter's update mechanism</li>
+    <li>When the stream completes, the full response is captured in <code>agent.response.completed</code></li>
+    <li>Delivery proceeds with the final message</li>
+  </ol>
+
+  <div class="callout callout-info">
+    <strong>Streaming support by adapter</strong>
+    OpenAI, A2A, and LangGraph adapters support streaming natively. The HTTP adapter does not stream. ACP streams via stdout line buffering. If an agent does not support streaming, the pipeline falls back to <code>invoke()</code> automatically.
+  </div>
+
+  <h2 id="error-handling">Error Handling</h2>
+  <p>
+    The pipeline catches errors at every stage and converts them into <code>event.blocked</code> events. This ensures the ledger always records what happened, even on failure:
+  </p>
+  <ul>
+    <li><strong>Policy deny</strong> &mdash; <code>policyFn</code> returns <code>{ allow: false, reason: "..." }</code>. An <code>event.blocked</code> is emitted with the deny reason.</li>
+    <li><strong>Agent error</strong> &mdash; The agent throws, times out, or returns an error. An <code>event.blocked</code> is emitted with the error details.</li>
+    <li><strong>Delivery exhaustion</strong> &mdash; The delivery orchestrator retries with exponential backoff. If all retries fail, a <code>DeliveryExhaustedError</code> triggers <code>event.blocked</code>.</li>
+  </ul>
+
+  <h2 id="hitl">Human-in-the-Loop (HITL)</h2>
+  <p>
+    Some agents need human input mid-conversation (e.g., approval, clarification). The pipeline supports this through two special events:
+  </p>
+  <ol>
+    <li>The agent emits <code>agent.input.requested</code> describing what input it needs.</li>
+    <li>The pipeline surfaces this to the user via the channel adapter.</li>
+    <li>When the user responds, an <code>agent.input.provided</code> event captures their input.</li>
+    <li>The pipeline resumes the agent with the provided input.</li>
+  </ol>
+  <pre><code>agent.invocation.requested
+  └─▶ agent.input.requested   ← agent pauses, asks for input
+        └─▶ agent.input.provided   ← user provides input
+              └─▶ agent.response.completed   ← agent resumes and completes</code></pre>
+
+  <h2 id="legacy-bridge">Legacy Bridge</h2>
+  <p>
+    Older <code>BackendAdapter</code> implementations (HTTP, OpenAI) can be wrapped with <code>legacyBridge()</code> to conform to the <code>AgentAdapter</code> interface. This allows them to work with the pipeline without modification:
+  </p>
+  <pre><code>import { legacyBridge } from '@chat-agent-relay/pipeline';
+import { OpenAIBackend } from '@chat-agent-relay/backend-openai';
+
+const openai = new OpenAIBackend({ apiKey: '...', model: 'gpt-4o' });
+const agent = legacyBridge(openai);</code></pre>
+
+  <!-- Pagination -->
+  <div class="doc-pagination">
+    <a href="/ChatAgentRelay/docs/concepts/events.html" class="prev">
+      <span class="label">Previous</span>
+      <span class="title">&larr; Event Model</span>
+    </a>
+    <a href="/ChatAgentRelay/docs/api/" class="next">
+      <span class="label">Next</span>
+      <span class="title">HTTP API &rarr;</span>
+    </a>
+  </div>
+</main>
+
+</div>
+
+<!-- Mobile sidebar toggle -->
+<button class="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
+      <a href="/ChatAgentRelay/docs/">Docs</a>
+      <a href="/ChatAgentRelay/blog/">Blog</a>
+      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
+    </div>
+    <p>MIT License &middot; Built with Bun and TypeScript</p>
+  </div>
+</footer>
+
+<script>
+document.querySelector('.sidebar-toggle')?.addEventListener('click', () => {
+  document.querySelector('.doc-sidebar')?.classList.toggle('open');
+});
+</script>
+</body>
+</html>

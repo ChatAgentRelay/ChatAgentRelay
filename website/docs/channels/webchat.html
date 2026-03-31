@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WebChat — Chat Agent Relay</title>
+  <meta name="description" content="The simplest Chat Agent Relay channel. HTTP-based, no external app setup. Ideal for testing, internal tools, and custom web UIs.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="WebChat — Chat Agent Relay">
+  <meta property="og:description" content="HTTP-based chat channel for testing, internal tools, and custom web interfaces.">
+  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/webchat.html">
+  <meta property="og:site_name" content="Chat Agent Relay">
+  <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="WebChat — Chat Agent Relay">
+  <meta name="twitter:description" content="HTTP-based WebChat adapter for Chat Agent Relay. Zero setup, great for testing.">
+  <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+
+  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/webchat.html">
+  <link rel="icon" href="/ChatAgentRelay/img/favicon.svg" type="image/svg+xml">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../css/style.css">
+  <link rel="stylesheet" href="../../css/docs.css">
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-7FERB87K2D');
+  </script>
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "WebChat — Chat Agent Relay",
+    "description": "The simplest Chat Agent Relay channel. HTTP-based, no external app setup. Ideal for testing, internal tools, and custom web UIs.",
+    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/webchat.html"
+  }
+  </script>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav"><div class="container nav-inner">
+  <a href="/ChatAgentRelay/" class="nav-logo">Chat Agent Relay</a>
+  <div class="nav-links">
+    <a href="/ChatAgentRelay/docs/">Docs</a>
+    <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+    <a href="/ChatAgentRelay/blog/">Blog</a>
+    <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" target="_blank">GitHub</a>
+  </div>
+</div></nav>
+
+<div class="doc-shell">
+
+<!-- Sidebar -->
+<aside class="doc-sidebar">
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Getting Started</span>
+    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Quick Start</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Channels</span>
+    <a href="/ChatAgentRelay/docs/channels/" class="sidebar-link">Overview</a>
+    <a href="/ChatAgentRelay/docs/channels/slack.html" class="sidebar-link">Slack</a>
+    <a href="/ChatAgentRelay/docs/channels/discord.html" class="sidebar-link">Discord</a>
+    <a href="/ChatAgentRelay/docs/channels/webchat.html" class="sidebar-link active">WebChat</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Agents</span>
+    <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
+    <a href="/ChatAgentRelay/docs/agents/langgraph.html" class="sidebar-link">LangGraph</a>
+    <a href="/ChatAgentRelay/docs/agents/http.html" class="sidebar-link">HTTP</a>
+    <a href="/ChatAgentRelay/docs/agents/acp.html" class="sidebar-link">ACP</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Configuration</span>
+    <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
+    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Multi-Agent Routing</a>
+    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage Backends</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Concepts</span>
+    <a href="/ChatAgentRelay/docs/concepts/" class="sidebar-link">Architecture</a>
+    <a href="/ChatAgentRelay/docs/concepts/events.html" class="sidebar-link">Event Model</a>
+    <a href="/ChatAgentRelay/docs/concepts/pipeline.html" class="sidebar-link">Pipeline</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Reference</span>
+    <a href="/ChatAgentRelay/docs/api/" class="sidebar-link">HTTP API</a>
+  </div>
+</aside>
+
+<!-- Content -->
+<main class="doc-content">
+  <h1>WebChat</h1>
+  <p class="subtitle">The simplest channel adapter. HTTP-based with no external app setup, persistent connections, or third-party accounts required. Ideal for testing, internal tools, and custom web UIs.</p>
+
+  <h2 id="overview">Overview</h2>
+  <p>WebChat is a lightweight HTTP channel that accepts messages via POST requests and returns agent responses synchronously. There&rsquo;s no WebSocket, no OAuth flow, no external app registration &mdash; just send a JSON payload and get a response.</p>
+  <p>This makes it the fastest way to verify your CAR installation is working, and a natural fit for:</p>
+  <ul>
+    <li><strong>Local development</strong> &mdash; test agents without configuring Slack or Discord.</li>
+    <li><strong>Internal tools</strong> &mdash; embed chat in admin panels or dashboards.</li>
+    <li><strong>Custom web UIs</strong> &mdash; build your own chat frontend that talks to any agent through CAR.</li>
+    <li><strong>CI/CD pipelines</strong> &mdash; automated integration tests against the relay.</li>
+  </ul>
+
+  <h2 id="add-to-car">Add to CAR</h2>
+  <p>Register the WebChat channel &mdash; no tokens needed:</p>
+  <pre><code>car channel add web --type=webchat</code></pre>
+  <p>That&rsquo;s it. The channel is ready to receive messages on the server&rsquo;s HTTP API.</p>
+
+  <h2 id="usage">Usage</h2>
+  <p>Send messages with a POST request to the WebChat endpoint:</p>
+  <pre><code>curl -X POST http://localhost:3000/api/webchat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "Hello, agent!",
+    "conversation_id": "test-123",
+    "user_id": "user-1"
+  }'</code></pre>
+  <p>The response contains the agent&rsquo;s reply in the same HTTP response:</p>
+  <pre><code>{
+  "reply": "Hello! How can I help you today?",
+  "conversation_id": "test-123"
+}</code></pre>
+
+  <div class="callout callout-info">
+    <strong>Full pipeline</strong>
+    Even though WebChat is simple, every message flows through the complete 7-event pipeline: governance, routing, agent invocation, delivery, and ledger recording. You get the same audit trail and policy enforcement as Slack or Discord.
+  </div>
+
+  <h2 id="configuration">Configuration options</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Option</th>
+        <th>CLI flag</th>
+        <th>Required</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>corsOrigins</code></td>
+        <td><code>--cors-origins</code></td>
+        <td>No</td>
+        <td>Allowed CORS origins for browser-based clients (default: <code>*</code>)</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 id="cors">CORS configuration</h2>
+  <p>When embedding WebChat in a browser-based UI, configure CORS to allow requests from your frontend domain:</p>
+  <pre><code>car channel add web --type=webchat --cors-origins=https://app.example.com</code></pre>
+  <p>Multiple origins can be comma-separated. The default (<code>*</code>) allows all origins, which is fine for local development but should be restricted in production.</p>
+
+  <div class="callout callout-warn">
+    <strong>Production CORS</strong>
+    Always set explicit CORS origins in production to prevent unauthorized frontends from accessing your relay.
+  </div>
+
+  <h2 id="building-a-frontend">Building a frontend</h2>
+  <p>WebChat is designed to be the backend for your own chat interface. A minimal integration is a single <code>fetch</code> call:</p>
+  <pre><code>const response = await fetch("http://localhost:3000/api/webchat", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    message: userInput,
+    conversation_id: sessionId,
+    user_id: currentUser
+  })
+});
+const data = await response.json();
+displayMessage(data.reply);</code></pre>
+  <p>Conversation context is maintained server-side via <code>conversation_id</code>, so your frontend only needs to persist the session identifier.</p>
+
+  <!-- Pagination -->
+  <div class="doc-pagination">
+    <a href="/ChatAgentRelay/docs/channels/discord.html">
+      <span class="label">Previous</span>
+      <span class="title">&larr; Discord</span>
+    </a>
+    <a href="/ChatAgentRelay/docs/agents/" class="next">
+      <span class="label">Next</span>
+      <span class="title">Agents Overview &rarr;</span>
+    </a>
+  </div>
+</main>
+
+</div>
+
+<button class="sidebar-toggle" onclick="document.querySelector('.doc-sidebar').classList.toggle('open')">&#9776;</button>
+
+</body>
+</html>

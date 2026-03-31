@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Architecture — Chat Agent Relay</title>
+  <meta name="description" content="Chat Agent Relay architecture: 16-package monorepo, canonical event model, append-only ledger, pluggable channel and agent adapters, interface-driven design.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Architecture — Chat Agent Relay">
+  <meta property="og:description" content="High-level architecture overview: canonical events, pluggable adapters, append-only ledger, and the 16-package monorepo structure.">
+  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/concepts/">
+  <meta property="og:site_name" content="Chat Agent Relay">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Architecture — Chat Agent Relay">
+  <meta name="twitter:description" content="Chat Agent Relay architecture: canonical events, pluggable adapters, append-only ledger, 16-package monorepo.">
+
+  <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+  <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+
+  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/concepts/">
+  <link rel="icon" href="/ChatAgentRelay/img/favicon.svg" type="image/svg+xml">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../css/style.css">
+  <link rel="stylesheet" href="../../css/docs.css">
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-7FERB87K2D');
+  </script>
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "Architecture — Chat Agent Relay",
+    "description": "High-level architecture overview of Chat Agent Relay: canonical events, pluggable adapters, append-only ledger, and 16-package monorepo.",
+    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/concepts/"
+  }
+  </script>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav"><div class="container nav-inner">
+  <a href="/ChatAgentRelay/" class="nav-logo">Chat Agent Relay</a>
+  <div class="nav-links">
+    <a href="/ChatAgentRelay/docs/">Docs</a>
+    <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+    <a href="/ChatAgentRelay/blog/">Blog</a>
+    <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" target="_blank">GitHub</a>
+  </div>
+</div></nav>
+
+<div class="doc-shell">
+
+<!-- Sidebar -->
+<aside class="doc-sidebar">
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Getting Started</span>
+    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Quick Start</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Channels</span>
+    <a href="/ChatAgentRelay/docs/channels/" class="sidebar-link">Overview</a>
+    <a href="/ChatAgentRelay/docs/channels/slack.html" class="sidebar-link">Slack</a>
+    <a href="/ChatAgentRelay/docs/channels/discord.html" class="sidebar-link">Discord</a>
+    <a href="/ChatAgentRelay/docs/channels/webchat.html" class="sidebar-link">WebChat</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Agents</span>
+    <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
+    <a href="/ChatAgentRelay/docs/agents/langgraph.html" class="sidebar-link">LangGraph</a>
+    <a href="/ChatAgentRelay/docs/agents/http.html" class="sidebar-link">HTTP</a>
+    <a href="/ChatAgentRelay/docs/agents/acp.html" class="sidebar-link">ACP</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Configuration</span>
+    <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
+    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Multi-Agent Routing</a>
+    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage Backends</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Concepts</span>
+    <a href="/ChatAgentRelay/docs/concepts/" class="sidebar-link active">Architecture</a>
+    <a href="/ChatAgentRelay/docs/concepts/events.html" class="sidebar-link">Event Model</a>
+    <a href="/ChatAgentRelay/docs/concepts/pipeline.html" class="sidebar-link">Pipeline</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Reference</span>
+    <a href="/ChatAgentRelay/docs/api/" class="sidebar-link">HTTP API</a>
+  </div>
+</aside>
+
+<!-- Content -->
+<main class="doc-content">
+  <h1>Architecture</h1>
+  <p class="subtitle">How Chat Agent Relay connects chat platforms to AI agents through a canonical event model, pluggable adapters, and an append-only ledger.</p>
+
+  <h2 id="high-level">High-Level Flow</h2>
+  <p>Every message passes through the same pipeline, regardless of which chat platform sent it or which agent handles it:</p>
+  <pre><code>┌──────────────┐     ┌─────────────────┐     ┌───────────────┐     ┌─────────────────┐     ┌───────────────┐
+│              │     │                 │     │               │     │                 │     │               │
+│  Chat        │────▶│  Channel        │────▶│   Pipeline    │────▶│  Agent          │────▶│  Agent        │
+│  Platform    │     │  Adapter        │     │  (policy,     │     │  Adapter        │     │  Runtime      │
+│              │◀────│  (ingress +     │◀────│   route,      │◀────│  (invoke +      │◀────│               │
+│  Slack       │     │   delivery)     │     │   ledger)     │     │   stream)       │     │  A2A / LG /   │
+│  Discord     │     │                 │     │               │     │                 │     │  OpenAI / ... │
+│  WebChat     │     │                 │     │               │     │                 │     │               │
+└──────────────┘     └─────────────────┘     └───────────────┘     └─────────────────┘     └───────────────┘
+                      canonicalize              govern + route        invoke + bridge         your agent
+                      + deliver                 + record              + stream</code></pre>
+
+  <h2 id="principles">Key Principles</h2>
+  <ul>
+    <li><strong>Canonical events</strong> &mdash; Every platform message is normalized into a single event shape. Slack, Discord, and WebChat all produce the same <code>message.received</code> event. Platform-specific data is preserved in <code>provider_extensions</code>.</li>
+    <li><strong>Append-only ledger</strong> &mdash; Every event is appended to an immutable ledger. Events are never modified or deleted. This provides a complete audit trail and enables replay.</li>
+    <li><strong>Pluggable adapters</strong> &mdash; Channel adapters and agent adapters are independent, swappable components. Add a new chat platform or agent runtime without changing the pipeline.</li>
+    <li><strong>Interface-driven</strong> &mdash; Key boundaries (<code>ChannelIngress</code>, <code>AgentAdapter</code>, <code>ConfigStore</code>, <code>LedgerStore</code>) are defined as TypeScript interfaces. Implementations are interchangeable.</li>
+    <li><strong>Governance first</strong> &mdash; Policy evaluation happens before agent invocation. Messages can be blocked, filtered, or routed based on configurable rules.</li>
+    <li><strong>Causal tracing</strong> &mdash; Every event carries <code>correlation_id</code> (links the entire request chain) and <code>causation_id</code> (links parent to child). This enables full traceability.</li>
+  </ul>
+
+  <h2 id="packages">Package Overview</h2>
+  <table>
+    <thead>
+      <tr><th>Package</th><th>Purpose</th><th>Key Interface</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>contract-harness</code></td><td>Schema validation + AgentAdapter types</td><td><code>ContractHarnessValidators</code></td></tr>
+      <tr><td><code>config-store</code></td><td>Config storage (SQLite default)</td><td><code>ConfigStore</code></td></tr>
+      <tr><td><code>event-ledger</code></td><td>Append-only event storage</td><td><code>LedgerStore</code></td></tr>
+      <tr><td><code>channel-web-chat</code></td><td>WebChat HTTP adapter</td><td><code>ChannelIngress</code></td></tr>
+      <tr><td><code>channel-slack</code></td><td>Slack Socket Mode adapter</td><td><code>ChannelIngress</code></td></tr>
+      <tr><td><code>channel-discord</code></td><td>Discord Gateway adapter</td><td><code>ChannelIngress</code></td></tr>
+      <tr><td><code>middleware</code></td><td>Policy + routing</td><td><code>MiddlewarePipeline</code></td></tr>
+      <tr><td><code>backend-http</code></td><td>Configurable HTTP backend</td><td><code>BackendAdapter</code></td></tr>
+      <tr><td><code>backend-openai</code></td><td>OpenAI Chat Completions + streaming</td><td><code>BackendAdapter</code></td></tr>
+      <tr><td><code>backend-a2a</code></td><td>A2A protocol agent</td><td><code>AgentAdapter</code></td></tr>
+      <tr><td><code>backend-langgraph</code></td><td>LangGraph Platform agent</td><td><code>AgentAdapter</code></td></tr>
+      <tr><td><code>backend-acp</code></td><td>ACP coding agent (stdin/stdout)</td><td><code>AgentAdapter</code></td></tr>
+      <tr><td><code>delivery</code></td><td>Delivery orchestration + retry</td><td><code>DeliveryOrchestrator</code></td></tr>
+      <tr><td><code>pipeline</code></td><td>End-to-end orchestration</td><td><code>FirstExecutablePathPipeline</code></td></tr>
+      <tr><td><code>server</code></td><td>Runtime: CLI + HTTP API</td><td><code>car</code> CLI</td></tr>
+      <tr><td><code>adapter-conformance</code></td><td>Reusable conformance test suite</td><td><code>testChannelIngress</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="dependency-graph">Dependency Graph</h2>
+  <p>Packages are layered with clear dependency boundaries:</p>
+  <pre><code>contract-harness (base)
+  ├── event-ledger ──────────────────┐
+  ├── middleware ─────────────────────┤
+  ├── backend-http ──┐               │
+  │   └── backend-openai ────────────┤
+  ├── backend-a2a ───────────────────┤
+  ├── backend-langgraph ─────────────┤
+  ├── backend-acp ───────────────────┤
+  ├── channel-web-chat               ├── pipeline ── server
+  ├── channel-slack                  │
+  ├── channel-discord                │
+  ├── delivery ──────────────────────┘
+  └── config-store</code></pre>
+
+  <h2 id="message-flow">How a Message Flows</h2>
+  <ol>
+    <li><strong>Ingress</strong> &mdash; A chat platform sends a message. The channel adapter receives it and produces a canonical <code>message.received</code> event.</li>
+    <li><strong>Policy</strong> &mdash; The middleware evaluates governance rules. If denied, an <code>event.blocked</code> event is emitted and processing stops.</li>
+    <li><strong>Routing</strong> &mdash; The route engine selects an agent based on channel, pattern, or default rules. A <code>route.decision.made</code> event records the choice.</li>
+    <li><strong>Invocation</strong> &mdash; The selected agent adapter calls the agent runtime. An <code>agent.invocation.requested</code> event is recorded. For streaming agents, deltas arrive incrementally.</li>
+    <li><strong>Response</strong> &mdash; The agent returns a response. An <code>agent.response.completed</code> event captures the full reply.</li>
+    <li><strong>Delivery</strong> &mdash; The delivery orchestrator sends the response back through the channel adapter. A <code>message.send.requested</code> event is recorded, followed by <code>message.sent</code> on success.</li>
+    <li><strong>Ledger</strong> &mdash; Every event in this chain is appended to the ledger with causal links. The full conversation is queryable and auditable.</li>
+  </ol>
+
+  <!-- Pagination -->
+  <div class="doc-pagination">
+    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="prev">
+      <span class="label">Previous</span>
+      <span class="title">&larr; Storage Backends</span>
+    </a>
+    <a href="/ChatAgentRelay/docs/concepts/events.html" class="next">
+      <span class="label">Next</span>
+      <span class="title">Event Model &rarr;</span>
+    </a>
+  </div>
+</main>
+
+</div>
+
+<!-- Mobile sidebar toggle -->
+<button class="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
+      <a href="/ChatAgentRelay/docs/">Docs</a>
+      <a href="/ChatAgentRelay/blog/">Blog</a>
+      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
+    </div>
+    <p>MIT License &middot; Built with Bun and TypeScript</p>
+  </div>
+</footer>
+
+<script>
+document.querySelector('.sidebar-toggle')?.addEventListener('click', () => {
+  document.querySelector('.doc-sidebar')?.classList.toggle('open');
+});
+</script>
+</body>
+</html>

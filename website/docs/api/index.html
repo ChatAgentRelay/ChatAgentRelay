@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HTTP API — Chat Agent Relay</title>
+  <meta name="description" content="Chat Agent Relay HTTP API reference: health checks, event queries, audit, agent/channel/route CRUD, and config management endpoints with curl examples.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="HTTP API — Chat Agent Relay">
+  <meta property="og:description" content="Full HTTP API reference: health, events, audit, agents, channels, routes, and config endpoints with request/response examples.">
+  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/api/">
+  <meta property="og:site_name" content="Chat Agent Relay">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="HTTP API — Chat Agent Relay">
+  <meta name="twitter:description" content="Complete REST API reference for Chat Agent Relay: events, audit, CRUD for agents, channels, routes, and config.">
+
+  <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+  <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+
+  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/api/">
+  <link rel="icon" href="/ChatAgentRelay/img/favicon.svg" type="image/svg+xml">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../css/style.css">
+  <link rel="stylesheet" href="../../css/docs.css">
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-7FERB87K2D');
+  </script>
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "HTTP API — Chat Agent Relay",
+    "description": "Full HTTP API reference for Chat Agent Relay: health, events, audit, agents, channels, routes, and config endpoints.",
+    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/api/"
+  }
+  </script>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav"><div class="container nav-inner">
+  <a href="/ChatAgentRelay/" class="nav-logo">Chat Agent Relay</a>
+  <div class="nav-links">
+    <a href="/ChatAgentRelay/docs/">Docs</a>
+    <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+    <a href="/ChatAgentRelay/blog/">Blog</a>
+    <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" target="_blank">GitHub</a>
+  </div>
+</div></nav>
+
+<div class="doc-shell">
+
+<!-- Sidebar -->
+<aside class="doc-sidebar">
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Getting Started</span>
+    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Quick Start</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Channels</span>
+    <a href="/ChatAgentRelay/docs/channels/" class="sidebar-link">Overview</a>
+    <a href="/ChatAgentRelay/docs/channels/slack.html" class="sidebar-link">Slack</a>
+    <a href="/ChatAgentRelay/docs/channels/discord.html" class="sidebar-link">Discord</a>
+    <a href="/ChatAgentRelay/docs/channels/webchat.html" class="sidebar-link">WebChat</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Agents</span>
+    <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
+    <a href="/ChatAgentRelay/docs/agents/langgraph.html" class="sidebar-link">LangGraph</a>
+    <a href="/ChatAgentRelay/docs/agents/http.html" class="sidebar-link">HTTP</a>
+    <a href="/ChatAgentRelay/docs/agents/acp.html" class="sidebar-link">ACP</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Configuration</span>
+    <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
+    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Multi-Agent Routing</a>
+    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage Backends</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Concepts</span>
+    <a href="/ChatAgentRelay/docs/concepts/" class="sidebar-link">Architecture</a>
+    <a href="/ChatAgentRelay/docs/concepts/events.html" class="sidebar-link">Event Model</a>
+    <a href="/ChatAgentRelay/docs/concepts/pipeline.html" class="sidebar-link">Pipeline</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Reference</span>
+    <a href="/ChatAgentRelay/docs/api/" class="sidebar-link active">HTTP API</a>
+  </div>
+</aside>
+
+<!-- Content -->
+<main class="doc-content">
+  <h1>HTTP API</h1>
+  <p class="subtitle">Full REST API reference for managing and querying Chat Agent Relay. All endpoints are available when the server is running (default <code>http://localhost:3000</code>).</p>
+
+  <!-- ── Health ───────────────────────────────────────────── -->
+  <h2 id="health">Health</h2>
+
+  <h3 id="get-health"><span class="badge badge-green">GET</span> <code>/api/health</code></h3>
+  <p>Liveness check. Returns server status and uptime.</p>
+  <pre><code>curl -s http://localhost:3000/api/health</code></pre>
+  <p><strong>Response</strong> <code>200 OK</code></p>
+  <pre><code>{
+  "status": "ok",
+  "uptime": 3600,
+  "version": "1.0.0"
+}</code></pre>
+
+  <!-- ── Events ──────────────────────────────────────────── -->
+  <h2 id="events">Events</h2>
+
+  <h3 id="get-event"><span class="badge badge-green">GET</span> <code>/api/events/:id</code></h3>
+  <p>Retrieve a single event by its <code>event_id</code>.</p>
+  <pre><code>curl -s http://localhost:3000/api/events/evt_a1b2c3d4</code></pre>
+  <p><strong>Response</strong> <code>200 OK</code></p>
+  <pre><code>{
+  "event_id": "evt_a1b2c3d4",
+  "event_type": "message.received",
+  "timestamp": "2025-03-15T10:30:00.000Z",
+  "correlation_id": "corr_x9y8z7",
+  "causation_id": null,
+  "conversation_id": "C123456",
+  "channel": "my-slack",
+  "payload": { "text": "Hello, agent!", "sender_id": "U987654" }
+}</code></pre>
+
+  <h3 id="get-conversation-events"><span class="badge badge-green">GET</span> <code>/api/conversations/:id/events</code></h3>
+  <p>List all events for a conversation, ordered chronologically.</p>
+  <pre><code>curl -s http://localhost:3000/api/conversations/C123456/events</code></pre>
+  <p><strong>Response</strong> <code>200 OK</code></p>
+  <pre><code>[
+  { "event_id": "evt_001", "event_type": "message.received", ... },
+  { "event_id": "evt_002", "event_type": "policy.decision.made", ... },
+  { "event_id": "evt_003", "event_type": "route.decision.made", ... },
+  ...
+]</code></pre>
+
+  <h3 id="get-correlation-events"><span class="badge badge-green">GET</span> <code>/api/correlations/:id/events</code></h3>
+  <p>List all events sharing a <code>correlation_id</code> (a single request chain).</p>
+  <pre><code>curl -s http://localhost:3000/api/correlations/corr_x9y8z7/events</code></pre>
+  <p><strong>Response</strong> <code>200 OK</code> &mdash; same format as conversation events.</p>
+
+  <!-- ── Audit ───────────────────────────────────────────── -->
+  <h2 id="audit">Audit</h2>
+
+  <h3 id="get-audit"><span class="badge badge-green">GET</span> <code>/api/conversations/:id/audit</code></h3>
+  <p>Human-readable audit trail for a conversation. Returns events with explanations of what happened and why.</p>
+  <pre><code>curl -s http://localhost:3000/api/conversations/C123456/audit</code></pre>
+  <p><strong>Response</strong> <code>200 OK</code></p>
+  <pre><code>{
+  "conversation_id": "C123456",
+  "entries": [
+    {
+      "event_id": "evt_001",
+      "event_type": "message.received",
+      "explanation": "Message received from user alice in channel my-slack"
+    },
+    {
+      "event_id": "evt_002",
+      "event_type": "policy.decision.made",
+      "explanation": "Policy allowed: no matching deny rules"
+    },
+    ...
+  ]
+}</code></pre>
+
+  <!-- ── Agents ──────────────────────────────────────────── -->
+  <h2 id="agents">Agents</h2>
+
+  <h3 id="get-agents"><span class="badge badge-green">GET</span> <code>/api/agents</code></h3>
+  <p>List all registered agents.</p>
+  <pre><code>curl -s http://localhost:3000/api/agents</code></pre>
+  <p><strong>Response</strong> <code>200 OK</code></p>
+  <pre><code>[
+  { "name": "primary", "type": "a2a", "enabled": true },
+  { "name": "coder", "type": "langgraph", "enabled": true },
+  { "name": "fallback", "type": "http", "enabled": false }
+]</code></pre>
+
+  <h3 id="post-agents"><span class="badge badge-blue">POST</span> <code>/api/agents</code></h3>
+  <p>Register a new agent.</p>
+  <pre><code>curl -X POST http://localhost:3000/api/agents \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "support",
+    "type": "openai",
+    "config": {
+      "api_key": "sk-...",
+      "model": "gpt-4o"
+    }
+  }'</code></pre>
+  <p><strong>Response</strong> <code>201 Created</code></p>
+  <pre><code>{ "name": "support", "type": "openai", "enabled": true }</code></pre>
+
+  <h3 id="put-agent"><span class="badge badge-purple">PUT</span> <code>/api/agents/:name</code></h3>
+  <p>Update an existing agent&rsquo;s configuration.</p>
+  <pre><code>curl -X PUT http://localhost:3000/api/agents/support \
+  -H "Content-Type: application/json" \
+  -d '{
+    "config": { "model": "gpt-4o-mini" }
+  }'</code></pre>
+  <p><strong>Response</strong> <code>200 OK</code></p>
+
+  <h3 id="delete-agent"><span class="badge badge-purple">DELETE</span> <code>/api/agents/:name</code></h3>
+  <p>Remove an agent.</p>
+  <pre><code>curl -X DELETE http://localhost:3000/api/agents/support</code></pre>
+  <p><strong>Response</strong> <code>204 No Content</code></p>
+
+  <h3 id="post-agent-enable"><span class="badge badge-blue">POST</span> <code>/api/agents/:name/enable</code></h3>
+  <p>Enable a disabled agent.</p>
+  <pre><code>curl -X POST http://localhost:3000/api/agents/fallback/enable</code></pre>
+  <p><strong>Response</strong> <code>200 OK</code></p>
+
+  <h3 id="post-agent-disable"><span class="badge badge-blue">POST</span> <code>/api/agents/:name/disable</code></h3>
+  <p>Disable an agent without removing it.</p>
+  <pre><code>curl -X POST http://localhost:3000/api/agents/fallback/disable</code></pre>
+  <p><strong>Response</strong> <code>200 OK</code></p>
+
+  <!-- ── Channels ────────────────────────────────────────── -->
+  <h2 id="channels">Channels</h2>
+
+  <h3 id="get-channels"><span class="badge badge-green">GET</span> <code>/api/channels</code></h3>
+  <p>List all registered channels.</p>
+  <pre><code>curl -s http://localhost:3000/api/channels</code></pre>
+  <p><strong>Response</strong> <code>200 OK</code></p>
+  <pre><code>[
+  { "name": "my-slack", "type": "slack", "enabled": true },
+  { "name": "web", "type": "webchat", "enabled": true }
+]</code></pre>
+
+  <h3 id="post-channels"><span class="badge badge-blue">POST</span> <code>/api/channels</code></h3>
+  <p>Register a new channel.</p>
+  <pre><code>curl -X POST http://localhost:3000/api/channels \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "support-discord",
+    "type": "discord",
+    "config": {
+      "bot_token": "MTIz...",
+      "app_id": "123456"
+    }
+  }'</code></pre>
+  <p><strong>Response</strong> <code>201 Created</code></p>
+
+  <h3 id="put-channel"><span class="badge badge-purple">PUT</span> <code>/api/channels/:name</code></h3>
+  <p>Update a channel&rsquo;s configuration.</p>
+  <pre><code>curl -X PUT http://localhost:3000/api/channels/my-slack \
+  -H "Content-Type: application/json" \
+  -d '{
+    "config": { "mention_only": true }
+  }'</code></pre>
+  <p><strong>Response</strong> <code>200 OK</code></p>
+
+  <h3 id="delete-channel"><span class="badge badge-purple">DELETE</span> <code>/api/channels/:name</code></h3>
+  <p>Remove a channel.</p>
+  <pre><code>curl -X DELETE http://localhost:3000/api/channels/support-discord</code></pre>
+  <p><strong>Response</strong> <code>204 No Content</code></p>
+
+  <h3 id="post-channel-enable"><span class="badge badge-blue">POST</span> <code>/api/channels/:name/enable</code></h3>
+  <p>Enable a disabled channel.</p>
+  <pre><code>curl -X POST http://localhost:3000/api/channels/my-slack/enable</code></pre>
+  <p><strong>Response</strong> <code>200 OK</code></p>
+
+  <h3 id="post-channel-disable"><span class="badge badge-blue">POST</span> <code>/api/channels/:name/disable</code></h3>
+  <p>Disable a channel without removing it.</p>
+  <pre><code>curl -X POST http://localhost:3000/api/channels/my-slack/disable</code></pre>
+  <p><strong>Response</strong> <code>200 OK</code></p>
+
+  <!-- ── Routes ──────────────────────────────────────────── -->
+  <h2 id="routes">Routes</h2>
+
+  <h3 id="get-routes"><span class="badge badge-green">GET</span> <code>/api/routes</code></h3>
+  <p>List all routing rules.</p>
+  <pre><code>curl -s http://localhost:3000/api/routes</code></pre>
+  <p><strong>Response</strong> <code>200 OK</code></p>
+  <pre><code>[
+  { "id": 1, "type": "channel", "match": "support-discord", "agent": "support" },
+  { "id": 2, "type": "pattern", "match": "^/code", "agent": "coder" },
+  { "id": 3, "type": "default", "match": "*", "agent": "primary" }
+]</code></pre>
+
+  <h3 id="post-routes"><span class="badge badge-blue">POST</span> <code>/api/routes</code></h3>
+  <p>Add a routing rule.</p>
+  <pre><code>curl -X POST http://localhost:3000/api/routes \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "pattern",
+    "match": "^/translate",
+    "agent": "translator"
+  }'</code></pre>
+  <p><strong>Response</strong> <code>201 Created</code></p>
+  <pre><code>{ "id": 4, "type": "pattern", "match": "^/translate", "agent": "translator" }</code></pre>
+
+  <h3 id="delete-route"><span class="badge badge-purple">DELETE</span> <code>/api/routes/:id</code></h3>
+  <p>Remove a routing rule by its numeric ID.</p>
+  <pre><code>curl -X DELETE http://localhost:3000/api/routes/4</code></pre>
+  <p><strong>Response</strong> <code>204 No Content</code></p>
+
+  <!-- ── Config ──────────────────────────────────────────── -->
+  <h2 id="config">Config</h2>
+
+  <h3 id="get-config"><span class="badge badge-green">GET</span> <code>/api/config</code></h3>
+  <p>List all key-value configuration entries.</p>
+  <pre><code>curl -s http://localhost:3000/api/config</code></pre>
+  <p><strong>Response</strong> <code>200 OK</code></p>
+  <pre><code>[
+  { "key": "log_level", "value": "debug" },
+  { "key": "max_retries", "value": "3" }
+]</code></pre>
+
+  <h3 id="put-config-key"><span class="badge badge-purple">PUT</span> <code>/api/config/:key</code></h3>
+  <p>Set a configuration value.</p>
+  <pre><code>curl -X PUT http://localhost:3000/api/config/log_level \
+  -H "Content-Type: application/json" \
+  -d '{ "value": "info" }'</code></pre>
+  <p><strong>Response</strong> <code>200 OK</code></p>
+
+  <h3 id="delete-config-key"><span class="badge badge-purple">DELETE</span> <code>/api/config/:key</code></h3>
+  <p>Delete a configuration entry.</p>
+  <pre><code>curl -X DELETE http://localhost:3000/api/config/log_level</code></pre>
+  <p><strong>Response</strong> <code>204 No Content</code></p>
+
+  <!-- Pagination -->
+  <div class="doc-pagination">
+    <a href="/ChatAgentRelay/docs/concepts/pipeline.html" class="prev">
+      <span class="label">Previous</span>
+      <span class="title">&larr; Pipeline</span>
+    </a>
+  </div>
+</main>
+
+</div>
+
+<!-- Mobile sidebar toggle -->
+<button class="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
+      <a href="/ChatAgentRelay/docs/">Docs</a>
+      <a href="/ChatAgentRelay/blog/">Blog</a>
+      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
+    </div>
+    <p>MIT License &middot; Built with Bun and TypeScript</p>
+  </div>
+</footer>
+
+<script>
+document.querySelector('.sidebar-toggle')?.addEventListener('click', () => {
+  document.querySelector('.doc-sidebar')?.classList.toggle('open');
+});
+</script>
+</body>
+</html>

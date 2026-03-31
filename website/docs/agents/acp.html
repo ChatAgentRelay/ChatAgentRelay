@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ACP Agent — Chat Agent Relay</title>
+  <meta name="description" content="Connect coding agents via Agent Client Protocol (ACP) in Chat Agent Relay. Spawn subprocess agents like Claude Code or Gemini CLI with JSON-RPC over stdin/stdout.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="ACP Agent — Chat Agent Relay">
+  <meta property="og:description" content="Connect coding agents via ACP in Chat Agent Relay. Spawn subprocess agents like Claude Code or Gemini CLI with JSON-RPC over stdin/stdout.">
+  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/agents/acp.html">
+  <meta property="og:site_name" content="Chat Agent Relay">
+  <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="ACP Agent — Chat Agent Relay">
+  <meta name="twitter:description" content="Connect coding agents via ACP in Chat Agent Relay. Spawn subprocess agents like Claude Code or Gemini CLI with JSON-RPC over stdin/stdout.">
+  <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+
+  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/agents/acp.html">
+  <link rel="icon" href="/ChatAgentRelay/img/favicon.svg" type="image/svg+xml">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../css/style.css">
+  <link rel="stylesheet" href="../../css/docs.css">
+
+  <!-- Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-7FERB87K2D');
+  </script>
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "ACP Agent — Chat Agent Relay",
+    "description": "Connect coding agents via Agent Client Protocol (ACP) in Chat Agent Relay. Spawn subprocess agents like Claude Code or Gemini CLI with JSON-RPC over stdin/stdout.",
+    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/agents/acp.html"
+  }
+  </script>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav"><div class="container nav-inner">
+  <a href="/ChatAgentRelay/" class="nav-logo">Chat Agent Relay</a>
+  <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+  <div class="nav-links">
+    <a href="/ChatAgentRelay/docs/" class="active">Docs</a>
+    <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+    <a href="/ChatAgentRelay/blog/">Blog</a>
+    <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" target="_blank">GitHub</a>
+  </div>
+</div></nav>
+
+<div class="doc-shell">
+
+  <!-- Sidebar -->
+  <aside class="doc-sidebar">
+    <div class="sidebar-group">
+      <span class="sidebar-group-title">Getting Started</span>
+      <a href="/ChatAgentRelay/docs/" class="sidebar-link">Quick Start</a>
+    </div>
+    <div class="sidebar-group">
+      <span class="sidebar-group-title">Channels</span>
+      <a href="/ChatAgentRelay/docs/channels/" class="sidebar-link">Overview</a>
+      <a href="/ChatAgentRelay/docs/channels/slack.html" class="sidebar-link">Slack</a>
+      <a href="/ChatAgentRelay/docs/channels/discord.html" class="sidebar-link">Discord</a>
+      <a href="/ChatAgentRelay/docs/channels/webchat.html" class="sidebar-link">WebChat</a>
+    </div>
+    <div class="sidebar-group">
+      <span class="sidebar-group-title">Agents</span>
+      <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
+      <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
+      <a href="/ChatAgentRelay/docs/agents/langgraph.html" class="sidebar-link">LangGraph</a>
+      <a href="/ChatAgentRelay/docs/agents/http.html" class="sidebar-link">HTTP</a>
+      <a href="/ChatAgentRelay/docs/agents/acp.html" class="sidebar-link active">ACP</a>
+    </div>
+    <div class="sidebar-group">
+      <span class="sidebar-group-title">Configuration</span>
+      <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
+      <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Multi-Agent Routing</a>
+      <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage Backends</a>
+    </div>
+    <div class="sidebar-group">
+      <span class="sidebar-group-title">Concepts</span>
+      <a href="/ChatAgentRelay/docs/concepts/" class="sidebar-link">Architecture</a>
+      <a href="/ChatAgentRelay/docs/concepts/events.html" class="sidebar-link">Event Model</a>
+      <a href="/ChatAgentRelay/docs/concepts/pipeline.html" class="sidebar-link">Pipeline</a>
+    </div>
+    <div class="sidebar-group">
+      <span class="sidebar-group-title">Reference</span>
+      <a href="/ChatAgentRelay/docs/api/" class="sidebar-link">HTTP API</a>
+    </div>
+  </aside>
+
+  <!-- Content -->
+  <main class="doc-content">
+    <h1>ACP Agent</h1>
+    <p class="subtitle">Connect <strong>coding agents</strong> via the Agent Client Protocol. CAR spawns the agent as a subprocess and communicates over JSON-RPC via stdin/stdout.</p>
+
+    <h2 id="what-is-acp">What is ACP?</h2>
+    <p>The Agent Client Protocol (ACP) is a local communication protocol designed for coding agents like Claude Code and Gemini CLI. Instead of HTTP, ACP agents run as child processes and exchange JSON-RPC messages over standard I/O streams.</p>
+    <p>CAR&rsquo;s <code>backend-acp</code> adapter spawns the agent process, sends user messages via stdin, and reads responses from stdout. This makes it possible to trigger coding tasks from a chat message &mdash; a Slack mention can kick off a code review, refactor, or implementation task.</p>
+
+    <h2 id="register">Register an ACP agent</h2>
+    <p>Use the <code>car</code> CLI to register a coding agent:</p>
+    <pre><code>car agent add claude --type=acp --command=claude --permission-policy=auto-approve</code></pre>
+    <p>Then route messages to it:</p>
+    <pre><code>car route add --default --agent=claude</code></pre>
+
+    <h2 id="config">Configuration options</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Option</th>
+          <th>Required</th>
+          <th>Default</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>command</code></td>
+          <td><strong>Yes</strong></td>
+          <td>&mdash;</td>
+          <td>The executable to spawn (e.g. <code>claude</code>, <code>gemini</code>).</td>
+        </tr>
+        <tr>
+          <td><code>args</code></td>
+          <td>No</td>
+          <td><code>[]</code></td>
+          <td>Arguments passed to the command (e.g. <code>["--model", "opus"]</code>).</td>
+        </tr>
+        <tr>
+          <td><code>workDir</code></td>
+          <td>No</td>
+          <td><code>"."</code></td>
+          <td>Working directory for the spawned process. Controls which codebase the agent operates on.</td>
+        </tr>
+        <tr>
+          <td><code>timeoutMs</code></td>
+          <td>No</td>
+          <td><code>300000</code></td>
+          <td>Maximum time to wait for a response (default 5 minutes; coding tasks can be long-running).</td>
+        </tr>
+        <tr>
+          <td><code>permissionPolicy</code></td>
+          <td>No</td>
+          <td><code>"prompt"</code></td>
+          <td>How the agent handles tool-use permissions: <code>"auto-approve"</code>, <code>"prompt"</code>, or <code>"deny"</code>.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="how-it-works">How it works</h2>
+    <ol>
+      <li><strong>Spawn</strong> &mdash; when the pipeline invokes the ACP adapter, it spawns the agent as a child process using the configured <code>command</code> and <code>args</code>.</li>
+      <li><strong>Send</strong> &mdash; the user&rsquo;s message is written to the process&rsquo;s stdin as a JSON-RPC request.</li>
+      <li><strong>Receive</strong> &mdash; the adapter reads the JSON-RPC response from stdout.</li>
+      <li><strong>Complete</strong> &mdash; the response text is mapped into a canonical <code>agent.response.completed</code> event and handed to the delivery layer.</li>
+    </ol>
+
+    <h2 id="permission-policy">Permission policy</h2>
+    <p>Coding agents often need to read/write files, run commands, or access the network. The <code>permissionPolicy</code> option controls how these requests are handled:</p>
+    <ul>
+      <li><code>auto-approve</code> &mdash; all tool-use requests are approved automatically. Best for trusted environments.</li>
+      <li><code>prompt</code> &mdash; the agent pauses and waits for explicit approval (requires HITL-capable channel).</li>
+      <li><code>deny</code> &mdash; all tool-use requests are denied. The agent can only generate text responses.</li>
+    </ul>
+
+    <h2 id="use-cases">Use cases</h2>
+    <ul>
+      <li><strong>Code review</strong> &mdash; mention your bot in Slack with a PR link, and the agent reviews the diff.</li>
+      <li><strong>Automated refactoring</strong> &mdash; ask the agent to rename a function across the codebase from a chat message.</li>
+      <li><strong>Implementation tasks</strong> &mdash; describe a feature in Discord and let the coding agent build it.</li>
+      <li><strong>Debugging</strong> &mdash; paste an error message and have the agent investigate and suggest fixes.</li>
+    </ul>
+
+    <h2 id="example">Full example</h2>
+    <pre><code># Register Claude Code as an agent
+car agent add claude-code --type=acp \
+  --command=claude \
+  --work-dir=/home/dev/my-project \
+  --permission-policy=auto-approve
+
+# Register Gemini CLI as a second agent
+car agent add gemini --type=acp \
+  --command=gemini \
+  --work-dir=/home/dev/my-project
+
+# Route coding requests to Claude, everything else to Gemini
+car route add --pattern="text:*code*" --agent=claude-code
+car route add --default --agent=gemini
+
+# Start the relay
+car start</code></pre>
+
+    <!-- Pagination -->
+    <div class="doc-pagination">
+      <a href="/ChatAgentRelay/docs/agents/http.html" class="prev">
+        <span class="label">&larr; Previous</span>
+        <span class="title">HTTP</span>
+      </a>
+      <a href="/ChatAgentRelay/docs/configuration/" class="next">
+        <span class="label">Next &rarr;</span>
+        <span class="title">CLI &amp; Config</span>
+      </a>
+    </div>
+  </main>
+
+</div>
+
+<!-- Mobile sidebar toggle -->
+<button class="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
+      <a href="/ChatAgentRelay/docs/">Docs</a>
+      <a href="/ChatAgentRelay/blog/">Blog</a>
+      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
+    </div>
+    <p>MIT License &middot; Built with Bun and TypeScript</p>
+  </div>
+</footer>
+
+<script>
+  document.querySelector('.nav-toggle').addEventListener('click', function () {
+    document.querySelector('.nav-links').classList.toggle('open');
+  });
+  document.querySelector('.sidebar-toggle').addEventListener('click', function () {
+    document.querySelector('.doc-sidebar').classList.toggle('open');
+  });
+</script>
+</body>
+</html>

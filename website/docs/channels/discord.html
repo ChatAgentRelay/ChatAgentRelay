@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Discord — Chat Agent Relay</title>
+  <meta name="description" content="Connect Discord to your AI agents via Chat Agent Relay. Gateway connection, streaming, embeds, slash commands, and guild allowlist.">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Discord — Chat Agent Relay">
+  <meta property="og:description" content="Integrate Discord bots with your AI agents using Chat Agent Relay's Gateway adapter.">
+  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/discord.html">
+  <meta property="og:site_name" content="Chat Agent Relay">
+  <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Discord — Chat Agent Relay">
+  <meta name="twitter:description" content="Discord Gateway adapter with streaming, embeds, slash commands, and guild allowlist.">
+  <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+
+  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/discord.html">
+  <link rel="icon" href="/ChatAgentRelay/img/favicon.svg" type="image/svg+xml">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../css/style.css">
+  <link rel="stylesheet" href="../../css/docs.css">
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-7FERB87K2D');
+  </script>
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "TechArticle",
+    "headline": "Discord — Chat Agent Relay",
+    "description": "Connect Discord to your AI agents via Chat Agent Relay. Gateway connection, streaming, embeds, slash commands, and guild allowlist.",
+    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/discord.html"
+  }
+  </script>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav"><div class="container nav-inner">
+  <a href="/ChatAgentRelay/" class="nav-logo">Chat Agent Relay</a>
+  <div class="nav-links">
+    <a href="/ChatAgentRelay/docs/">Docs</a>
+    <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+    <a href="/ChatAgentRelay/blog/">Blog</a>
+    <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" target="_blank">GitHub</a>
+  </div>
+</div></nav>
+
+<div class="doc-shell">
+
+<!-- Sidebar -->
+<aside class="doc-sidebar">
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Getting Started</span>
+    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Quick Start</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Channels</span>
+    <a href="/ChatAgentRelay/docs/channels/" class="sidebar-link">Overview</a>
+    <a href="/ChatAgentRelay/docs/channels/slack.html" class="sidebar-link">Slack</a>
+    <a href="/ChatAgentRelay/docs/channels/discord.html" class="sidebar-link active">Discord</a>
+    <a href="/ChatAgentRelay/docs/channels/webchat.html" class="sidebar-link">WebChat</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Agents</span>
+    <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
+    <a href="/ChatAgentRelay/docs/agents/langgraph.html" class="sidebar-link">LangGraph</a>
+    <a href="/ChatAgentRelay/docs/agents/http.html" class="sidebar-link">HTTP</a>
+    <a href="/ChatAgentRelay/docs/agents/acp.html" class="sidebar-link">ACP</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Configuration</span>
+    <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
+    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Multi-Agent Routing</a>
+    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage Backends</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Concepts</span>
+    <a href="/ChatAgentRelay/docs/concepts/" class="sidebar-link">Architecture</a>
+    <a href="/ChatAgentRelay/docs/concepts/events.html" class="sidebar-link">Event Model</a>
+    <a href="/ChatAgentRelay/docs/concepts/pipeline.html" class="sidebar-link">Pipeline</a>
+  </div>
+  <div class="sidebar-group">
+    <span class="sidebar-group-title">Reference</span>
+    <a href="/ChatAgentRelay/docs/api/" class="sidebar-link">HTTP API</a>
+  </div>
+</aside>
+
+<!-- Content -->
+<main class="doc-content">
+  <h1>Discord</h1>
+  <p class="subtitle">Connect Discord servers to your AI agents using the Gateway WebSocket connection. Supports streaming, embeds, slash commands, and guild-level access control.</p>
+
+  <h2 id="prerequisites">Prerequisites</h2>
+  <p>Create a Discord bot at the <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a>:</p>
+  <ol>
+    <li><strong>Create an application</strong> and add a Bot under the Bot tab.</li>
+    <li><strong>Enable the MESSAGE_CONTENT intent</strong> &mdash; under Bot &rarr; Privileged Gateway Intents, toggle <em>Message Content Intent</em>. This is required for the bot to read message text in guild channels.</li>
+    <li><strong>Copy the bot token</strong> &mdash; under Bot, click &ldquo;Reset Token&rdquo; and save it securely.</li>
+    <li><strong>Invite the bot</strong> &mdash; under OAuth2 &rarr; URL Generator, select the <code>bot</code> scope with these permissions:
+      <ul>
+        <li>Send Messages</li>
+        <li>Send Messages in Threads</li>
+        <li>Read Message History</li>
+        <li>Add Reactions</li>
+        <li>Use Slash Commands</li>
+        <li>Embed Links</li>
+      </ul>
+      Use the generated URL to add the bot to your server.
+    </li>
+  </ol>
+
+  <h2 id="add-to-car">Add to CAR</h2>
+  <p>Register the Discord channel with the <code>car</code> CLI:</p>
+  <pre><code>car channel add my-discord \
+  --type=discord \
+  --bot-token=your-discord-bot-token</code></pre>
+
+  <div class="callout callout-tip">
+    <strong>Tokens are encrypted at rest</strong>
+    When <code>CAR_ENCRYPTION_KEY</code> is set, the bot token is stored with AES-256-GCM encryption in the SQLite config database.
+  </div>
+
+  <h2 id="features">Features</h2>
+  <h3 id="gateway">Gateway connection</h3>
+  <p>The Discord adapter connects via the Gateway WebSocket API, maintaining a persistent connection with automatic heartbeat and reconnection. No webhook URL or public endpoint is required.</p>
+
+  <h3 id="streaming">Streaming</h3>
+  <p>When the connected agent supports streaming, Discord messages are progressively edited with incoming deltas. Users see the response build up in real time.</p>
+
+  <h3 id="threads">Threads</h3>
+  <p>Responses in thread channels maintain conversation context via the canonical <code>conversation_id</code>. The bot can participate in existing threads or create new ones.</p>
+
+  <h3 id="reactions">Reactions</h3>
+  <p>Reaction events from users are canonicalized as <code>reaction.received</code> events and flow through the pipeline like any other event.</p>
+
+  <h3 id="rich-messages">Rich messages (Embeds)</h3>
+  <p>Agent responses are rendered as Discord embeds when they contain structured content. Code blocks, formatted text, and multi-field layouts are supported.</p>
+
+  <h3 id="slash-commands">Slash commands</h3>
+  <p>Register slash commands in the Discord Developer Portal. CAR canonicalizes them as <code>command.received</code> events and routes them through the standard pipeline. Responses are sent as interaction replies.</p>
+
+  <h2 id="configuration">Configuration options</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Option</th>
+        <th>CLI flag</th>
+        <th>Required</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>botToken</code></td>
+        <td><code>--bot-token</code></td>
+        <td>Yes</td>
+        <td>Discord bot token from the Developer Portal</td>
+      </tr>
+      <tr>
+        <td><code>guildAllowlist</code></td>
+        <td><code>--guild-allowlist</code></td>
+        <td>No</td>
+        <td>Comma-separated guild (server) IDs to restrict the bot to</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 id="access-control">Access control</h2>
+  <p>The Discord adapter supports guild-level access control:</p>
+  <ul>
+    <li><strong>Guild allowlist</strong> &mdash; restrict the bot to specific Discord servers by providing a list of guild IDs. Messages from other servers are ignored.</li>
+    <li><strong>Channel permissions</strong> &mdash; use Discord&rsquo;s built-in role and channel permission system to control where the bot can read and send messages.</li>
+  </ul>
+
+  <div class="callout callout-info">
+    <strong>Edit and delete events</strong>
+    The adapter captures message edits and deletions, canonicalizing them as <code>message.updated</code> and <code>message.deleted</code> events. These flow through the ledger for full audit trail support.
+  </div>
+
+  <!-- Pagination -->
+  <div class="doc-pagination">
+    <a href="/ChatAgentRelay/docs/channels/slack.html">
+      <span class="label">Previous</span>
+      <span class="title">&larr; Slack</span>
+    </a>
+    <a href="/ChatAgentRelay/docs/channels/webchat.html" class="next">
+      <span class="label">Next</span>
+      <span class="title">WebChat &rarr;</span>
+    </a>
+  </div>
+</main>
+
+</div>
+
+<button class="sidebar-toggle" onclick="document.querySelector('.doc-sidebar').classList.toggle('open')">&#9776;</button>
+
+</body>
+</html>
