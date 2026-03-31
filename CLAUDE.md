@@ -63,13 +63,13 @@ The repository has a complete first executable path and hardened feature set:
 - `packages/channel-slack` — Slack Socket Mode ingress, `chat.postMessage` delivery, `chat.update` for streaming, ack reaction, text chunking, mention gating, access policy, app_mention, edit/delete/reaction events, slash commands, Block Kit output
 - `packages/channel-discord` — Discord Gateway ingress, REST API delivery, slash commands, embeds, access control
 - `packages/middleware` — policy (allow/deny via `policyFn`), configurable keyword/regex policy engine, routing, dispatch
-- `packages/backend-http` — configurable HTTP backend invocation with custom headers, request body builder, and response field extraction (legacy `BackendAdapter`, bridgeable to `AgentAdapter`)
-- `packages/backend-openai` — OpenAI Chat Completions + SSE streaming via `invokeStreaming()` (legacy `BackendAdapter`, bridgeable to `AgentAdapter`)
+- `packages/backend-http` — configurable HTTP backend invocation with custom headers, request body builder, and response field extraction; exposes `asAgentAdapter()`
+- `packages/backend-openai` — OpenAI Chat Completions + SSE streaming; exposes `asAgentAdapter()`
 - `packages/backend-a2a` — A2A (Agent-to-Agent protocol) native `AgentAdapter` with streaming, HITL, and session management
 - `packages/backend-langgraph` — LangGraph Platform native `AgentAdapter` with streaming, thread-based sessions, and interrupt/resume
 - `packages/backend-acp` — ACP Agent Client Protocol adapter for coding agents via stdin/stdout subprocess
 - `packages/delivery` — delivery orchestration with retry (exponential backoff) and `DeliveryExhaustedError`
-- `packages/pipeline` — end-to-end orchestration with error paths (`event.blocked`), deny path, conversation context, streaming, `AgentAdapter` support via `legacyBridge()`; resolves agents via `resolveAgent` and routes via `routeFn` (multi-agent)
+- `packages/pipeline` — end-to-end orchestration with error paths (`event.blocked`), deny path, conversation context, streaming; resolves agents via `resolveAgent` and routes via `routeFn` (multi-agent)
 - `packages/config-store` — `ConfigStore` interface with `SqliteConfigStore` default implementation, AES-256-GCM encryption for sensitive fields (tokens, API keys), `RouteEngine` for dynamic routing; interface-driven so users can swap in PostgreSQL or other backends
 - `packages/server` — runtime entry point: CLI (`car`) + HTTP API; SQLite config/ledger; hot-pluggable channel and agent registries; multi-agent routing from stored route rules; structured logging + graceful shutdown
 - `packages/adapter-conformance` — reusable conformance test suite for channel adapters, backend adapters, and agent adapters (`testAgentAdapter`)
@@ -96,7 +96,7 @@ The repository has a complete first executable path and hardened feature set:
 - ack reaction pipeline
 - mention gating
 - access policy (DM/channel modes)
-- AgentAdapter interface and legacy bridge
+- AgentAdapter interface and conformance tests
 - A2A, LangGraph, and ACP agent adapter conformance
 - HITL signaling (agent.input.requested / agent.input.provided)
 - CLI + SQLite configuration (`ConfigStore` interface, `SqliteConfigStore` default, AES-256-GCM for secrets) replacing environment-variable-based config
@@ -107,7 +107,7 @@ The repository has a complete first executable path and hardened feature set:
 Implementation structure preserves these boundaries:
 - canonical event model remains central
 - channel adapters remain transport-side boundaries
-- `AgentAdapter` (A2A-aligned) is the primary agent-side interface; legacy `BackendAdapter` implementations are wrapped via `legacyBridge()`
+- `AgentAdapter` (A2A-aligned) is the primary agent-side interface; HTTP and OpenAI backends expose `asAgentAdapter()` for integration
 - ledger, replay, audit, and governance remain first-class concerns
 - runtime configuration lives in SQLite (`CAR_DB_PATH`, default `./car.db`); optional `CAR_ENCRYPTION_KEY` enables AES-256-GCM for sensitive fields
 - channels and agents are registered dynamically (`ChannelRegistry`, `AgentRegistry`); route rules determine which agent handles each message; pipeline accepts `resolveAgent` and `routeFn` instead of a single fixed backend

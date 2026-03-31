@@ -178,7 +178,7 @@ Register agents with **`car agent add`** (or `POST /api/agents`) using the appro
 | `http` | `endpoint`, headers, body/response mapping |
 | `acp` | command, args, working directory |
 
-OpenAI-style chat can be reached via the generic **`http`** adapter pointed at an OpenAI-compatible URL. Legacy `BackendAdapter` implementations are wrapped with `legacyBridge()` inside the pipeline.
+OpenAI-style chat can be reached via the generic **`http`** adapter pointed at an OpenAI-compatible URL.
 
 ## 11. Writing a Custom Agent Adapter
 
@@ -204,11 +204,6 @@ Key rules:
 - Set `error.retryable` accurately
 - Return `sessionHandle` if your runtime supports sessions
 
-Legacy `BackendAdapter` implementations still work — wrap them with `legacyBridge()`:
-
-```typescript
-import { legacyBridge } from "@chat-agent-relay/pipeline";
-const agentAdapter = legacyBridge(myBackendAdapter);
-```
+`GenericHttpBackend` and `OpenAIBackend` both expose `.asAgentAdapter()` for direct use with the pipeline.
 
 See the [Backend Adapter Interface Spec](rfcs/adapters/backend-adapter-interface-spec.md) for full requirements.

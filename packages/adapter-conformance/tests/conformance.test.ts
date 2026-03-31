@@ -9,7 +9,6 @@ import { WebChatIngress } from "@chat-agent-relay/channel-web-chat";
 import type { AgentInvocationContext, CanonicalEvent } from "@chat-agent-relay/contract-harness";
 import type { Server } from "bun";
 import { testAgentAdapter } from "../src/agent-adapter-conformance";
-import { testBackendAdapter } from "../src/test-backend-adapter";
 import { testChannelIngress } from "../src/test-channel-ingress";
 
 type BunServer = Server<unknown>;
@@ -294,35 +293,6 @@ testChannelIngress({
       expectedCode: "bot_message",
     },
   ],
-});
-
-// --- Backend Adapter Conformance ---
-
-testBackendAdapter({
-  name: "GenericHttpBackend",
-  get adapter() {
-    return {
-      invoke: async (ctx: import("@chat-agent-relay/backend-http").InvocationContext) => {
-        const backend = await GenericHttpBackend.create({ endpoint: `http://localhost:${mockBackendPort}` });
-        return backend.invoke(ctx);
-      },
-    };
-  },
-});
-
-testBackendAdapter({
-  name: "OpenAIBackend",
-  get adapter() {
-    return {
-      invoke: async (ctx: import("@chat-agent-relay/backend-http").InvocationContext) => {
-        const backend = await OpenAIBackend.create({
-          apiKey: "test-key",
-          baseUrl: `http://localhost:${mockOpenAIPort}`,
-        });
-        return backend.invoke(ctx);
-      },
-    };
-  },
 });
 
 // --- Agent Adapter Conformance ---

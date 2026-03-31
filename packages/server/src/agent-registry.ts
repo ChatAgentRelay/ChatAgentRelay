@@ -4,7 +4,6 @@ import { ACPAgentAdapter } from "@chat-agent-relay/backend-acp";
 import { GenericHttpBackend } from "@chat-agent-relay/backend-http";
 import { LangGraphAdapter } from "@chat-agent-relay/backend-langgraph";
 import type { AgentAdapter } from "@chat-agent-relay/contract-harness";
-import { legacyBridge } from "@chat-agent-relay/pipeline";
 
 function pickString(obj: Record<string, unknown>, key: string): string | undefined {
   const v = obj[key];
@@ -159,7 +158,7 @@ export class AgentRegistry {
           ...(headers ? { headers } : {}),
           ...(responseTextField ? { responseTextField } : {}),
         });
-        return legacyBridge(backend);
+        return backend.asAgentAdapter();
       }
 
       default:

@@ -6,9 +6,8 @@ import { WebChatIngress } from "@chat-agent-relay/channel-web-chat";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { SqliteLedgerStore } from "@chat-agent-relay/event-ledger";
 import type { Server } from "bun";
-import { legacyBridge } from "../src/legacy-bridge";
 import { FirstExecutablePathPipeline } from "../src/pipeline";
-import type { BackendAdapter, PipelineConfig } from "../src/types";
+import type { PipelineConfig } from "../src/types";
 
 type BunServer = Server<unknown>;
 
@@ -69,13 +68,12 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   async function makeConfig(
-    overrides?: Partial<PipelineConfig> & { httpBackend?: BackendAdapter; routeAgentName?: string },
+    overrides?: Partial<PipelineConfig> & { routeAgentName?: string },
   ): Promise<PipelineConfig> {
     const routeAgentName = overrides?.routeAgentName ?? "default_webchat_agent";
-    const backend =
-      overrides?.httpBackend ?? (await GenericHttpBackend.create({ endpoint: `http://localhost:${mockPort}` }));
-    const { httpBackend: _hb, routeAgentName: _rna, ...rest } = overrides ?? {};
-    const agentAdapter = legacyBridge(backend);
+    const backend = await GenericHttpBackend.create({ endpoint: `http://localhost:${mockPort}` });
+    const { routeAgentName: _rna, ...rest } = overrides ?? {};
+    const agentAdapter = backend.asAgentAdapter();
     return {
       resolveAgent: (name) => (name === routeAgentName ? agentAdapter : undefined),
       routeFn: () => ({
@@ -206,8 +204,10 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("produces event.blocked when backend is down", async () => {
+    const downBackend = await GenericHttpBackend.create({ endpoint: "http://localhost:1/down" });
+    const downAgent = downBackend.asAgentAdapter();
     const config = await makeConfig({
-      httpBackend: await GenericHttpBackend.create({ endpoint: "http://localhost:1/down" }),
+      resolveAgent: (name) => (name === "b1" ? downAgent : undefined),
       routeAgentName: "b1",
       sendFn: async () => ({ providerMessageId: "msg_001" }),
     });

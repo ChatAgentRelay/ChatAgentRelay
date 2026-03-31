@@ -283,10 +283,10 @@ Phase 1 (Minimum Kernel) is now complete. The following have been implemented an
 - **A2A adapter** (`@chat-agent-relay/backend-a2a`) — native A2A protocol adapter with streaming, HITL signaling, and session management via A2A's task lifecycle.
 - **LangGraph adapter** (`@chat-agent-relay/backend-langgraph`) — LangGraph Platform adapter with streaming, thread-based sessions, and interrupt/resume for HITL.
 
-### Legacy Adapters via Bridge
+### HTTP Adapters
 
-- **GenericHttpBackend** (`@chat-agent-relay/backend-http`) — wrapped via `legacyBridge()` for pipeline compatibility. Also exposes `asAgentAdapter()`.
-- **OpenAIBackend** (`@chat-agent-relay/backend-openai`) — wrapped via `legacyBridge()` for pipeline compatibility. Also exposes `asAgentAdapter()`.
+- **GenericHttpBackend** (`@chat-agent-relay/backend-http`) — exposes `asAgentAdapter()` for pipeline integration.
+- **OpenAIBackend** (`@chat-agent-relay/backend-openai`) — exposes `asAgentAdapter()` for pipeline integration.
 
 ### HITL Signaling
 
@@ -305,11 +305,12 @@ Session continuity is maintained via `sessionHandle`:
 
 ### Server Integration
 
-The server supports 4 backend types via the `AGENT_TYPE` environment variable:
-- `openai` (default) — OpenAI Chat Completions, wrapped via legacy bridge
-- `http` — configurable HTTP backend, wrapped via legacy bridge
+Agents are registered via the `car` CLI or HTTP API (`car agent add --type=<type> ...`). Supported agent types:
+- `openai` — OpenAI Chat Completions, via `asAgentAdapter()`
+- `http` — configurable HTTP backend, via `asAgentAdapter()`
 - `a2a` — A2A protocol endpoint, native AgentAdapter
 - `langgraph` — LangGraph Platform API, native AgentAdapter
+- `acp` — ACP subprocess, native AgentAdapter
 
 ## 11. Open Questions
 

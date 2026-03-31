@@ -12,7 +12,7 @@ This file helps AI coding assistants understand and work with the CAR codebase.
 - From `packages/server`, register channels, agents, and routes with the `car` CLI, then run `car start` (see `docs/getting-started.md`). Runtime changes to channels and agents apply without restart where supported
 
 ## Architecture
-Chat Agent Relay (CAR) is a middleware framework between chat platforms and AI agent runtimes. Every message flows through a 7-event pipeline chain in an append-only ledger. The `AgentAdapter` interface (A2A-aligned) is the primary agent-side boundary, supporting structured events, HITL, and artifacts. Legacy `BackendAdapter` implementations are wrapped via `legacyBridge()`. Additional canonical event types capture supplementary interactions and agent lifecycle signals.
+Chat Agent Relay (CAR) is a middleware framework between chat platforms and AI agent runtimes. Every message flows through a 7-event pipeline chain in an append-only ledger. The `AgentAdapter` interface (A2A-aligned) is the primary agent-side boundary, supporting structured events, HITL, and artifacts. Additional canonical event types capture supplementary interactions and agent lifecycle signals.
 
 ## Package Map
 | Package | Purpose | Key Interface |
@@ -24,15 +24,15 @@ Chat Agent Relay (CAR) is a middleware framework between chat platforms and AI a
 | channel-slack | Slack adapter | ChannelIngress |
 | channel-discord | Discord adapter | ChannelIngress |
 | middleware | Policy + routing | MiddlewarePipeline |
-| backend-http | Configurable HTTP backend | BackendAdapter (legacy, bridgeable) |
-| backend-openai | OpenAI backend | BackendAdapter (legacy, bridgeable) |
+| backend-http | Configurable HTTP backend | AgentAdapter (via asAgentAdapter()) |
+| backend-openai | OpenAI backend | AgentAdapter (via asAgentAdapter()) |
 | backend-a2a | A2A protocol adapter | AgentAdapter (native) |
 | backend-langgraph | LangGraph Platform adapter | AgentAdapter (native) |
 | backend-acp | ACP coding agent adapter | AgentAdapter |
 | delivery | Message delivery | DeliveryOrchestrator |
-| pipeline | Orchestration + legacy bridge | FirstExecutablePathPipeline, legacyBridge |
+| pipeline | Orchestration | FirstExecutablePathPipeline |
 | server | Runtime (multi-agent via route rules; hot-pluggable channels/agents) | `car` CLI + HTTP API |
-| adapter-conformance | Test suite | testChannelIngress, testBackendAdapter, testAgentAdapter |
+| adapter-conformance | Test suite | testChannelIngress, testAgentAdapter |
 
 ## Key Patterns
 - Adapters never throw - return Result types

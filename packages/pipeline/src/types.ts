@@ -1,13 +1,7 @@
-import type { InvocationContext, InvocationResult } from "@chat-agent-relay/backend-http";
 import type { CanonicalizationResult } from "@chat-agent-relay/channel-web-chat";
 import type { AgentAdapter, CanonicalEvent } from "@chat-agent-relay/contract-harness";
 import type { RetryConfig, SendFn } from "@chat-agent-relay/delivery";
 import type { LedgerStore } from "@chat-agent-relay/event-ledger";
-
-export interface BackendAdapter {
-  invoke(context: InvocationContext): Promise<InvocationResult>;
-  invokeStreaming?(context: InvocationContext): AsyncGenerator<string, InvocationResult>;
-}
 
 export interface ChannelIngress {
   canonicalize(raw: unknown): CanonicalizationResult;

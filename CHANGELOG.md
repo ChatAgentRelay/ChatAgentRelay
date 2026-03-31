@@ -25,14 +25,13 @@ There has been no formal versioned release yet. The following summarizes work on
 - `@chat-agent-relay/backend-acp` — Agent Client Protocol (ACP) adapter for coding agents (Claude Code, Gemini CLI).
 - Internal architecture decision document.
 - 3 new canonical event types: `agent.status.changed`, `agent.input.requested`, `agent.input.provided`.
-- Legacy bridge (`legacyBridge()`) for backward-compatible `BackendAdapter` → `AgentAdapter` wrapping.
 - Multi-backend server config — `AGENT_TYPE` env var selects between `openai`, `http`, `a2a`, `langgraph`, `acp`.
 - `asAgentAdapter()` convenience method on `GenericHttpBackend` and `OpenAIBackend`.
 - Agent adapter conformance test suite (`testAgentAdapter`).
 
 ### Changed
 
-- Pipeline uses `AgentAdapter` internally (via legacy bridge for old backends).
+- Pipeline uses `AgentAdapter` internally.
 - Server supports 4 backend types instead of hardcoded OpenAI.
 - Canonical event envelope now has 15 event types (was 12).
 - Test suite expanded from 356 tests (32 files) to 526 tests (40 files).
@@ -82,7 +81,7 @@ There has been no formal versioned release yet. The following summarizes work on
 
 - `GenericHttpBackend` now supports custom `headers`, `buildRequestBody`, and `responseTextField` configuration, allowing any HTTP agent to be connected without adapting to CAR's native request/response format.
 - New `extractField` utility for dot-path based field extraction from arbitrary JSON responses.
-- 12 new tests covering custom headers, request body builders, response field extraction, and backward compatibility.
+- 12 new tests covering custom headers, request body builders, response field extraction, and default format handling.
 
 ### Changed
 

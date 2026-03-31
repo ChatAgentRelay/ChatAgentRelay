@@ -70,7 +70,7 @@ If your agent exposes an HTTP endpoint, you likely **don't need a new adapter**.
 If you need a non-HTTP protocol or a fundamentally different integration pattern:
 
 1. Create a new package under `packages/`
-2. Implement the `ChannelIngress` or `BackendAdapter` interface
+2. Implement the `ChannelIngress` or `AgentAdapter` interface
 3. Add conformance tests using `@chat-agent-relay/adapter-conformance`
 4. Add unit tests for adapter-specific behavior
 5. Update the relevant public RFCs and architecture docs if adding a new package changes public architecture or interfaces

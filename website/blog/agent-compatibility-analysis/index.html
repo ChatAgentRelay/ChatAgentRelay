@@ -306,9 +306,9 @@ WebChat            + audit    Google ADK        (backend-a2a)
           <td>REST API</td>
           <td>SSE</td>
           <td>No</td>
-          <td>Deprecated <code>backend-openai</code></td>
-          <td>&#x26D4; Deprecated</td>
-          <td>Raw LLM API, not an agent. Use backend-http if needed.</td>
+          <td><code>backend-openai</code></td>
+          <td>&#x2139;&#xFE0F; LLM only</td>
+          <td>Raw LLM API, not an agent runtime. Use backend-http for general HTTP endpoints.</td>
         </tr>
         <tr>
           <td>Claude Code / Cursor / Codex</td>
@@ -365,7 +365,7 @@ CAR connects to server   &rarr;   backend-a2a / backend-http / backend-langgraph
       <dt>&#x1F535; Not applicable (3 entries)</dt>
       <dd>OpenAI Agents SDK, Anthropic Claude Agent SDK, Cursor/Codex &mdash; development or IDE tools without a CAR-facing agent protocol. Build with the SDK, deploy as a server, then connect.</dd>
 
-      <dt>&#x26D4; Deprecated (1)</dt>
+      <dt>&#x2139;&#xFE0F; LLM only (1)</dt>
       <dd>OpenAI Chat Completions via <code>backend-openai</code> &mdash; raw LLM API, not an agent runtime. Use <code>backend-http</code> if the direct API is genuinely needed.</dd>
     </dl>
 

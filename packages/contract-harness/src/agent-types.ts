@@ -36,8 +36,6 @@ export type AgentArtifact = {
 };
 
 // ─── Structured Agent Events ──────────────────────────────────────────────
-// Unlike the old BackendAdapter which only yielded `string` deltas, the new
-// AgentAdapter yields structured events covering status, HITL, and artifacts.
 
 export type AgentStatusEvent = { type: "status"; status: AgentTaskStatus; message?: string };
 export type AgentTextDeltaEvent = { type: "text_delta"; content: string };

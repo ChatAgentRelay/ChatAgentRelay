@@ -11,17 +11,17 @@
 
 ## 1. Abstract
 
-This document formalizes the TypeScript interface contracts that all Chat Agent Relay (CAR) backend adapters MUST implement. It covers both the **AgentAdapter** interface (v2, primary) and the legacy **BackendAdapter** interface (v1). It complements the high-level backend agent adapter contract RFC with precise type-level requirements.
+This document formalizes the TypeScript interface contracts that all Chat Agent Relay (CAR) backend adapters MUST implement. It covers the **AgentAdapter** interface and the HTTP backend configuration. It complements the high-level backend agent adapter contract RFC with precise type-level requirements.
 
 ## 2. Normative Language
 
 The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as described in RFC 2119.
 
-## 3. BackendAdapter Interface (Legacy v1)
+## 3. HTTP Backend Interface
 
-The legacy `BackendAdapter` interface remains valid for adapters that do not need HITL, structured events, or artifact support. Legacy adapters are automatically wrapped via `legacyBridge()` for use with the pipeline (see section 10).
+`GenericHttpBackend` and `OpenAIBackend` implement a simple request/response interface for HTTP-based agent invocations. Both expose `asAgentAdapter()` to produce an `AgentAdapter` for use with the pipeline.
 
-A conforming legacy backend adapter MUST implement the following interface:
+The underlying invocation interface:
 
 ```typescript
 interface BackendAdapter {
@@ -171,9 +171,9 @@ Adapters SHOULD use the following error codes:
 | `empty_response` | `dependency_failure` | No | Response contained no content |
 | `contract_violation` | `invalid_request` | No | Mapped event failed schema validation |
 
-## 8. Legacy Conformance Checklist
+## 8. HTTP Backend Conformance Checklist
 
-A conforming legacy `BackendAdapter` implementation MUST:
+A conforming HTTP backend implementation MUST:
 
 - [ ] Implement `invoke()` accepting `InvocationContext` and returning `InvocationResult`
 - [ ] Never throw from `invoke()` — all errors returned as `InvocationFailure`
@@ -215,21 +215,17 @@ When `buildRequestBody` and `responseTextField` are omitted, the adapter uses CA
 
 ## 10. AgentAdapter Interface (v2)
 
-The `AgentAdapter` interface is the primary agent-side boundary, replacing `BackendAdapter` for new implementations. It is aligned with the [A2A (Agent-to-Agent) protocol](https://google.github.io/A2A/) and supports structured events, human-in-the-loop (HITL) signaling, artifacts, and session management.
+The `AgentAdapter` interface is the primary agent-side boundary. It is aligned with the [A2A (Agent-to-Agent) protocol](https://google.github.io/A2A/) and supports structured events, human-in-the-loop (HITL) signaling, artifacts, and session management.
 
-### 10.1 Evolution from BackendAdapter
+### 10.1 Design Rationale
 
-The legacy `BackendAdapter` was designed for simple request/response LLM wrappers:
-- `invoke()` returns a single `InvocationResult`
-- `invokeStreaming()` yields raw `string` deltas
+`AgentAdapter` supports the full lifecycle of modern agent runtimes:
+- Task lifecycle status (submitted → working → completed)
+- Human input mid-execution (HITL)
+- Structured artifacts (files, data)
+- Session management across multiple interactions
 
-This model is insufficient for modern agent runtimes that:
-- Report task lifecycle status (submitted → working → completed)
-- Request human input mid-execution (HITL)
-- Produce structured artifacts (files, data)
-- Maintain sessions across multiple interactions
-
-`AgentAdapter` addresses all of these. Legacy `BackendAdapter` implementations are supported via `legacyBridge()`, which wraps them as `AgentAdapter` with `{ streaming, hitl: false, cancel: false, artifacts: false }`.
+HTTP backends (`GenericHttpBackend`, `OpenAIBackend`) expose `asAgentAdapter()` to produce an `AgentAdapter` with `{ streaming, hitl: false, cancel: false, artifacts: false }`.
 
 ### 10.2 Interface Definition
 
@@ -259,7 +255,7 @@ Requirements:
 
 ### 10.3 AgentEvent Types
 
-Unlike `BackendAdapter` which only yields `string` deltas, `AgentAdapter.stream()` yields structured `AgentEvent` values:
+`AgentAdapter.stream()` yields structured `AgentEvent` values:
 
 ```typescript
 type AgentEvent =
@@ -302,9 +298,9 @@ type AgentInvocationContext = {
 };
 ```
 
-Differences from legacy `InvocationContext`:
+Key fields:
 - `parts` supports multi-modal input (text, file, data) aligned with A2A's Part model.
-- `sessionHandle` replaces `backendSessionHandle` for session continuity.
+- `sessionHandle` provides session continuity across turns.
 
 ### 10.5 AgentResult
 
@@ -359,29 +355,11 @@ type AgentPart = TextPart | FilePart | DataPart;
 
 Parts are used in `AgentInvocationContext.parts`, `AgentResumeInput.parts`, and `AgentArtifact.parts`.
 
-### 10.8 Legacy Bridge
-
-The `legacyBridge()` function wraps a `BackendAdapter` as an `AgentAdapter`:
-
-```typescript
-import { legacyBridge } from "@chat-agent-relay/pipeline";
-
-const agentAdapter = legacyBridge(myBackendAdapter);
-```
-
-Behavior:
-- `describeCapabilities()` returns `{ streaming: !!backend.invokeStreaming, hitl: false, cancel: false, artifacts: false }`.
-- `invoke()` delegates to `backend.invoke()` and maps the result.
-- `stream()` (if the backend has `invokeStreaming`) converts `string` deltas to `{ type: "text_delta", content }` events.
-- `resume()`, `resumeStream()`, `cancel()` are not supported.
-
-Both `GenericHttpBackend` and `OpenAIBackend` also expose an `asAgentAdapter()` convenience method.
-
-### 10.9 ACP (Agent Client Protocol) adapter
+### 10.8 ACP (Agent Client Protocol) adapter
 
 `ACPAgentAdapter` (`packages/backend-acp`) implements `AgentAdapter` for coding agents that speak the **Agent Client Protocol** over **stdin/stdout**: CAR spawns a subprocess (configurable command and working directory), exchanges JSON-RPC messages on the process pipes, and maps ACP session lifecycle, streaming text, permission requests, and HITL-style prompts into `AgentEvent` streams and canonical events. **Permission handling** is configurable (for example auto-approve vs. denying tool calls vs. surfacing prompts through the relay) so deployments can match their security posture.
 
-### 10.10 AgentAdapter Conformance Checklist
+### 10.9 AgentAdapter Conformance Checklist
 
 A conforming `AgentAdapter` implementation MUST:
 
@@ -414,9 +392,9 @@ Requirements:
 - Each registered adapter MUST be addressable by a stable **name** aligned with route configuration.
 - Adding, updating, disabling, or removing an agent SHOULD NOT require a full process restart when the deployment supports hot reload (channels likewise use a **ChannelRegistry**).
 - The pipeline MUST receive a **`resolveAgent(agentName)`** (or equivalent) callback rather than assuming a single global backend instance.
-- Legacy `BackendAdapter` instances remain valid; they are wrapped once at registration time when exposed through the registry.
+- HTTP and OpenAI backends are exposed to the pipeline via their `asAgentAdapter()` method.
 
-This section does not change the `AgentAdapter` or `BackendAdapter` contracts themselves — it describes how the runtime **selects** which conforming adapter executes for a given conversation turn.
+This section does not change the `AgentAdapter` contract itself — it describes how the runtime **selects** which conforming adapter executes for a given conversation turn.
 
 ## 12. ConfigStore interface
 

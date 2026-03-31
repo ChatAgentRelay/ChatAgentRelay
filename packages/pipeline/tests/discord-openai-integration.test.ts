@@ -6,7 +6,6 @@ import { DiscordIngress } from "@chat-agent-relay/channel-discord";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { SqliteLedgerStore } from "@chat-agent-relay/event-ledger";
 import type { Server } from "bun";
-import { legacyBridge } from "../src/legacy-bridge";
 import { FirstExecutablePathPipeline } from "../src/pipeline";
 import type { PipelineConfig } from "../src/types";
 
@@ -117,7 +116,7 @@ describe("Discord -> Pipeline -> OpenAI integration", () => {
       apiKey: "test-key",
       baseUrl: `http://localhost:${mockOpenAIPort}`,
     });
-    const agentAdapter = legacyBridge(openaiBackend);
+    const agentAdapter = openaiBackend.asAgentAdapter();
 
     const originalFetch = globalThis.fetch;
     const mockSendFn = async (text: string) => {
