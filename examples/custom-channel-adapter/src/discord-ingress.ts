@@ -1,9 +1,14 @@
 /**
- * Skeleton "Discord-like" channel ingress — illustrates the CAR ChannelIngress pattern only.
+ * Skeleton "Discord-like" channel adapter — illustrates the CAR ChannelAdapter pattern only.
  * Replace validation and field mapping with real Discord API / Gateway types in production.
  */
 
-import type { CanonicalEvent, ValidationResult } from "@chat-agent-relay/contract-harness";
+import type {
+  CanonicalEvent,
+  ChannelCapabilities,
+  ChannelSender,
+  ValidationResult,
+} from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 
 // ---------------------------------------------------------------------------
@@ -149,6 +154,8 @@ function deriveIdempotencyKey(data: DiscordLikeInbound): string {
 }
 
 export class DiscordIngress {
+  readonly channelType = "discord";
+
   private constructor(private readonly validators: ContractHarnessValidators) {}
 
   static async create(): Promise<DiscordIngress> {
@@ -156,8 +163,27 @@ export class DiscordIngress {
     return new DiscordIngress(validators);
   }
 
+  describeCapabilities(): ChannelCapabilities {
+    return {
+      channel: this.channelType,
+      messaging: { text: true, attachments: false, reactions: false, threads: false },
+      streaming: { progressiveUpdate: false, nativeStreaming: false },
+      interactive: { buttons: false, menus: false, commands: false },
+      delivery: { retry: false, chunking: false, edit: false },
+    };
+  }
+
+  /** Example stub — replace with real Discord REST delivery in production. */
+  createSender(_event: CanonicalEvent): ChannelSender {
+    return {
+      async send(_text: string) {
+        return { providerMessageId: "example-skeleton" };
+      },
+    };
+  }
+
   /**
-   * ChannelIngress entrypoint: map arbitrary wire input to CanonicalizationResult.
+   * Channel adapter entrypoint: map arbitrary wire input to CanonicalizationResult.
    * MUST NOT throw — report all failures via `{ ok: false, error }`.
    */
   canonicalize(raw: unknown): CanonicalizationResult {

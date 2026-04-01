@@ -13,13 +13,14 @@
     "@chat-agent-relay/contract-harness": "workspace:*",
     "@chat-agent-relay/channel-web-chat": "workspace:*",
     "@chat-agent-relay/delivery": "workspace:*",
-    "@chat-agent-relay/event-ledger": "workspace:*"
+    "@chat-agent-relay/event-ledger": "workspace:*",
+    "@chat-agent-relay/middleware": "workspace:*"
   },
   "devDependencies": {
-    "@chat-agent-relay/backend-http": "workspace:*",
-    "@chat-agent-relay/backend-openai": "workspace:*",
     "@chat-agent-relay/channel-slack": "workspace:*",
     "@chat-agent-relay/channel-discord": "workspace:*",
+    "@chat-agent-relay/channel-teams": "workspace:*",
+    "@chat-agent-relay/channel-whatsapp": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^6.0.2"
   }

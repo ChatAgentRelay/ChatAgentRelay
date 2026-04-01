@@ -4,13 +4,16 @@ import type {
   AgentInvocationContext,
   AgentResult,
   CanonicalEvent,
+  ChannelAdapter,
+  ChannelSender,
   ConversationTurn,
 } from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { DeliveryOrchestrator } from "@chat-agent-relay/delivery";
 import type { LedgerStore } from "@chat-agent-relay/event-ledger";
 import { EventLedgerAppender, EventLedgerReader, InMemoryEventLedgerStore } from "@chat-agent-relay/event-ledger";
-import type { ChannelIngress, PipelineConfig, PipelineResult, RouteFn, StreamingOptions } from "./types";
+import { checkAccess, type AccessControlConfig, type RateLimiter } from "@chat-agent-relay/middleware";
+import type { PipelineConfig, PipelineResult, RouteFn, StreamingOptions } from "./types";
 
 function deriveEvent(
   source: CanonicalEvent,
@@ -63,19 +66,23 @@ function deriveBlockedEvent(
 
 export class FirstExecutablePathPipeline {
   private constructor(
-    private readonly ingress: ChannelIngress,
+    private readonly channel: ChannelAdapter,
     private readonly resolveAgent: (name: string) => AgentAdapter | undefined,
     private readonly routeFn: RouteFn,
-    private readonly channelName: string,
     private readonly policyId: string,
     private readonly policyFn: ((event: CanonicalEvent) => { decision: "allow" | "deny"; reason?: string }) | undefined,
+    private readonly outboundPolicyId: string,
+    private readonly outboundPolicyFn: ((event: CanonicalEvent) => { decision: "allow" | "deny"; reason?: string }) | undefined,
+    private readonly accessControl: AccessControlConfig | undefined,
+    private readonly rateLimiter: RateLimiter | undefined,
     private readonly delivery: DeliveryOrchestrator,
     private readonly appender: EventLedgerAppender,
     private readonly reader: EventLedgerReader,
     private readonly store: LedgerStore,
-    private readonly sendFn: (text: string) => Promise<{ providerMessageId: string }>,
     private readonly validators: ContractHarnessValidators,
-    private readonly streaming?: StreamingOptions | undefined,
+    private readonly streamingEnabled: boolean,
+    private readonly streamingIntervalMs: number,
+    private readonly streamingOverride?: StreamingOptions | undefined,
   ) {}
 
   static async create(config: PipelineConfig): Promise<FirstExecutablePathPipeline> {
@@ -83,23 +90,27 @@ export class FirstExecutablePathPipeline {
     const [delivery, appender, validators] = await Promise.all([
       DeliveryOrchestrator.create(config.retryConfig),
       EventLedgerAppender.create(store),
-      ContractHarnessValidators.create(),
+      ContractHarnessValidators.getShared(),
     ]);
     const reader = new EventLedgerReader(store);
     return new FirstExecutablePathPipeline(
-      config.ingress,
+      config.channel,
       config.resolveAgent,
       config.routeFn,
-      config.channelName,
       config.policyId ?? "default_ingress",
       config.policyFn,
+      config.outboundPolicyId ?? "default_outbound",
+      config.outboundPolicyFn,
+      config.accessControl,
+      config.rateLimiter,
       delivery,
       appender,
       reader,
       store,
-      config.sendFn,
       validators,
-      config.streaming,
+      config.streamingEnabled ?? false,
+      config.streamingIntervalMs ?? 800,
+      config.streamingOverride,
     );
   }
 
@@ -116,8 +127,40 @@ export class FirstExecutablePathPipeline {
     return turns;
   }
 
+  private resolveSenderId(event: CanonicalEvent): string | undefined {
+    const actor = event["actor"];
+    if (typeof actor === "object" && actor !== null) {
+      const actorId = (actor as Record<string, unknown>)["id"];
+      if (typeof actorId === "string" && actorId.length > 0) {
+        return actorId;
+      }
+    }
+
+    const payloadUserId = event.payload["user_id"];
+    if (typeof payloadUserId === "string" && payloadUserId.length > 0) {
+      return payloadUserId;
+    }
+
+    return undefined;
+  }
+
+  private resolveRateLimitKey(event: CanonicalEvent): string | undefined {
+    if (!this.rateLimiter) {
+      return undefined;
+    }
+
+    switch (this.rateLimiter.scope) {
+      case "sender":
+        return this.resolveSenderId(event);
+      case "conversation":
+        return event.conversation_id;
+      case "tenant":
+        return event.tenant_id;
+    }
+  }
+
   async execute(rawInput: unknown): Promise<PipelineResult> {
-    const canonResult = this.ingress.canonicalize(rawInput);
+    const canonResult = this.channel.canonicalize(rawInput);
     if (!canonResult.ok) {
       throw new Error(`Ingress failed: ${canonResult.error.message}`);
     }
@@ -128,6 +171,69 @@ export class FirstExecutablePathPipeline {
       throw new Error(`Expected message.received, got ${messageReceived.event_type}`);
     }
 
+    const sender = this.channel.createSender(messageReceived);
+    const streaming = this.resolveStreaming(sender);
+
+    if (this.accessControl) {
+      const senderId = this.resolveSenderId(messageReceived);
+      if (senderId) {
+        const accessDecision = checkAccess(this.accessControl, senderId);
+        if (!accessDecision.allowed) {
+          const blocked = deriveBlockedEvent(
+            messageReceived,
+            messageReceived.event_id,
+            accessDecision.reason ?? "access_denied",
+            "access_control",
+            false,
+          );
+          this.validateAndAppend(blocked);
+
+          return {
+            events: [messageReceived, blocked],
+            blocked: true,
+            blockReason: accessDecision.reason ?? "access_denied",
+            explanation: {
+              inboundText: messageReceived.payload["text"] as string,
+              policyDecision: "not_evaluated",
+              selectedRoute: "",
+              backendResponse: "",
+              providerMessageId: "",
+            },
+          };
+        }
+      }
+    }
+
+    if (this.rateLimiter) {
+      const rateLimitKey = this.resolveRateLimitKey(messageReceived);
+      if (rateLimitKey) {
+        const rateLimitDecision = this.rateLimiter.check(rateLimitKey);
+        if (!rateLimitDecision.allowed) {
+          const blocked = deriveBlockedEvent(
+            messageReceived,
+            messageReceived.event_id,
+            `rate limit exceeded${rateLimitDecision.retryAfterMs !== undefined ? `; retry_after_ms=${rateLimitDecision.retryAfterMs}` : ""}`,
+            "rate_limit",
+            true,
+          );
+          this.validateAndAppend(blocked);
+
+          return {
+            events: [messageReceived, blocked],
+            blocked: true,
+            blockReason: blocked.payload["reason"] as string,
+            explanation: {
+              inboundText: messageReceived.payload["text"] as string,
+              policyDecision: "not_evaluated",
+              selectedRoute: "",
+              backendResponse: "",
+              providerMessageId: "",
+            },
+          };
+        }
+      }
+    }
+
     const policyDecision = this.policyFn
       ? this.policyFn(messageReceived)
       : { decision: "allow" as const };
@@ -135,6 +241,7 @@ export class FirstExecutablePathPipeline {
     const policyEvent = deriveEvent(messageReceived, messageReceived.event_id, "policy.decision.made", {
       policy: this.policyId,
       decision: policyDecision.decision,
+      stage: "inbound",
       ...(policyDecision.reason !== undefined ? { reason: policyDecision.reason } : {}),
     });
     this.validateAndAppend(policyEvent);
@@ -164,7 +271,8 @@ export class FirstExecutablePathPipeline {
     }
 
     const messageText = messageReceived.payload["text"] as string;
-    const routeDecision = this.routeFn(this.channelName, messageText);
+    const channelName = this.channel.channelType;
+    const routeDecision = this.routeFn(channelName, messageText);
     if (routeDecision === null) {
       const blocked = deriveBlockedEvent(messageReceived, policyEvent.event_id, "no_route_matched", "routing", false);
       this.validateAndAppend(blocked);
@@ -222,7 +330,10 @@ export class FirstExecutablePathPipeline {
     });
     this.validateAndAppend(invocationEvent);
 
-    const conversationHistory = this.buildConversationHistory(messageReceived.conversation_id);
+    const agentCaps = agent.describeCapabilities();
+    const conversationHistory = agentCaps.multiTurn
+      ? this.buildConversationHistory(messageReceived.conversation_id)
+      : [];
 
     const invocationContext: AgentInvocationContext = {
       invocationEvent,
@@ -239,8 +350,8 @@ export class FirstExecutablePathPipeline {
     };
 
     const agentResult =
-      this.streaming?.enabled && agent.stream
-        ? await this.invokeWithStreaming(agent, invocationContext)
+      streaming?.enabled && agentCaps.streaming && agent.stream
+        ? await this.invokeWithStreaming(agent, invocationContext, streaming)
         : await agent.invoke(invocationContext);
 
     if (!agentResult.ok) {
@@ -270,9 +381,47 @@ export class FirstExecutablePathPipeline {
     const agentResponse = agentResult.event;
     this.appendToLedger(agentResponse);
 
+    let outboundPolicyEvent: CanonicalEvent | undefined;
+    if (this.outboundPolicyFn) {
+      const outboundDecision = this.outboundPolicyFn(agentResponse);
+      outboundPolicyEvent = deriveEvent(messageReceived, agentResponse.event_id, "policy.decision.made", {
+        policy: this.outboundPolicyId,
+        decision: outboundDecision.decision,
+        stage: "outbound",
+        ...(outboundDecision.reason !== undefined ? { reason: outboundDecision.reason } : {}),
+      });
+      this.validateAndAppend(outboundPolicyEvent);
+
+      if (outboundDecision.decision === "deny") {
+        const blocked = deriveBlockedEvent(
+          messageReceived,
+          outboundPolicyEvent.event_id,
+          outboundDecision.reason ?? "outbound_policy_deny",
+          "outbound_governance",
+          false,
+        );
+        this.validateAndAppend(blocked);
+
+        return {
+          events: [messageReceived, policyEvent, routeEvent, invocationEvent, agentResponse, outboundPolicyEvent, blocked],
+          blocked: true,
+          blockReason: outboundDecision.reason ?? "outbound_policy_deny",
+          ...(agentResult.sessionHandle ? { sessionHandle: agentResult.sessionHandle } : {}),
+          ...("hitlPending" in agentResult && agentResult.hitlPending ? { hitlPending: true } : {}),
+          explanation: {
+            inboundText: messageText,
+            policyDecision: outboundPolicyEvent.payload["decision"] as string,
+            selectedRoute: routeEvent.payload["route"] as string,
+            backendResponse: agentResponse.payload["text"] as string,
+            providerMessageId: "",
+          },
+        };
+      }
+    }
+
     let deliveryResult;
     try {
-      deliveryResult = await this.delivery.deliver(agentResponse, this.sendFn);
+      deliveryResult = await this.delivery.deliver(agentResponse, sender);
     } catch (deliveryError) {
       const reason = deliveryError instanceof Error ? deliveryError.message : String(deliveryError);
       const blocked = deriveBlockedEvent(messageReceived, agentResponse.event_id, reason, "delivery", false);
@@ -301,6 +450,7 @@ export class FirstExecutablePathPipeline {
       routeEvent,
       invocationEvent,
       agentResponse,
+      ...(outboundPolicyEvent ? [outboundPolicyEvent] : []),
       deliveryResult.sendRequestedEvent,
       deliveryResult.sentEvent,
     ];
@@ -323,14 +473,37 @@ export class FirstExecutablePathPipeline {
     return this.reader.replayConversation(conversationId);
   }
 
+  private resolveStreaming(sender: ChannelSender): StreamingOptions | undefined {
+    if (this.streamingOverride) return this.streamingOverride;
+    if (!this.streamingEnabled) return undefined;
+
+    const caps = this.channel.describeCapabilities();
+    if (!caps.streaming.progressiveUpdate || !sender.edit) return undefined;
+
+    let messageId: string | undefined;
+    return {
+      enabled: true,
+      updateIntervalMs: this.streamingIntervalMs,
+      postInitial: async (placeholder: string) => {
+        const result = await sender.send(placeholder);
+        messageId = result.providerMessageId;
+        return result;
+      },
+      updateMessage: async (text: string) => {
+        if (messageId) await sender.edit!(messageId, text);
+      },
+    };
+  }
+
   private async invokeWithStreaming(
     agent: AgentAdapter,
     context: AgentInvocationContext,
+    streaming: StreamingOptions,
   ): Promise<AgentResult & { hitlPending?: boolean }> {
     const generator = agent.stream!(context);
-    const updateIntervalMs = this.streaming?.updateIntervalMs ?? 800;
+    const updateIntervalMs = streaming.updateIntervalMs ?? 800;
 
-    const initialResult = await this.streaming!.postInitial("...");
+    const initialResult = await streaming.postInitial("...");
     const messageTs = initialResult.providerMessageId;
 
     let accumulated = "";
@@ -342,7 +515,7 @@ export class FirstExecutablePathPipeline {
       if (done) {
         if (accumulated) {
           try {
-            await this.streaming!.updateMessage(accumulated);
+            await streaming.updateMessage(accumulated);
           } catch {
             /* best-effort final update */
           }
@@ -356,7 +529,7 @@ export class FirstExecutablePathPipeline {
         const now = Date.now();
         if (now - lastUpdateTime >= updateIntervalMs && messageTs) {
           try {
-            await this.streaming!.updateMessage(accumulated);
+            await streaming.updateMessage(accumulated);
             lastUpdateTime = now;
           } catch {
             /* best-effort update, continue streaming */

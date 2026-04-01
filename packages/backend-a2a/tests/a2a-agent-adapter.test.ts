@@ -121,6 +121,8 @@ describe("A2AAgentAdapter", () => {
 
     const caps = adapter.describeCapabilities();
     expect(caps.streaming).toBe(true);
+    expect(caps.multiTurn).toBe(true);
+    expect(caps.resume).toBe(true);
     expect(caps.hitl).toBe(true);
     expect(caps.cancel).toBe(true);
     expect(caps.artifacts).toBe(true);

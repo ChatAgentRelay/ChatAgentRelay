@@ -16,11 +16,15 @@ You built an agent. It works. Now your PM says "put it in Slack." Then legal say
 **Chat Agent Relay (CAR) is that plumbing, done once, so you never build it again.**
 
 ```
-                   Chat Agent Relay
-Slack  ─┐                                    ┌─ Your internal agent
-Teams  ─┤→ [Governance] → [Route] → [Invoke] →├─ LangChain / CrewAI agent
-Discord ─┤      ↓                              ├─ Self-hosted model
-Web    ─┘  [Audit Ledger]                     └─ OpenAI / Claude / any HTTP
+                      Chat Agent Relay
+Slack     ─┐                                              ┌─ Your A2A agent
+Teams     ─┤                                              ├─ CrewAI / LangGraph
+Discord   ─┤→ [Access Control] → [Policy] → [Route]      ├─ Google ADK
+Telegram  ─┤       ↓                ↓           ↓         ├─ AutoGen / Mastra
+WhatsApp  ─┤  [Rate Limit]   [Outbound Gov]  [Invoke] ──→├─ Any A2A-compatible
+Lark      ─┤       ↓                                      └─   agent runtime
+DingTalk  ─┤
+WebChat   ─┘  [7-Event Audit Ledger]
 ```
 
 ## The Problem
@@ -36,7 +40,7 @@ This is not your product. This is overhead. And it multiplies every time require
 | New chat platform needed | Weeks of integration work | Implement one interface, done |
 | Switch agent backends | Rewrite integration logic | Add or select another agent in the config DB; route rules pick the handler |
 | Compliance asks for audit logs | Build a logging system from scratch | Already there — every message is a 7-event chain in an append-only ledger |
-| Agent call fails | Hope your try/catch was good enough | Automatic retry with exponential backoff + dead-letter queue |
+| Agent call fails | Hope your try/catch was good enough | Automatic retry with exponential backoff, structured error events |
 | "What happened to that message?" | Dig through scattered logs | `curl localhost:3000/api/conversations/{id}/audit` |
 
 ## Get Started in 2 Minutes
@@ -49,18 +53,18 @@ bun install
 cd packages/server
 export CAR_ENCRYPTION_KEY="$(openssl rand -hex 32)"   # encrypts tokens and API keys at rest
 car channel add my-slack --type=slack --bot-token=xoxb-... --app-token=xapp-...
-car agent add my-bot --type=a2a --endpoint=http://...
+car agent add my-bot --endpoint=https://agent.example.com
 car route add --default --agent=my-bot
 car start
 ```
 
-For day-to-day operation you typically set `CAR_ENCRYPTION_KEY` (so secrets in the DB are encrypted) and optionally `CAR_DB_PATH` (defaults to `./car.db`).
+For production, also set `CAR_API_KEY` (secures the management API) and optionally `CAR_DB_PATH` (defaults to `./car.db`). See the [Deployment Guide](docs/deployment-guide.md) for the full checklist.
 
 **Just explore (no tokens needed):**
 
 ```bash
 git clone https://github.com/ChatAgentRelay/ChatAgentRelay && cd ChatAgentRelay
-bun install && bun test --recursive    # ~542 tests across 43 files
+bun install && bun test --recursive    # ~692 tests across 51 files
 ```
 
 ## How It Works
@@ -81,94 +85,98 @@ If anything fails, `event.blocked` records what went wrong, at which stage, and 
 
 ## Connect Your Agent
 
-CAR doesn't care what your agent is — an A2A-compatible agent, a LangGraph pipeline, a self-hosted model, or a commercial API. The `AgentAdapter` interface connects to any agent runtime with structured events, HITL support, and session management.
+CAR connects to agents via the **A2A (Agent-to-Agent) protocol** — the open standard supported by 150+ organizations including Google, Salesforce, SAP, and all major agent frameworks (CrewAI, LangGraph, Google ADK, AutoGen, Mastra, etc.).
 
-```typescript
-const adapter: AgentAdapter = {
-  describeCapabilities() { return { streaming: true, hitl: true, cancel: false, artifacts: false }; },
-  async invoke(context: AgentInvocationContext): Promise<AgentResult> {
-    // call YOUR agent runtime — any protocol, any framework
-  }
-};
+Your agent stays independent. CAR calls it over HTTP. No SDK, no lock-in, no subprocess management.
+
+```bash
+car agent add my-bot --endpoint=https://agent.example.com
 ```
 
-Built-in agent backends:
-- **A2A protocol** — connect to any A2A-compatible agent with native streaming and HITL
-- **ACP (Agent Client Protocol)** — connect to coding agents (e.g. Claude Code, Gemini CLI) via stdin/stdout subprocess
-- **LangGraph Platform** — connect to LangGraph agents with thread-based sessions
-- **OpenAI Chat Completions** — with SSE streaming (legacy adapter, auto-bridged)
-- **Configurable generic HTTP** — custom headers, request body builders, and response field extraction (legacy adapter, auto-bridged)
+The built-in `A2AAgentAdapter` supports streaming, multi-turn context, HITL (`input-required` relay), artifacts, cancel, and session management — all through the standard A2A protocol.
 
-The conformance test suite validates your adapter automatically: run `testAgentAdapter()` and you know it's correct.
+For non-standard agents, implement the `AgentAdapter` interface and validate with `testAgentAdapter()` from the conformance suite.
 
 ## Connect Your Chat Platform
 
-Same story on the chat side. Slack, Discord, and WebChat are built-in. Need Teams? Telegram? One interface:
+8 chat platforms are built-in. Need another? Implement one interface (`ChannelAdapter`), run `testChannelAdapter()` to validate, and register it.
 
-```typescript
-const ingress: ChannelIngress = {
-  canonicalize(raw: unknown): CanonicalizationResult {
-    // validate platform payload → map to canonical event → return
-  }
-};
-```
+| Channel | Streaming | Webhook Verification |
+|---------|-----------|---------------------|
+| Slack | Progressive update | HMAC signing secret |
+| Microsoft Teams | Activity update | JWT (Azure AD) |
+| Discord | Progressive update | Gateway (built-in) |
+| Telegram | Edit message | Secret token header |
+| WhatsApp Business | — | HMAC-SHA256 |
+| Lark / 飞书 | Edit message | Encrypt key |
+| DingTalk / 钉钉 | — | HMAC-SHA256 |
+| WebChat | SSE native | — |
 
-Run `testChannelIngress()` to validate. See `packages/channel-discord` for a full adapter example.
+See `packages/channel-discord` for a full adapter example.
 
 ## What You Get Out of the Box
 
-- **Governance** — keyword/regex policy engine blocks messages before they reach your agent
-- **Access control** — DM/channel policies, guild allowlists, mention gating
-- **Full audit trail** — every message is a 7-event chain in an append-only ledger, queryable via REST
-- **Streaming** — SSE responses stream directly to chat with progressive message updates
-- **Delivery retry** — exponential backoff + dead-letter queue, no lost messages
-- **Multi-turn context** — automatic conversation history replay from the ledger
-- **Ack reactions** — configurable emoji feedback on message receive/complete/error
-- **Slash commands** — native slash command handling for Slack and Discord
-- **Multi-agent routing** — register several agents at once; route rules decide which handles each message (hot-pluggable at runtime)
-- **CLI-first configuration** — channels, agents, routes, and settings managed via `ConfigStore` interface (SQLite default, swappable for PostgreSQL etc.); no wall of environment variables
+**Security & Governance**
+- **API authentication** — Bearer token for the management API (`CAR_API_KEY`)
+- **Inbound policy** — structured conditions (sender, channel, time window, content length, keyword, regex), mandatory deny rules, and/or/not composition
+- **Outbound policy** — content filtering on agent responses before delivery (defense-in-depth)
+- **Access control** — sender allowlist/blocklist
+- **Rate limiting** — sliding window per sender, conversation, or tenant
+- **Webhook verification** — per-channel signature validation (Slack HMAC, Teams JWT, Telegram secret, WhatsApp HMAC-SHA256, Lark encrypt key, DingTalk HMAC)
+- **Tenant isolation** — `X-Tenant-ID` header scopes ledger queries when enabled
 - **Encrypted credentials** — AES-256-GCM for tokens and API keys at rest
-- **Human-in-the-loop (HITL)** — agents can request human input mid-execution and resume after
-- **Conformance testing** — validate any adapter with a single function call
+
+**Core Platform**
+- **Full audit trail** — every message is a 7-event chain in an append-only ledger, queryable via REST
+- **Streaming** — progressive chat updates (Slack, Teams, Discord, Telegram, Lark) and SSE (WebChat)
+- **HITL relay** — agent returns `input-required` → CAR delivers prompt to user → user replies → CAR resumes agent
+- **Delivery retry** — exponential backoff with structured error events
+- **Multi-turn context** — conversation history from the ledger
+- **Multi-agent routing** — register several agents; route rules decide which handles each message (hot-pluggable)
+- **Idempotency** — per-channel deduplication with configurable TTL
+- **Config hot-reload** — policy and route changes take effect without restart
+
+**Developer Experience**
+- **CLI-first configuration** — `car channel|agent|route|config` commands; no wall of env vars
+- **YAML policy files** — declarative, version-controlled governance rules
+- **Conformance testing** — validate any adapter with `testChannelAdapter()` or `testAgentAdapter()`
+- **Slash commands** — native handling for Slack and Discord
 
 ## Roadmap
 
-We're building the connective layer between chat and agents. Here's what's already shipped and where we're headed next:
+**Chat platforms (8/8 built-in):**
+- [x] Slack (Socket Mode + streaming)
+- [x] Microsoft Teams (Bot Connector + JWT verification)
+- [x] Discord (Gateway + slash commands)
+- [x] Telegram (Bot API + webhook verification)
+- [x] WhatsApp Business (Cloud API + 24h session tracking)
+- [x] Lark / 飞书 (Event Subscription + streaming)
+- [x] DingTalk / 钉钉 (Robot callback)
+- [x] WebChat (HTTP + SSE streaming)
 
-**Chat platforms** — expanding where users can reach their agents:
-- [x] Slack
-- [x] Web chat
-- [ ] Microsoft Teams
-- [x] Discord
-- [ ] Telegram
-- [ ] WhatsApp Business
-- [ ] LINE
-- [ ] Custom web widget SDK
+**Agent protocol:**
+- [x] A2A protocol (covers CrewAI, LangGraph, Google ADK, AutoGen, Mastra, and all A2A-compatible agents)
+- [x] Multi-agent routing with hot-pluggable rules
 
-**Agent backends** — connecting to any agent runtime, regardless of how it's built:
-- [x] A2A protocol (Agent-to-Agent)
-- [x] ACP (Agent Client Protocol) for coding-agent CLIs
-- [x] LangGraph Platform
-- [x] OpenAI Chat Completions
-- [x] Generic HTTP backend
-- [ ] Any SSE-streaming agent (generic SSE adapter)
-- [ ] Webhook / async callback agents
-- [ ] MCP (Model Context Protocol) compatible agents
-- [x] Multi-agent routing (multiple registered agents; route rules per channel or pattern)
+**Governance & Security:**
+- [x] Inbound policy (structured conditions, mandatory deny)
+- [x] Outbound policy (pre-send content filtering)
+- [x] API authentication (Bearer token)
+- [x] Webhook signature verification (all channels)
+- [x] Rate limiting and access control
+- [x] Tenant isolation
+- [x] YAML policy configuration with hot-reload
+- [x] Encrypted credentials (AES-256-GCM)
 
-**Platform capabilities:**
-- [x] Governance / policy engine
-- [x] Append-only audit ledger with replay and audit API
-- [x] Streaming responses
-- [x] Delivery retry with exponential backoff
-- [x] Multi-turn conversation context
-- [x] Adapter conformance testing
-- [ ] RBAC and multi-tenant routing
-- [ ] Usage metering and analytics dashboard
-- [ ] Plugin system for custom middleware stages
-- [ ] Admin UI for policy and routing management
+**Coming next:**
+- [ ] Rich message unified abstraction (cards, buttons across channels)
+- [ ] Dead letter queue for failed deliveries
+- [ ] Audit retention policy (TTL / archive)
+- [ ] Cross-channel identity resolution
+- [ ] Admin UI
+- [ ] Usage metering
 
-**Tell us what matters to you.** Which chat platform do your users live in? What kind of agent do you want to connect? [Open an issue](https://github.com/ChatAgentRelay/ChatAgentRelay/issues) or [start a discussion](https://github.com/ChatAgentRelay/ChatAgentRelay/discussions) — your use case shapes the roadmap.
+**Tell us what matters to you.** [Open an issue](https://github.com/ChatAgentRelay/ChatAgentRelay/issues) or [start a discussion](https://github.com/ChatAgentRelay/ChatAgentRelay/discussions) — your use case shapes the roadmap.
 
 ## Documentation
 
@@ -177,7 +185,8 @@ We're building the connective layer between chat and agents. Here's what's alrea
 | **[Getting Started](docs/getting-started.md)** | Setup in 5 minutes |
 | **[Architecture](docs/architecture.md)** | System design with diagrams |
 | **[API Reference](docs/api-reference.md)** | All HTTP endpoints |
-| **[Writing Adapters](docs/rfcs/adapters/channel-adapter-interface-spec.md)** | Channel & backend interface specs |
+| **[Deployment Guide](docs/deployment-guide.md)** | Production deployment, security, nginx |
+| **[Writing Adapters](docs/rfcs/adapters/channel-adapter-interface-spec.md)** | Channel & agent adapter interface specs |
 
 ## CLI
 
@@ -185,8 +194,8 @@ We're building the connective layer between chat and agents. Here's what's alrea
 car --help                   # usage (also: car channel|agent|route|config subcommands)
 car --version                # version
 car --check-config           # open config DB and print summary
-car channel add|list|remove  # manage chat channels (Slack, Discord, WebChat, …)
-car agent add|list|remove    # register agent backends (A2A, LangGraph, HTTP, …)
+car channel add|list|remove  # manage chat channels (Slack, Teams, Discord, Telegram, WhatsApp, Lark, DingTalk, WebChat)
+car agent add|list|remove    # register A2A agent backends
 car route add|list|remove    # routing rules (default, channel match, pattern)
 car config set|get           # arbitrary settings key/value store
 car start                    # run the relay (same entry as `car` with no subcommand, per install)
@@ -205,7 +214,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). All adapter contributions get free confo
 
 We especially welcome:
 - **New channel adapters** — connect the chat platforms your team actually uses
-- **New backend adapters** — connect the agents your company actually builds
 - **Bug reports and use cases** — tell us how you're using CAR and what's missing
 
 ## License

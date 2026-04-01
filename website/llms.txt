@@ -1,29 +1,31 @@
 # Chat Agent Relay
 
-> Open-source middleware connecting any chat platform (Slack, Discord, WebChat) to any AI agent runtime (A2A, LangGraph, ACP, HTTP). Canonical event model, append-only audit ledger, multi-agent routing, encrypted credential storage, CLI-first configuration.
+> Open-source middleware connecting any chat platform (Slack, Teams, Discord, Telegram, WhatsApp, WebChat, Lark/飞书, DingTalk/钉钉) to AI agent runtimes via the A2A protocol. Canonical event model, append-only audit ledger, enterprise governance, multi-agent routing, tenant isolation, encrypted credential storage, CLI-first configuration.
 
 ## Key Information
 
 - [Quick Start](https://chatagentrelay.github.io/ChatAgentRelay/docs/): 5-minute setup guide — install, pick a channel, pick an agent, set a route, start.
-- [Architecture](https://chatagentrelay.github.io/ChatAgentRelay/docs/concepts/): 16-package monorepo, 7-event pipeline chain, pluggable adapters on both sides.
+- [Architecture](https://chatagentrelay.github.io/ChatAgentRelay/docs/concepts/): 17-package monorepo, 7-event pipeline chain, pluggable adapters on both sides.
 - [Event Model](https://chatagentrelay.github.io/ChatAgentRelay/docs/concepts/events.html): 15 canonical event types, causal chain via correlation_id/causation_id.
 - [HTTP API](https://chatagentrelay.github.io/ChatAgentRelay/docs/api/): REST endpoints for health, events, audit, and runtime config CRUD.
-- [GitHub Repository](https://github.com/ChatAgentRelay/ChatAgentRelay): TypeScript + Bun, 522 tests across 42 files.
+- [GitHub Repository](https://github.com/ChatAgentRelay/ChatAgentRelay): TypeScript + Bun, 692 tests across 51 files.
 
 ## Channels (Chat Platform Adapters)
 
-- [Channels Overview](https://chatagentrelay.github.io/ChatAgentRelay/docs/channels/): Slack, Discord, WebChat — all normalize messages to the same canonical event shape.
+- [Channels Overview](https://chatagentrelay.github.io/ChatAgentRelay/docs/channels/): 8 channel adapters — all normalize messages to the same canonical event shape.
 - [Slack](https://chatagentrelay.github.io/ChatAgentRelay/docs/channels/slack.html): Socket Mode, streaming, threads, reactions, rich messages, slash commands.
+- [Microsoft Teams](https://chatagentrelay.github.io/ChatAgentRelay/docs/channels/teams.html): Bot Connector, JWT verification, Adaptive Cards, threaded conversations.
 - [Discord](https://chatagentrelay.github.io/ChatAgentRelay/docs/channels/discord.html): Gateway, streaming, threads, embeds, slash commands, guild allowlist.
-- [WebChat](https://chatagentrelay.github.io/ChatAgentRelay/docs/channels/webchat.html): HTTP-based, zero persistent connection, ideal for testing and custom UIs.
+- [Telegram](https://chatagentrelay.github.io/ChatAgentRelay/docs/channels/telegram.html): Bot API webhook, bot commands, progressive streaming, group/private chat.
+- [WhatsApp Business](https://chatagentrelay.github.io/ChatAgentRelay/docs/channels/whatsapp.html): Cloud API, HMAC-SHA256 verification, 24h session tracking.
+- [WebChat](https://chatagentrelay.github.io/ChatAgentRelay/docs/channels/webchat.html): HTTP + SSE streaming, slash commands, HITL resume, session management.
+- [Lark / 飞书](https://chatagentrelay.github.io/ChatAgentRelay/docs/channels/lark.html): Event subscription, auto token management, streaming. China + international.
+- [DingTalk / 钉钉](https://chatagentrelay.github.io/ChatAgentRelay/docs/channels/dingtalk.html): Robot webhook, session-based reply, staff identity. #1 China enterprise.
 
 ## Agents (Agent Runtime Adapters)
 
 - [Agents Overview](https://chatagentrelay.github.io/ChatAgentRelay/docs/agents/): AgentAdapter interface supporting streaming, HITL, session management, artifacts.
-- [A2A Protocol](https://chatagentrelay.github.io/ChatAgentRelay/docs/agents/a2a.html): Google's Agent-to-Agent standard. JSON-RPC 2.0 + SSE streaming.
-- [LangGraph](https://chatagentrelay.github.io/ChatAgentRelay/docs/agents/langgraph.html): LangGraph Platform API, thread-based sessions, interrupt/resume HITL.
-- [HTTP](https://chatagentrelay.github.io/ChatAgentRelay/docs/agents/http.html): Generic HTTP adapter for any endpoint — n8n, Dify, Flowise, custom APIs.
-- [ACP](https://chatagentrelay.github.io/ChatAgentRelay/docs/agents/acp.html): Agent Client Protocol for coding agents (Claude Code, Gemini CLI) via stdin/stdout.
+- [A2A Protocol](https://chatagentrelay.github.io/ChatAgentRelay/docs/agents/a2a.html): Google's Agent-to-Agent standard. JSON-RPC 2.0 + SSE streaming. The sole agent protocol in CAR.
 
 ## Configuration
 
@@ -34,5 +36,5 @@
 ## Optional
 
 - [Why CAR](https://chatagentrelay.github.io/ChatAgentRelay/why-car/): Comparison with DIY integration, positioning, technical differentiators.
-- [Blog](https://chatagentrelay.github.io/ChatAgentRelay/blog/): Architecture deep dive, agent compatibility analysis.
+- [Blog](https://chatagentrelay.github.io/ChatAgentRelay/blog/): Architecture deep dive, agent compatibility analysis, adapter capability matrix.
 - [Pipeline](https://chatagentrelay.github.io/ChatAgentRelay/docs/concepts/pipeline.html): FirstExecutablePathPipeline, streaming, error handling, HITL flow.

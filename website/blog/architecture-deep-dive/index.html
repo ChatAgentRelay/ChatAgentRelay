@@ -147,7 +147,7 @@
 
     <h2 id="adapters">Adapters as boundary translators</h2>
     <p>
-      Chat Agent Relay splits the world at two interfaces. <strong>Channel ingress</strong> implements <strong>ChannelIngress</strong>: turn vendor webhooks or sockets into <code>message.received</code> and apply outbound mapping for <code>message.send.requested</code> / <code>message.sent</code>.
+      Chat Agent Relay splits the world at two interfaces. <strong>Channel adapters</strong> implement <strong>ChannelAdapter</strong>: turn vendor webhooks or sockets into <code>message.received</code> via <code>canonicalize()</code>, and create senders for outbound delivery via <code>createSender()</code>. The adapter also declares its capabilities &mdash; streaming, editing, commands &mdash; so the pipeline can adapt its behavior.
       <strong>Agent adapters</strong> implement <strong>AgentAdapter</strong>: consume invocation events, call agent runtimes or HTTP services, and emit <code>agent.response.completed</code>.
       Both sides speak only canonical events plus the envelope &mdash; the glue that used to sprawl across your codebase becomes replaceable modules.
     </p>

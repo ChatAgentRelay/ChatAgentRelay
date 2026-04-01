@@ -1,5 +1,7 @@
 import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
 
+export type { ChannelSender } from "@chat-agent-relay/contract-harness";
+
 export type SendResult = {
   providerMessageId: string;
 };

@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Agent Adapter Capability Matrix — What Each Protocol Can and Cannot Do</title>
+  <meta name="description" content="Deep dive into Chat Agent Relay's five agent adapters: A2A, LangGraph, ACP, HTTP, and OpenAI. Feature-by-feature comparison, protocol limitations, and what we implemented vs. what's impossible.">
+  <meta name="keywords" content="Chat Agent Relay, CAR, agent adapter, A2A, LangGraph, ACP, Agent Client Protocol, HTTP adapter, OpenAI, streaming, HITL, human-in-the-loop, capability matrix, 2026">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="Agent Adapter Capability Matrix — What Each Protocol Can and Cannot Do">
+  <meta property="og:description" content="[Superseded] Pre-consolidation capability matrix for five agent adapters. CAR now uses A2A as the sole protocol.">
+  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/blog/agent-adapter-capability-matrix/">
+  <meta property="og:site_name" content="Chat Agent Relay">
+  <meta property="article:published_time" content="2026-03-28">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Agent Adapter Capability Matrix — Chat Agent Relay">
+  <meta name="twitter:description" content="[Superseded] Pre-consolidation five-adapter capability matrix. CAR now uses A2A only.">
+
+  <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+  <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+
+  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/blog/agent-adapter-capability-matrix/">
+  <link rel="icon" href="/ChatAgentRelay/img/favicon.svg" type="image/svg+xml">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../css/style.css">
+
+  <style>
+    .cap-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 1.5rem 0; }
+    .cap-table th, .cap-table td { padding: 0.5rem 0.65rem; border: 1px solid #e0e0e0; text-align: center; vertical-align: top; }
+    .cap-table th { background: #f5f5f5; font-weight: 600; white-space: nowrap; }
+    .cap-table td:first-child { text-align: left; font-weight: 600; }
+    .cap-table tr:hover { background: #fafafa; }
+    .yes { color: #16a34a; font-weight: 600; }
+    .no { color: #dc2626; }
+    .cond { color: #d97706; font-weight: 500; }
+    .limit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 1.5rem 0; }
+    .limit-card { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px; padding: 1.25rem; }
+    .limit-card h4 { margin: 0 0 0.5rem; font-size: 1rem; }
+    .limit-card p { margin: 0; font-size: 0.9rem; color: #555; }
+    @media (max-width: 768px) { .limit-grid { grid-template-columns: 1fr; } }
+  </style>
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-7FERB87K2D');
+  </script>
+
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": "Agent Adapter Capability Matrix — What Each Protocol Can and Cannot Do",
+    "description": "Deep dive into Chat Agent Relay's five agent adapters. Feature-by-feature comparison, protocol limitations, and implementation decisions.",
+    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/agent-adapter-capability-matrix/",
+    "datePublished": "2026-03-28",
+    "dateModified": "2026-03-28",
+    "author": { "@type": "Organization", "name": "Chat Agent Relay" },
+    "publisher": { "@type": "Organization", "name": "Chat Agent Relay", "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/" },
+    "isPartOf": { "@type": "Blog", "name": "Chat Agent Relay Blog", "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/" }
+  }
+  </script>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="nav">
+  <div class="container">
+    <a href="/ChatAgentRelay/" class="nav-brand"><span class="prompt">$</span> car</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <div class="nav-links">
+      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+      <a href="/ChatAgentRelay/docs/">Docs</a>
+      <a href="/ChatAgentRelay/compare/diy/">Compare</a>
+      <a href="/ChatAgentRelay/blog/" class="active">Blog</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="nav-cta" data-track="nav_github">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <article class="article">
+    <h1>Agent Adapter Capability Matrix</h1>
+    <p class="meta">March 28, 2026 &middot; 8 min read &middot; Technical deep dive</p>
+
+    <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:1rem 1.25rem;margin:1.5rem 0">
+      <strong>Update (March 31, 2026):</strong> This article compares five agent adapters that existed in the pre-consolidation architecture. CAR has since removed <code>backend-http</code>, <code>backend-openai</code>, <code>backend-langgraph</code>, and <code>backend-acp</code>, keeping <strong>A2A as the sole agent protocol</strong>. See <a href="/ChatAgentRelay/blog/one-protocol-a2a/" style="font-weight:600">One Protocol to Connect Them All: Why CAR Chose A2A</a> for the rationale.
+    </div>
+
+    <p>
+      Chat Agent Relay ships five agent adapters that cover the entire 2026 agent landscape. But not every adapter can do everything&mdash;and that&rsquo;s by design. Some limitations are fundamental protocol constraints; others are conscious scope decisions. This post maps the complete capability matrix and explains <em>why</em> each cell is what it is.
+    </p>
+
+    <h2 id="the-interface">The AgentAdapter Interface</h2>
+    <p>
+      Every adapter implements the same TypeScript interface, aligned with A2A protocol semantics:
+    </p>
+    <pre><code>interface AgentAdapter {
+  describeCapabilities(): AgentCapabilities;
+  invoke(context): Promise&lt;AgentResult&gt;;
+  stream?(context): AsyncGenerator&lt;AgentEvent, AgentResult&gt;;
+  resume?(sessionHandle, input): Promise&lt;AgentResult&gt;;
+  resumeStream?(sessionHandle, input): AsyncGenerator&lt;AgentEvent, AgentResult&gt;;
+  cancel?(sessionHandle): Promise&lt;void&gt;;
+}</code></pre>
+    <p>
+      Methods after <code>invoke()</code> are optional. The pipeline checks <code>describeCapabilities()</code> at runtime and falls back gracefully: no streaming? call <code>invoke()</code>. No cancel? skip it. This means adapters can be honest about what they support without breaking the pipeline.
+    </p>
+
+    <h2 id="matrix">The Full Matrix</h2>
+    <div style="overflow-x:auto">
+    <table class="cap-table">
+      <thead>
+        <tr>
+          <th>Capability</th>
+          <th>A2A</th>
+          <th>LangGraph</th>
+          <th>ACP</th>
+          <th>HTTP</th>
+          <th>OpenAI</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>invoke()</td>
+          <td class="yes">&#10003;</td>
+          <td class="yes">&#10003;</td>
+          <td class="yes">&#10003;</td>
+          <td class="yes">&#10003;</td>
+          <td class="yes">&#10003;</td>
+        </tr>
+        <tr>
+          <td>stream()</td>
+          <td class="yes">&#10003;</td>
+          <td class="yes">&#10003;</td>
+          <td class="yes">&#10003;</td>
+          <td class="cond">opt-in</td>
+          <td class="yes">&#10003;</td>
+        </tr>
+        <tr>
+          <td>resume()</td>
+          <td class="yes">&#10003;</td>
+          <td class="yes">&#10003;</td>
+          <td class="yes">&#10003;</td>
+          <td class="no">&#10007;</td>
+          <td class="no">&#10007;</td>
+        </tr>
+        <tr>
+          <td>resumeStream()</td>
+          <td class="yes">&#10003;</td>
+          <td class="yes">&#10003;</td>
+          <td class="yes">&#10003;</td>
+          <td class="no">&#10007;</td>
+          <td class="no">&#10007;</td>
+        </tr>
+        <tr>
+          <td>cancel()</td>
+          <td class="yes">&#10003;</td>
+          <td class="yes">&#10003;</td>
+          <td class="yes">&#10003;</td>
+          <td class="no">&#10007;</td>
+          <td class="no">&#10007;</td>
+        </tr>
+        <tr>
+          <td>HITL</td>
+          <td class="yes">&#10003;</td>
+          <td class="yes">&#10003;</td>
+          <td class="cond">policy</td>
+          <td class="no">&#10007;</td>
+          <td class="no">&#10007;</td>
+        </tr>
+        <tr>
+          <td>Sessions</td>
+          <td class="yes">contextId</td>
+          <td class="yes">thread</td>
+          <td class="yes">sessionId</td>
+          <td class="no">&#10007;</td>
+          <td class="no">&#10007;</td>
+        </tr>
+        <tr>
+          <td>Artifacts</td>
+          <td class="yes">&#10003;</td>
+          <td class="no">&#10007;</td>
+          <td class="no">&#10007;</td>
+          <td class="no">&#10007;</td>
+          <td class="no">&#10007;</td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <p>
+      Three adapters&mdash;A2A, LangGraph, and ACP&mdash;implement the full operational surface. HTTP and OpenAI are intentionally simpler: they cover request-response and streaming, but stateful operations like HITL and session management are outside their protocol scope.
+    </p>
+
+    <h2 id="full-featured">The Full-Featured Trio</h2>
+
+    <h3>A2A &mdash; The Protocol Standard</h3>
+    <p>
+      Google&rsquo;s Agent-to-Agent protocol is the richest adapter in CAR. It implements every method on the interface and is the only adapter that supports <strong>artifacts</strong>&mdash;structured outputs beyond text (files, data payloads). On creation, the adapter fetches the agent&rsquo;s <code>/.well-known/agent.json</code> Agent Card for capability discovery. Sessions use A2A&rsquo;s <code>contextId</code> for multi-turn continuity. HITL works via the <code>input-required</code> task state, and cancellation uses <code>task/cancel</code> JSON-RPC.
+    </p>
+
+    <h3>LangGraph &mdash; The Framework Native</h3>
+    <p>
+      LangGraph&rsquo;s Thread/Run API maps cleanly to the adapter interface. Each CAR conversation maps to a LangGraph thread; streaming uses <code>stream_mode: ["messages-tuple"]</code> for incremental deltas. HITL is powered by LangGraph&rsquo;s <code>__interrupt__</code> mechanism&mdash;the adapter detects interrupts after streaming completes and yields <code>input_required</code> events. Resume sends <code>command: { resume: text }</code> to continue execution. Cancellation deletes the active run via <code>DELETE /threads/{id}/runs/{runId}</code>.
+    </p>
+
+    <h3>ACP &mdash; The Subprocess Protocol</h3>
+    <p>
+      Agent Client Protocol connects to coding agents (Claude Code, Gemini CLI) via subprocess and JSON-RPC over stdin/stdout. Streaming comes from <code>session/update</code> notifications delivering <code>message_chunk</code> events. HITL is controlled by <code>permissionPolicy</code>: when set to <code>hitl</code>, tool permission requests surface as <code>input_required</code> events; <code>auto-approve</code> and <code>deny</code> handle permissions silently. Sessions are keyed by conversation and reused across messages. Both <code>resume()</code> and <code>resumeStream()</code> send follow-up prompts on existing sessions.
+    </p>
+
+    <h2 id="simple">The Simple Pair</h2>
+
+    <h3>HTTP &mdash; Maximum Flexibility</h3>
+    <p>
+      The HTTP adapter connects to <em>any</em> HTTP endpoint. It supports customizable request bodies, response field extraction, and optional SSE streaming (via <code>streaming.enabled</code>). What it doesn&rsquo;t support&mdash;HITL, sessions, resume, cancel&mdash;isn&rsquo;t a bug; it&rsquo;s a fundamental protocol limitation. HTTP is stateless request-response. There&rsquo;s no standard mechanism for an HTTP server to pause execution and wait for human input, or for the client to cancel a request after the server has started processing.
+    </p>
+
+    <h3>OpenAI &mdash; Direct LLM Access</h3>
+    <p>
+      The OpenAI adapter wraps <code>/v1/chat/completions</code> for direct LLM access with streaming. It&rsquo;s intentionally simple&mdash;stateless, no sessions, no HITL. Multi-turn context is managed by sending conversation history with each request. This adapter exists for quick prototyping and scenarios where you want a raw LLM without an agent runtime.
+    </p>
+
+    <h2 id="limitations">Protocol Limitations vs. Implementation Decisions</h2>
+    <p>
+      Not every &ldquo;&#10007;&rdquo; in the matrix is the same. Some are hard protocol constraints; others are scope decisions we could revisit:
+    </p>
+
+    <div class="limit-grid">
+      <div class="limit-card">
+        <h4>&#x1F512; HTTP HITL / Resume / Cancel</h4>
+        <p><strong>Protocol limitation.</strong> HTTP is fire-and-forget. No standard way to pause a request for human input, resume a paused task, or cancel server-side work. Would require inventing a custom protocol on top of HTTP&mdash;at which point you&rsquo;re just building A2A.</p>
+      </div>
+      <div class="limit-card">
+        <h4>&#x1F512; OpenAI HITL / Sessions</h4>
+        <p><strong>API design limitation.</strong> Chat Completions is stateless. There&rsquo;s no task or session concept. Every request is independent. OpenAI&rsquo;s Agents SDK and Responses API add statefulness, but those should be deployed as servers and connected via HTTP or A2A.</p>
+      </div>
+      <div class="limit-card">
+        <h4>&#x1F4D0; LangGraph Artifacts</h4>
+        <p><strong>Convention gap.</strong> LangGraph could return structured data via custom state values, but there&rsquo;s no standard convention for artifact delivery in the Thread/Run API. Implementing this would require opinionated assumptions about state structure.</p>
+      </div>
+      <div class="limit-card">
+        <h4>&#x1F4D0; ACP Artifacts</h4>
+        <p><strong>Protocol gap.</strong> The ACP specification doesn&rsquo;t define an artifact concept. Coding agents produce file changes as tool operations, not as structured artifact payloads. If ACP adds artifact semantics in a future version, we&rsquo;ll implement them.</p>
+      </div>
+    </div>
+
+    <h2 id="streaming-detail">Streaming: Three Different Mechanisms</h2>
+    <p>Each adapter that supports streaming does so differently:</p>
+    <table class="cap-table">
+      <thead>
+        <tr>
+          <th>Adapter</th>
+          <th>Transport</th>
+          <th>Delta Source</th>
+          <th>Opt-in?</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="text-align:left; font-weight:600">A2A</td>
+          <td>HTTP SSE</td>
+          <td><code>message/stream</code> &rarr; status-update, artifact-update, message events</td>
+          <td>Always available</td>
+        </tr>
+        <tr>
+          <td style="text-align:left; font-weight:600">LangGraph</td>
+          <td>HTTP SSE</td>
+          <td><code>/runs/stream</code> with <code>messages-tuple</code> stream mode</td>
+          <td>Always available</td>
+        </tr>
+        <tr>
+          <td style="text-align:left; font-weight:600">ACP</td>
+          <td>stdin/stdout JSON-RPC</td>
+          <td><code>session/update</code> notifications with <code>message_chunk</code> type</td>
+          <td>Always available</td>
+        </tr>
+        <tr>
+          <td style="text-align:left; font-weight:600">HTTP</td>
+          <td>HTTP SSE</td>
+          <td>Configurable <code>deltaTextField</code> extraction from SSE data chunks</td>
+          <td>Yes &mdash; <code>streaming.enabled: true</code></td>
+        </tr>
+        <tr>
+          <td style="text-align:left; font-weight:600">OpenAI</td>
+          <td>HTTP SSE</td>
+          <td>OpenAI delta format: <code>choices[0].delta.content</code></td>
+          <td>Always available</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="hitl-detail">HITL: Three Different Mechanisms</h2>
+    <p>Each HITL-capable adapter triggers human input differently:</p>
+    <ul>
+      <li><strong>A2A:</strong> The agent sets task state to <code>input-required</code>. The adapter detects this in status updates and yields <code>input_required</code>. Resume sends a new <code>message/send</code> or <code>message/stream</code> with the same <code>contextId</code>.</li>
+      <li><strong>LangGraph:</strong> The graph includes <code>interrupt()</code> nodes that pause execution. The adapter detects <code>__interrupt__</code> in the run result or thread state. Resume sends <code>command: { resume: text }</code>.</li>
+      <li><strong>ACP:</strong> The agent sends <code>session/request_permission</code> when it wants to use a tool. With <code>permissionPolicy: "hitl"</code>, the adapter yields <code>input_required</code> and surfaces the tool name. With <code>auto-approve</code>, it responds automatically.</li>
+    </ul>
+
+    <h2 id="choosing">Choosing the Right Adapter</h2>
+    <p>Decision tree:</p>
+    <ol>
+      <li>Does your agent expose an <strong>A2A endpoint</strong>? Use <code>--type=a2a</code>. You get everything.</li>
+      <li>Is it deployed on <strong>LangGraph Platform</strong>? Use <code>--type=langgraph</code>. Full feature parity with A2A minus artifacts.</li>
+      <li>Is it a <strong>local coding agent</strong> (Claude Code, Gemini CLI)? Use <code>--type=acp</code>. Streaming, HITL, sessions, resume, cancel.</li>
+      <li>Does it expose a generic <strong>HTTP endpoint</strong>? Use <code>--type=http</code>. Request-response plus optional SSE streaming.</li>
+      <li>Do you just need a <strong>raw LLM</strong> for prototyping? Use <code>--type=openai</code>. Stateless with streaming.</li>
+    </ol>
+    <p>
+      As the agent ecosystem converges on A2A, the decision simplifies. Today&rsquo;s LangGraph and HTTP agents may expose A2A endpoints tomorrow. When they do, switch your adapter type and gain the full capability surface for free.
+    </p>
+
+    <h2 id="conclusion">Conclusion</h2>
+    <p>
+      Five adapters, eight capabilities, zero magic. Every checkmark in the matrix is backed by working code. Every &ldquo;&#10007;&rdquo; has a clear reason: either the protocol doesn&rsquo;t support it, or the underlying API design makes it impossible. We don&rsquo;t fake capabilities or paper over limitations&mdash;the pipeline handles graceful degradation automatically.
+    </p>
+    <p>
+      The full-featured trio (A2A, LangGraph, ACP) covers the use cases that need statefulness. The simple pair (HTTP, OpenAI) covers everything else. Together they span every agent runtime deployed in production today.
+    </p>
+
+    <div class="hero-actions" style="justify-content:flex-start;margin-top:8px;margin-bottom:16px">
+      <a href="/ChatAgentRelay/docs/agents/" class="btn btn-primary" data-track="blog_matrix_docs">Adapter Documentation</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-secondary" data-track="blog_matrix_github">View on GitHub</a>
+    </div>
+    <p style="margin-top:8px"><a href="/ChatAgentRelay/blog/">&larr; Back to Blog</a></p>
+  </article>
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
+      <a href="/ChatAgentRelay/docs/">Docs</a>
+      <a href="/ChatAgentRelay/blog/">Blog</a>
+      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
+    </div>
+    <p>MIT License &middot; Built with Bun and TypeScript</p>
+  </div>
+</footer>
+
+<script src="../../js/main.js"></script>
+</body>
+</html>

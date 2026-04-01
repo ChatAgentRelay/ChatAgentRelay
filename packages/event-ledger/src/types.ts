@@ -16,13 +16,16 @@ export type HealthStatus = {
   error?: string | undefined;
 };
 
+export type TenantScope = { tenantId?: string };
+
 export interface LedgerStore {
   append(event: StoredCanonicalEvent): StoredCanonicalEvent | undefined;
-  getById(eventId: string): StoredCanonicalEvent | undefined;
-  getAll(): StoredCanonicalEvent[];
-  getByConversationId(conversationId: string): StoredCanonicalEvent[];
-  getByCorrelationId(correlationId: string): StoredCanonicalEvent[];
+  getById(eventId: string, scope?: TenantScope): StoredCanonicalEvent | undefined;
+  getAll(scope?: TenantScope): StoredCanonicalEvent[];
+  getByConversationId(conversationId: string, scope?: TenantScope): StoredCanonicalEvent[];
+  getByCorrelationId(correlationId: string, scope?: TenantScope): StoredCanonicalEvent[];
   healthCheck(): HealthStatus;
+  close(): void;
 }
 
 export type AppendSuccess = {
@@ -45,6 +48,7 @@ export type TimeRange = {
 export type LedgerQuery = {
   conversation_id?: string;
   correlation_id?: string;
+  tenant_id?: string;
   timeRange?: TimeRange;
 };
 

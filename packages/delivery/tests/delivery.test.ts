@@ -1,8 +1,7 @@
 import { beforeAll, describe, expect, it } from "bun:test";
-import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
+import type { CanonicalEvent, ChannelSender } from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { DeliveryExhaustedError, DeliveryOrchestrator } from "../src/delivery";
-import type { SendFn } from "../src/types";
 
 function sampleAgentResponse(): CanonicalEvent {
   return {
@@ -23,9 +22,11 @@ function sampleAgentResponse(): CanonicalEvent {
   };
 }
 
-const mockSendFn: SendFn = async (_text) => ({
-  providerMessageId: "webchat_msg_9001",
-});
+const mockSender: ChannelSender = {
+  send: async (_text) => ({
+    providerMessageId: "webchat_msg_9001",
+  }),
+};
 
 describe("delivery orchestrator", () => {
   let orchestrator: DeliveryOrchestrator;
@@ -37,7 +38,7 @@ describe("delivery orchestrator", () => {
   });
 
   it("produces contract-valid message.send.requested and message.sent", async () => {
-    const result = await orchestrator.deliver(sampleAgentResponse(), mockSendFn);
+    const result = await orchestrator.deliver(sampleAgentResponse(), mockSender);
 
     expect(result.sendRequestedEvent.event_type).toBe("message.send.requested");
     expect(result.sentEvent.event_type).toBe("message.sent");
@@ -50,38 +51,38 @@ describe("delivery orchestrator", () => {
   });
 
   it("preserves correlation chain", async () => {
-    const result = await orchestrator.deliver(sampleAgentResponse(), mockSendFn);
+    const result = await orchestrator.deliver(sampleAgentResponse(), mockSender);
     expect(result.sendRequestedEvent.correlation_id).toBe("corr_1");
     expect(result.sentEvent.correlation_id).toBe("corr_1");
   });
 
   it("builds correct causal linkage: response -> send.requested -> sent", async () => {
     const resp = sampleAgentResponse();
-    const result = await orchestrator.deliver(resp, mockSendFn);
+    const result = await orchestrator.deliver(resp, mockSender);
 
     expect(result.sendRequestedEvent.causation_id).toBe(resp.event_id);
     expect(result.sentEvent.causation_id).toBe(result.sendRequestedEvent.event_id);
   });
 
   it("carries response text into send.requested payload", async () => {
-    const result = await orchestrator.deliver(sampleAgentResponse(), mockSendFn);
+    const result = await orchestrator.deliver(sampleAgentResponse(), mockSender);
     expect(result.sendRequestedEvent.payload["text"]).toBe("Your order shipped yesterday.");
   });
 
   it("carries provider message id into sent payload", async () => {
-    const result = await orchestrator.deliver(sampleAgentResponse(), mockSendFn);
+    const result = await orchestrator.deliver(sampleAgentResponse(), mockSender);
     expect(result.sentEvent.payload["provider_message_id"]).toBe("webchat_msg_9001");
     expect(result.providerMessageId).toBe("webchat_msg_9001");
   });
 
   it("send.requested has actor_type = system, sent has actor_type = channel_adapter", async () => {
-    const result = await orchestrator.deliver(sampleAgentResponse(), mockSendFn);
+    const result = await orchestrator.deliver(sampleAgentResponse(), mockSender);
     expect(result.sendRequestedEvent.actor_type).toBe("system");
     expect(result.sentEvent.actor_type).toBe("channel_adapter");
   });
 
   it("includes provider_extensions on message.sent", async () => {
-    const result = await orchestrator.deliver(sampleAgentResponse(), mockSendFn);
+    const result = await orchestrator.deliver(sampleAgentResponse(), mockSender);
     const ext = result.sentEvent.provider_extensions as Record<string, Record<string, unknown>>;
     expect(ext["webchat"]).toBeDefined();
     expect(ext["webchat"]!["delivery_status"]).toBe("sent");
@@ -89,32 +90,36 @@ describe("delivery orchestrator", () => {
 
   it("rejects non agent.response.completed input", async () => {
     const wrongEvent = { ...sampleAgentResponse(), event_type: "message.received" };
-    await expect(orchestrator.deliver(wrongEvent, mockSendFn)).rejects.toThrow("Expected agent.response.completed");
+    await expect(orchestrator.deliver(wrongEvent, mockSender)).rejects.toThrow("Expected agent.response.completed");
   });
 
   it("rejects agent response without text in payload", async () => {
     const noText = { ...sampleAgentResponse(), payload: {} };
-    await expect(orchestrator.deliver(noText, mockSendFn)).rejects.toThrow("payload must contain text");
+    await expect(orchestrator.deliver(noText, mockSender)).rejects.toThrow("payload must contain text");
   });
 
   it("retries on failure and succeeds on 3rd attempt", async () => {
     let callCount = 0;
-    const flakySend: SendFn = async () => {
-      callCount++;
-      if (callCount < 3) throw new Error("temporary failure");
-      return { providerMessageId: "msg_retry_ok" };
+    const flakySender: ChannelSender = {
+      send: async () => {
+        callCount++;
+        if (callCount < 3) throw new Error("temporary failure");
+        return { providerMessageId: "msg_retry_ok" };
+      },
     };
 
     const retryOrch = await DeliveryOrchestrator.create({ maxRetries: 3, baseDelayMs: 10 });
-    const result = await retryOrch.deliver(sampleAgentResponse(), flakySend);
+    const result = await retryOrch.deliver(sampleAgentResponse(), flakySender);
 
     expect(callCount).toBe(3);
     expect(result.providerMessageId).toBe("msg_retry_ok");
   });
 
   it("throws DeliveryExhaustedError after all retries fail", async () => {
-    const alwaysFail: SendFn = async () => {
-      throw new Error("permanent failure");
+    const alwaysFail: ChannelSender = {
+      send: async () => {
+        throw new Error("permanent failure");
+      },
     };
 
     const retryOrch = await DeliveryOrchestrator.create({ maxRetries: 2, baseDelayMs: 10 });

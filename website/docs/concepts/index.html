@@ -78,14 +78,14 @@
     <a href="/ChatAgentRelay/docs/channels/slack.html" class="sidebar-link">Slack</a>
     <a href="/ChatAgentRelay/docs/channels/discord.html" class="sidebar-link">Discord</a>
     <a href="/ChatAgentRelay/docs/channels/webchat.html" class="sidebar-link">WebChat</a>
+    <a href="/ChatAgentRelay/docs/channels/telegram.html" class="sidebar-link">Telegram</a>
+    <a href="/ChatAgentRelay/docs/channels/lark.html" class="sidebar-link">Lark / 飞书</a>
+    <a href="/ChatAgentRelay/docs/channels/dingtalk.html" class="sidebar-link">DingTalk / 钉钉</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Agents</span>
     <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
     <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
-    <a href="/ChatAgentRelay/docs/agents/langgraph.html" class="sidebar-link">LangGraph</a>
-    <a href="/ChatAgentRelay/docs/agents/http.html" class="sidebar-link">HTTP</a>
-    <a href="/ChatAgentRelay/docs/agents/acp.html" class="sidebar-link">ACP</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Configuration</span>
@@ -117,21 +117,22 @@
 │  Chat        │────▶│  Channel        │────▶│   Pipeline    │────▶│  Agent          │────▶│  Agent        │
 │  Platform    │     │  Adapter        │     │  (policy,     │     │  Adapter        │     │  Runtime      │
 │              │◀────│  (ingress +     │◀────│   route,      │◀────│  (invoke +      │◀────│               │
-│  Slack       │     │   delivery)     │     │   ledger)     │     │   stream)       │     │  A2A / LG /   │
-│  Discord     │     │                 │     │               │     │                 │     │  OpenAI / ... │
+│  Slack       │     │   delivery)     │     │   ledger)     │     │   stream)       │     │  A2A agents   │
+│  Discord     │     │                 │     │               │     │                 │     │               │
 │  WebChat     │     │                 │     │               │     │                 │     │               │
 └──────────────┘     └─────────────────┘     └───────────────┘     └─────────────────┘     └───────────────┘
-                      canonicalize              govern + route        invoke + bridge         your agent
-                      + deliver                 + record              + stream</code></pre>
+                      canonicalize              govern + route        invoke + stream         your agent
+                      + deliver                 + record</code></pre>
 
   <h2 id="principles">Key Principles</h2>
   <ul>
-    <li><strong>Canonical events</strong> &mdash; Every platform message is normalized into a single event shape. Slack, Discord, and WebChat all produce the same <code>message.received</code> event. Platform-specific data is preserved in <code>provider_extensions</code>.</li>
+    <li><strong>Canonical events</strong> &mdash; Every platform message is normalized into a single event shape. Slack, Discord, WebChat, Telegram, Lark, and DingTalk all produce the same <code>message.received</code> event. Platform-specific data is preserved in <code>provider_extensions</code>.</li>
     <li><strong>Append-only ledger</strong> &mdash; Every event is appended to an immutable ledger. Events are never modified or deleted. This provides a complete audit trail and enables replay.</li>
     <li><strong>Pluggable adapters</strong> &mdash; Channel adapters and agent adapters are independent, swappable components. Add a new chat platform or agent runtime without changing the pipeline.</li>
-    <li><strong>Interface-driven</strong> &mdash; Key boundaries (<code>ChannelIngress</code>, <code>AgentAdapter</code>, <code>ConfigStore</code>, <code>LedgerStore</code>) are defined as TypeScript interfaces. Implementations are interchangeable.</li>
+    <li><strong>Interface-driven</strong> &mdash; Key boundaries (<code>ChannelAdapter</code>, <code>AgentAdapter</code>, <code>ConfigStore</code>, <code>LedgerStore</code>) are defined as TypeScript interfaces. Implementations are interchangeable.</li>
     <li><strong>Governance first</strong> &mdash; Policy evaluation happens before agent invocation. Messages can be blocked, filtered, or routed based on configurable rules.</li>
     <li><strong>Causal tracing</strong> &mdash; Every event carries <code>correlation_id</code> (links the entire request chain) and <code>causation_id</code> (links parent to child). This enables full traceability.</li>
+    <li><strong>Structured logging</strong> &mdash; The server and channel/agent registries use structured logging rather than ad-hoc <code>console</code> output.</li>
   </ul>
 
   <h2 id="packages">Package Overview</h2>
@@ -140,22 +141,21 @@
       <tr><th>Package</th><th>Purpose</th><th>Key Interface</th></tr>
     </thead>
     <tbody>
-      <tr><td><code>contract-harness</code></td><td>Schema validation + AgentAdapter types</td><td><code>ContractHarnessValidators</code></td></tr>
+      <tr><td><code>contract-harness</code></td><td>Schema validation + AgentAdapter types; <code>ContractHarnessValidators.getShared()</code> supplies a process-wide validator singleton</td><td><code>ContractHarnessValidators</code></td></tr>
       <tr><td><code>config-store</code></td><td>Config storage (SQLite default)</td><td><code>ConfigStore</code></td></tr>
       <tr><td><code>event-ledger</code></td><td>Append-only event storage</td><td><code>LedgerStore</code></td></tr>
-      <tr><td><code>channel-web-chat</code></td><td>WebChat HTTP adapter</td><td><code>ChannelIngress</code></td></tr>
-      <tr><td><code>channel-slack</code></td><td>Slack Socket Mode adapter</td><td><code>ChannelIngress</code></td></tr>
-      <tr><td><code>channel-discord</code></td><td>Discord Gateway adapter</td><td><code>ChannelIngress</code></td></tr>
+      <tr><td><code>channel-web-chat</code></td><td>WebChat HTTP adapter</td><td><code>ChannelAdapter</code></td></tr>
+      <tr><td><code>channel-slack</code></td><td>Slack Socket Mode adapter</td><td><code>ChannelAdapter</code></td></tr>
+      <tr><td><code>channel-discord</code></td><td>Discord Gateway adapter</td><td><code>ChannelAdapter</code></td></tr>
+      <tr><td><code>channel-telegram</code></td><td>Telegram Bot API adapter</td><td><code>ChannelAdapter</code></td></tr>
+      <tr><td><code>channel-lark</code></td><td>Lark / 飞书 adapter</td><td><code>ChannelAdapter</code></td></tr>
+      <tr><td><code>channel-dingtalk</code></td><td>DingTalk / 钉钉 adapter</td><td><code>ChannelAdapter</code></td></tr>
       <tr><td><code>middleware</code></td><td>Policy + routing</td><td><code>MiddlewarePipeline</code></td></tr>
-      <tr><td><code>backend-http</code></td><td>Configurable HTTP backend</td><td><code>BackendAdapter</code></td></tr>
-      <tr><td><code>backend-openai</code></td><td>OpenAI Chat Completions + streaming</td><td><code>BackendAdapter</code></td></tr>
       <tr><td><code>backend-a2a</code></td><td>A2A protocol agent</td><td><code>AgentAdapter</code></td></tr>
-      <tr><td><code>backend-langgraph</code></td><td>LangGraph Platform agent</td><td><code>AgentAdapter</code></td></tr>
-      <tr><td><code>backend-acp</code></td><td>ACP coding agent (stdin/stdout)</td><td><code>AgentAdapter</code></td></tr>
       <tr><td><code>delivery</code></td><td>Delivery orchestration + retry</td><td><code>DeliveryOrchestrator</code></td></tr>
       <tr><td><code>pipeline</code></td><td>End-to-end orchestration</td><td><code>FirstExecutablePathPipeline</code></td></tr>
       <tr><td><code>server</code></td><td>Runtime: CLI + HTTP API</td><td><code>car</code> CLI</td></tr>
-      <tr><td><code>adapter-conformance</code></td><td>Reusable conformance test suite</td><td><code>testChannelIngress</code></td></tr>
+      <tr><td><code>adapter-conformance</code></td><td>Reusable conformance test suite</td><td><code>testChannelAdapter</code></td></tr>
     </tbody>
   </table>
 
@@ -164,14 +164,13 @@
   <pre><code>contract-harness (base)
   ├── event-ledger ──────────────────┐
   ├── middleware ─────────────────────┤
-  ├── backend-http ──┐               │
-  │   └── backend-openai ────────────┤
   ├── backend-a2a ───────────────────┤
-  ├── backend-langgraph ─────────────┤
-  ├── backend-acp ───────────────────┤
   ├── channel-web-chat               ├── pipeline ── server
   ├── channel-slack                  │
   ├── channel-discord                │
+  ├── channel-telegram               │
+  ├── channel-lark                   │
+  ├── channel-dingtalk               │
   ├── delivery ──────────────────────┘
   └── config-store</code></pre>
 

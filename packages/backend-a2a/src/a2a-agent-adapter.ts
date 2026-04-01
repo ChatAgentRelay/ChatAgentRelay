@@ -42,7 +42,7 @@ export class A2AAgentAdapter implements AgentAdapter {
   }
 
   static async create(config: A2AAgentConfig): Promise<A2AAgentAdapter> {
-    const validators = await ContractHarnessValidators.create();
+    const validators = await ContractHarnessValidators.getShared();
     let agentCard: A2AAgentCard | undefined;
 
     try {
@@ -61,15 +61,14 @@ export class A2AAgentAdapter implements AgentAdapter {
   }
 
   describeCapabilities(): AgentCapabilities {
-    if (this.agentCard?.capabilities) {
-      return {
-        streaming: this.agentCard.capabilities.streaming ?? true,
-        hitl: true,
-        cancel: true,
-        artifacts: true,
-      };
-    }
-    return { streaming: true, hitl: true, cancel: true, artifacts: true };
+    return {
+      streaming: this.agentCard?.capabilities?.streaming ?? true,
+      multiTurn: true,
+      resume: true,
+      hitl: true,
+      cancel: true,
+      artifacts: true,
+    };
   }
 
   async invoke(context: AgentInvocationContext): Promise<AgentResult> {
@@ -624,6 +623,40 @@ export class A2AAgentAdapter implements AgentAdapter {
     sessionHandle: string,
   ): AgentResult {
     const inv = input.invocationEvent;
+
+    if (task.status.state === "input-required") {
+      const prompt = extractTextFromMessage(task.status.message);
+      const event = this.buildCanonicalEvent(inv, prompt || "Input required by agent", requestId, sessionHandle);
+      const validation = this.validators.validateEvent(event);
+      if (!validation.ok) {
+        return {
+          ok: false,
+          requestId,
+          error: {
+            code: "contract_violation",
+            message: `Mapped response failed ${validation.failure.step} validation: ${validation.failure.issues.map((i) => i.message).join("; ")}`,
+            retryable: false,
+            category: "invalid_request",
+          },
+        };
+      }
+      return {
+        ok: true,
+        event: {
+          ...event,
+          provider_extensions: {
+            ...event.provider_extensions,
+            a2a: {
+              ...(event.provider_extensions?.["a2a"] as Record<string, unknown> | undefined),
+              input_required: true,
+              task_state: "input-required",
+            },
+          },
+        },
+        requestId,
+        sessionHandle,
+      };
+    }
 
     if (task.status.state === "failed") {
       return {

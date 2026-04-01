@@ -72,14 +72,14 @@ describe("SqliteConfigStore", () => {
     it("lists agents", async () => {
       const db = createDb();
       await db.addAgent("a1", "a2a", {});
-      await db.addAgent("a2", "acp", { command: "claude" });
+      await db.addAgent("a2", "a2a", { endpoint: "http://agent2:9000" });
       const list = await db.listAgents();
       expect(list.length).toBe(2);
     });
 
     it("updates agent", async () => {
       const db = createDb();
-      await db.addAgent("a1", "langgraph", { endpoint: "old" });
+      await db.addAgent("a1", "a2a", { endpoint: "old" });
       await db.updateAgent("a1", { config: { endpoint: "new" } });
       const ag = await db.getAgent("a1");
       expect(ag!.config["endpoint"]).toBe("new");
@@ -97,9 +97,9 @@ describe("SqliteConfigStore", () => {
 
     it("encrypts agent API keys", async () => {
       const db = createDb("agent-enc-key-1234567890123");
-      await db.addAgent("lg", "langgraph", { endpoint: "http://lg", apiKey: "sk-secret" });
+      await db.addAgent("lg", "a2a", { endpoint: "http://lg", headers: "sk-secret" });
       const ag = await db.getAgent("lg");
-      expect(ag!.config["apiKey"]).toBe("sk-secret");
+      expect(ag!.config["headers"]).toBe("sk-secret");
       expect(ag!.config["endpoint"]).toBe("http://lg");
     });
   });

@@ -1,11 +1,9 @@
-import type { CanonicalizationResult } from "@chat-agent-relay/channel-web-chat";
-import type { AgentAdapter, CanonicalEvent } from "@chat-agent-relay/contract-harness";
-import type { RetryConfig, SendFn } from "@chat-agent-relay/delivery";
+import type { AgentAdapter, CanonicalEvent, CanonicalizationResult, ChannelAdapter } from "@chat-agent-relay/contract-harness";
+import type { RetryConfig } from "@chat-agent-relay/delivery";
 import type { LedgerStore } from "@chat-agent-relay/event-ledger";
+import type { AccessControlConfig, RateLimiter } from "@chat-agent-relay/middleware";
 
-export interface ChannelIngress {
-  canonicalize(raw: unknown): CanonicalizationResult;
-}
+export type { ChannelAdapter, CanonicalizationResult };
 
 export type StreamingUpdateFn = (text: string) => Promise<void>;
 
@@ -30,11 +28,15 @@ export type PipelineConfig = {
   routeFn: RouteFn;
   policyId?: string;
   policyFn?: (event: CanonicalEvent) => { decision: "allow" | "deny"; reason?: string };
-  ingress: ChannelIngress;
-  channelName: string;
-  sendFn: SendFn;
+  outboundPolicyId?: string;
+  outboundPolicyFn?: (event: CanonicalEvent) => { decision: "allow" | "deny"; reason?: string };
+  accessControl?: AccessControlConfig;
+  rateLimiter?: RateLimiter;
+  channel: ChannelAdapter;
   ledgerStore?: LedgerStore;
-  streaming?: StreamingOptions;
+  streamingEnabled?: boolean;
+  streamingIntervalMs?: number;
+  streamingOverride?: StreamingOptions;
   retryConfig?: RetryConfig;
 };
 

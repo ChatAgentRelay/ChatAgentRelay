@@ -5,8 +5,8 @@
 | **Status** | Draft |
 | **Author** | Claude Code |
 | **Audience** | Architects and implementers |
-| **Version** | v0.1 |
-| **Last Updated** | 2026-03-17 |
+| **Version** | v0.2 |
+| **Last Updated** | 2026-03-28 |
 
 ## 1. Abstract
 
@@ -137,17 +137,58 @@ flowchart LR
     end
 ```
 
-### Runtime View
+### Runtime View (as implemented)
 ```mermaid
 flowchart LR
-    CA[Channel Adapter] --> CE[Canonical Events]
-    CE --> MW[Middleware / Governance]
-    MW --> RT[Routing]
-    RT --> BA[Backend Adapter]
-    BA --> DL[Delivery Layer]
-    DL --> EL[Event Ledger]
-    EL --> RP[Replay / Audit / Projections]
+    subgraph Ingress["Channel Side"]
+      CR["Channel Registry\n(factory-based)"]
+      CA["Channel Adapter\n(canonicalize + sender)"]
+    end
+
+    subgraph Core["Pipeline Core"]
+      GOV["Policy Engine"]
+      RT["Route Engine"]
+      INV["Agent Invocation\n(capability-driven)"]
+      DL["Delivery\n(ChannelSender + retry)"]
+    end
+
+    subgraph Backend["Agent Side"]
+      AR["Agent Registry\n(factory-based)"]
+      AA["Agent Adapter\n(invoke / stream / resume)"]
+    end
+
+    subgraph Storage["Storage"]
+      EL[("Event Ledger\n(append-only)")]
+      CS[("Config Store\n(SQLite + AES)")]
+    end
+
+    CR --> CA --> GOV --> RT --> INV --> DL
+    INV --> AR --> AA
+    DL --> CA
+    GOV & RT & INV & DL -.->|append| EL
+    CS -.->|config| CR & AR
 ```
+
+### Registry Factory Pattern (v1 implementation)
+
+Registries do not contain adapter-specific code. Built-in types are wired via factory files:
+
+```mermaid
+flowchart TD
+  M["main.ts"] -->|registerFactory| CR["ChannelRegistry"]
+  M -->|registerFactory| AR["AgentRegistry"]
+
+  CR -->|"slack"| SF["createSlackFactory()"]
+  CR -->|"discord"| DF["createDiscordFactory()"]
+  CR -->|"webchat"| WF["createWebChatFactory()"]
+
+  AR -->|"a2a"| A2AF["createA2AFactory()"]
+  AR -->|"langgraph"| LGF["createLangGraphFactory()"]
+  AR -->|"acp"| ACPF["createACPFactory()"]
+  AR -->|"http"| HTF["createHttpFactory()"]
+```
+
+Third-party adapters register via the same `registerFactory()` API without modifying registry core code. Lifecycle cleanup uses `isDisconnectable()` / `isShutdownable()` type guards from `contract-harness`.
 
 ## 7. Phase-by-Phase Delivery Guidance
 

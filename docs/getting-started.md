@@ -6,7 +6,7 @@ This guide walks you through running Chat Agent Relay (CAR) with Slack and an ag
 
 - [Bun](https://bun.sh/) v1.2+
 - A Slack workspace where you can create apps
-- An agent endpoint (for example A2A) or another supported backend type
+- An agent endpoint (A2A protocol)
 
 ## 1. Clone and Install
 
@@ -20,7 +20,7 @@ Verify everything works:
 
 ```bash
 bun test --recursive
-# Expected: all tests pass (~542 tests across 43 files)
+# Expected: all tests pass (~692 tests across 51 files)
 ```
 
 ## 2. Environment (minimal)
@@ -30,7 +30,11 @@ CAR keeps **channels, agents, routes, and settings** in a pluggable config store
 | Variable | Required | Default | Purpose |
 |----------|----------|---------|---------|
 | `CAR_DB_PATH` | No | `./car.db` | Path to the SQLite config + ledger database |
-| `CAR_ENCRYPTION_KEY` | Recommended | — | Key for **AES-256-GCM** encryption of tokens and API keys at rest |
+| `CAR_ENCRYPTION_KEY` | Recommended | — | Key for AES-256-GCM encryption of tokens and API keys at rest |
+| `CAR_API_KEY` | Recommended | — | Bearer token for management API authentication |
+| `CAR_API_PORT` | No | `3000` | HTTP API listen port |
+| `CAR_POLICY_FILE` | No | — | Path to YAML policy configuration file |
+| `CAR_OUTBOUND_POLICY_FILE` | No | — | Path to YAML outbound policy file |
 
 Generate a key for local use:
 
@@ -61,13 +65,13 @@ cd packages/server
 export CAR_ENCRYPTION_KEY="$(openssl rand -hex 32)"   # if not already set
 
 car channel add my-slack --type=slack --bot-token=xoxb-... --app-token=xapp-...
-car agent add my-bot --type=a2a --endpoint=http://...
+car agent add my-bot --endpoint=https://...
 car route add --default --agent=my-bot
 car start
 ```
 
-- **`car channel add|list|remove`** — Slack, Discord, WebChat, etc.
-- **`car agent add|list|remove`** — backend types such as `a2a`, `langgraph`, `http`, `acp`
+- **`car channel add|list|remove`** — `slack`, `discord`, `webchat`, `telegram`, `lark`, `dingtalk`, `teams`, `whatsapp`
+- **`car agent add|list|remove`** — A2A only; pass `--endpoint=URL` (and optional `--timeout-ms`)
 - **`car route add|list|remove`** — which agent handles traffic (default route, channel match, or pattern)
 - **`car config set|get`** — arbitrary settings in the config store
 
@@ -86,7 +90,35 @@ Equivalent operations are exposed over the HTTP API (`/api/channels`, `/api/agen
 car channel add my-discord --type=discord --bot-token=...
 ```
 
-## 6. Start the Server
+## 6. Microsoft Teams (Optional)
+
+1. Register an **Azure AD** bot application (Microsoft Entra ID) for Teams and collect the application (client) ID, client secret, and tenant ID.
+2. Register the channel:
+
+```bash
+car channel add my-teams --type=teams --app-id=... --app-secret=... --tenant-id=...
+```
+
+3. Set the bot **Messaging endpoint** to `https://your-domain/api/teams/messages`.
+
+## 7. WhatsApp (Optional)
+
+1. Set up **WhatsApp Business** via [Meta for Developers](https://developers.facebook.com/) and obtain your phone number ID, access token, webhook verify token, and app secret.
+2. Register the channel:
+
+```bash
+car channel add my-whatsapp --type=whatsapp --phone-number-id=... --access-token=... --verify-token=... --app-secret=...
+```
+
+3. Set the webhook URL to `https://your-domain/api/whatsapp/webhook`.
+
+## 8. Security Setup
+
+- **API key:** `car config set api.key <key>` or `export CAR_API_KEY=<key>` so the management API requires a bearer token.
+- **Policy file:** create a `policy.yaml` with allow/deny rules and set `CAR_POLICY_FILE` (or use `CAR_OUTBOUND_POLICY_FILE` for outbound policy).
+- **Tenant isolation:** `car config set tenant.isolation true`.
+
+## 9. Start the Server
 
 If you did not use `car start` above:
 
@@ -98,7 +130,7 @@ car
 
 You should see structured JSON log output indicating channels, agents, and the API port.
 
-## 7. Test It
+## 10. Test It
 
 1. Invite the Slack bot to a channel: `/invite @CAR Bot`
 2. Send a message (or @mention if your route/policy requires it)
@@ -111,7 +143,7 @@ curl http://localhost:3000/api/health
 curl http://localhost:3000/api/conversations/<conversation_id>/events
 ```
 
-## 8. Understanding the Event Chain
+## 11. Understanding the Event Chain
 
 Every message produces a seven-event chain in the ledger:
 
@@ -127,25 +159,27 @@ message.received          — user's message canonicalized from Slack
 
 If something fails, an `event.blocked` event is appended instead, recording the failure stage and reason.
 
-## 9. Writing a Custom Channel Adapter
+## 12. Writing a Custom Channel Adapter
 
-A channel adapter implements the `ChannelIngress` interface:
+A channel adapter implements the `ChannelAdapter` interface, which unifies ingress (canonicalization) and egress (sender creation) in one boundary:
 
 ```typescript
-import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
+import type { CanonicalEvent, ChannelAdapter, ChannelSender } from "@chat-agent-relay/contract-harness";
 
-type CanonicalizationResult =
-  | { ok: true; event: CanonicalEvent; idempotencyKey: string }
-  | { ok: false; error: { code: string; message: string } };
-
-interface ChannelIngress {
+interface ChannelAdapter {
+  readonly channelType: string;
+  describeCapabilities(): ChannelCapabilities;
   canonicalize(raw: unknown): CanonicalizationResult;
+  createSender(event: CanonicalEvent): ChannelSender;
 }
 ```
 
 Key rules:
-- Accept `unknown` input, never throw — return error results
-- Produce a valid `message.received` canonical event
+- `channelType` identifies the platform (e.g. `"slack"`, `"discord"`)
+- `describeCapabilities()` declares what the channel supports (streaming, editing, commands, etc.)
+- `canonicalize()` accepts `unknown` input, never throws — returns error results
+- `createSender(event)` derives the delivery target from the event's `provider_extensions` and returns a `ChannelSender` with `send()` and optional `edit()` methods
+- Produce a valid `message.received` canonical event on successful canonicalization
 - Return a stable `idempotencyKey` for deduplication
 - Preserve provider metadata in `provider_extensions`
 
@@ -154,11 +188,11 @@ See the [Channel Adapter Interface Spec](rfcs/adapters/channel-adapter-interface
 Validate your adapter with the conformance suite:
 
 ```typescript
-import { testChannelIngress } from "@chat-agent-relay/adapter-conformance";
+import { testChannelAdapter } from "@chat-agent-relay/adapter-conformance";
 
-testChannelIngress({
+testChannelAdapter({
   name: "MyAdapter",
-  ingress: myAdapter,
+  adapter: myAdapter,
   expectedChannel: "my_platform",
   validInput: { /* your platform's message format */ },
   invalidInputs: [
@@ -167,20 +201,15 @@ testChannelIngress({
 });
 ```
 
-## 10. Connecting to Agent Runtimes
+## 13. Connecting to Agent Runtimes
 
 Register agents with **`car agent add`** (or `POST /api/agents`) using the appropriate `type` and config:
 
 | Type | Typical config keys |
 |------|---------------------|
 | `a2a` | `endpoint`, optional `headers` |
-| `langgraph` | `endpoint`, `apiKey`, assistant IDs |
-| `http` | `endpoint`, headers, body/response mapping |
-| `acp` | command, args, working directory |
 
-OpenAI-style chat can be reached via the generic **`http`** adapter pointed at an OpenAI-compatible URL.
-
-## 11. Writing a Custom Agent Adapter
+## 14. Writing a Custom Agent Adapter
 
 New agent adapters should implement the `AgentAdapter` interface:
 
@@ -189,7 +218,14 @@ import type { AgentAdapter, AgentInvocationContext, AgentResult } from "@chat-ag
 
 const adapter: AgentAdapter = {
   describeCapabilities() {
-    return { streaming: false, hitl: false, cancel: false, artifacts: false };
+    return {
+      streaming: false,
+      multiTurn: false,
+      resume: false,
+      hitl: false,
+      cancel: false,
+      artifacts: false,
+    };
   },
   async invoke(context: AgentInvocationContext): Promise<AgentResult> {
     // call your agent runtime and map the response to a canonical event
@@ -198,12 +234,13 @@ const adapter: AgentAdapter = {
 ```
 
 Key rules:
+- `describeCapabilities()` MUST include `streaming`, `multiTurn`, `resume`, `hitl`, `cancel`, and `artifacts`; the pipeline uses `multiTurn` for ledger conversation history and `streaming` for streaming invocation paths
 - Never throw from `invoke()` — return `{ ok: false, error: {...} }` on failure
 - Produce a valid `agent.response.completed` event on success
 - Preserve `correlation_id` and `causation_id` from the invocation event
 - Set `error.retryable` accurately
 - Return `sessionHandle` if your runtime supports sessions
 
-`GenericHttpBackend` and `OpenAIBackend` both expose `.asAgentAdapter()` for direct use with the pipeline.
+The built-in `a2a` adapter implements `AgentAdapter` for use with the pipeline.
 
 See the [Backend Adapter Interface Spec](rfcs/adapters/backend-adapter-interface-spec.md) for full requirements.

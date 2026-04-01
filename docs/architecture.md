@@ -1,225 +1,542 @@
-# Chat Agent Relay architecture overview
+# Chat Agent Relay — Architecture
 
-This document summarizes how Chat Agent Relay (CAR) sits between chat platforms and agent runtimes, how canonical events move through the stack, and how the workspace packages depend on each other. For normative contracts and behavior, see [reference-architecture.md](rfcs/architecture/reference-architecture.md), [channel-adapter-interface-spec.md](rfcs/adapters/channel-adapter-interface-spec.md), and [backend-adapter-interface-spec.md](rfcs/adapters/backend-adapter-interface-spec.md).
+> Last updated: 2026-04-01 · Version: v3.0
 
-## System overview
+Chat Agent Relay (CAR) is a middleware framework that sits between chat platforms and AI agent runtimes. It canonicalizes every interaction into an immutable event chain, enforces governance, routes to the right agent, and delivers the response — with full auditability.
+
+For normative contracts, see the companion RFCs in `docs/rfcs/`.
+
+---
+
+## 1. System Overview
+
+```
+                        ┌──────────────────────────────────────────────────────┐
+                        │                 Chat Agent Relay                      │
+                        │                                                      │
+  Slack  ───┐           │  ┌──────────┐  ┌────────────┐  ┌──────────────────┐ │           ┌── A2A Agent
+  Discord ──┤  inbound  │  │ Channel  │  │  Pipeline   │  │  Agent           │ │  outbound │   (CrewAI, ADK,
+  Telegram ─┤ ────────► │  │ Registry │─►│  (7-event   │─►│  Registry        │ │ ────────► │    AutoGen,
+  Lark ─────┤           │  │          │  │   chain)    │  │                  │ │           │    LangGraph,
+  DingTalk ─┤           │  └──────────┘  └──────┬─────┘  └──────────────────┘ │           │    Mastra, ...)
+  Teams ────┤           │                       │                              │
+  WhatsApp ─┤           │                       │                              │
+  WebChat ──┘           │                       │                              │
+                        │               ┌───────▼───────┐  ┌──────────────┐   │
+                        │               │ Event Ledger  │  │ Config Store │   │
+                        │               │ (append-only) │  │  (SQLite)    │   │
+                        │               └───────────────┘  └──────────────┘   │
+                        └──────────────────────────────────────────────────────┘
+```
 
 ```mermaid
 flowchart LR
-  subgraph Transport["Transport side"]
-    Chat[Chat Platform]
-    CA[Channel Adapter]
+  subgraph Channels["Chat Platforms"]
+    S[Slack]
+    D[Discord]
+    T[Telegram]
+    L[Lark / 飞书]
+    DT[DingTalk / 钉钉]
+    TM[Teams]
+    WA[WhatsApp]
+    W[WebChat]
   end
-  subgraph Core["CAR core"]
-    Canon[Canonical Events]
-    MW[Middleware]
-  end
-  subgraph Agent["Agent side"]
-    BA[Backend Adapter]
-    AR[Agent Runtime]
-  end
-  EL[(Event Ledger)]
 
-  Chat --> CA
-  CA --> Canon
-  Canon --> MW
-  MW --> BA
-  BA --> AR
-  CA -.->|append| EL
-  MW -.->|append| EL
-  BA -.->|append| EL
+  subgraph CAR["Chat Agent Relay"]
+    CR["Channel\nRegistry"]
+    PP["Pipeline\n(Governance → Route → Invoke → Deliver)"]
+    AR["Agent\nRegistry"]
+    EL[("Event\nLedger")]
+    CS[("Config\nStore")]
+  end
+
+  subgraph Agents["Agent Runtimes (via A2A Protocol)"]
+    A2A["A2A Protocol\n(CrewAI, ADK, AutoGen,\nLangGraph, Mastra, ...)"]
+  end
+
+  S & D & T & L & DT & TM & WA & W --> CR
+  CR --> PP
+  PP --> AR
+  AR --> A2A
+  PP -.->|append| EL
+  CS -.->|config| CR & AR
 ```
 
-## Canonical event model
+---
 
-CAR defines a small vocabulary of **canonical events**: JSON documents with a shared envelope, specialized payloads per `event_type`, and causal linkage via `correlation_id` and `causation_id`. The **happy path** for one user turn is a fixed seven-event chain:
+## 2. Core Abstractions
 
-1. `message.received` — inbound user text (and metadata) after channel canonicalization  
-2. `policy.decision.made` — governance outcome (allow or deny)  
-3. `route.decision.made` — chosen backend route  
-4. `agent.invocation.requested` — frozen boundary for calling an agent runtime  
-5. `agent.response.completed` — completed model or backend output  
-6. `message.send.requested` — intent to deliver outbound text to the channel  
-7. `message.sent` — delivery completed (including provider message id when available)
+CAR defines two adapter boundaries and a central canonical event model. Everything inside the framework operates on canonical events only.
 
-An eighth type, **`event.blocked`**, records denied policy, failed backend invocation, or exhausted delivery: it carries `block_stage`, `reason`, and `retryable` so operators can distinguish governance blocks from transient failures.
+### 2.1 ChannelAdapter — Chat Platform Boundary
 
-Every event type is validated against JSON Schemas loaded by `@chat-agent-relay/contract-harness`. The frozen fixture corpus in `docs/schemas/fixtures/` is the machine-readable baseline for implementations.
+Every chat platform is wrapped by a `ChannelAdapter` that unifies ingress, egress, and capability declaration in a single boundary:
 
-Raw platform payloads enter through a **channel adapter**, which validates and canonicalizes them into `message.received`. **Middleware** consumes that event and emits policy, route, and invocation events without talking to the chat network or the agent directly in those steps. The **backend adapter** turns `agent.invocation.requested` into a real call to the **agent runtime** (HTTP API, OpenAI, or other). The **event ledger** is the durable append-only record of every canonical event in order, enabling replay, audit, and multi-turn context reconstruction.
+```mermaid
+classDiagram
+  class ChannelAdapter {
+    <<interface>>
+    +channelType: string
+    +describeCapabilities() ChannelCapabilities
+    +canonicalize(raw: unknown) CanonicalizationResult
+    +createSender(event: CanonicalEvent) ChannelSender
+  }
 
-## Event chain (happy path)
+  class ChannelSender {
+    <<interface>>
+    +send(text: string) Promise
+    +edit?(id: string, text: string) Promise
+  }
 
-The following sequence is the logical order of handoffs. In the reference implementation (`@chat-agent-relay/pipeline`), the pipeline also appends each produced event to the ledger as stages complete.
+  class ChannelCapabilities {
+    +channel: string
+    +messaging: MessagingCaps
+    +streaming: StreamingCaps
+    +interactive: InteractiveCaps
+    +delivery: DeliveryCaps
+  }
+
+  ChannelAdapter --> ChannelSender : creates
+  ChannelAdapter --> ChannelCapabilities : declares
+
+  SlackAdapter ..|> ChannelAdapter
+  DiscordAdapter ..|> ChannelAdapter
+  TelegramAdapter ..|> ChannelAdapter
+  LarkAdapter ..|> ChannelAdapter
+  DingTalkAdapter ..|> ChannelAdapter
+  TeamsAdapter ..|> ChannelAdapter
+  WhatsAppAdapter ..|> ChannelAdapter
+  WebChatAdapter ..|> ChannelAdapter
+```
+
+**Design principle**: The adapter derives delivery targets from `provider_extensions` on the canonical event, not from external parameters. This eliminates `instanceof` checks and per-channel dispatch logic in the pipeline.
+
+### 2.2 AgentAdapter — Agent Runtime Boundary
+
+Every agent runtime is wrapped by an `AgentAdapter` aligned with the A2A protocol model:
+
+```mermaid
+classDiagram
+  class AgentAdapter {
+    <<interface>>
+    +describeCapabilities() AgentCapabilities
+    +invoke(ctx: AgentInvocationContext) Promise~AgentResult~
+    +stream?(ctx) AsyncGenerator~AgentEvent, AgentResult~
+    +resume?(handle, input) Promise~AgentResult~
+    +resumeStream?(handle, input) AsyncGenerator
+    +cancel?(handle) Promise
+  }
+
+  class AgentCapabilities {
+    +streaming: boolean
+    +multiTurn: boolean
+    +resume: boolean
+    +hitl: boolean
+    +cancel: boolean
+    +artifacts: boolean
+  }
+
+  AgentAdapter --> AgentCapabilities : declares
+
+  A2AAgentAdapter ..|> AgentAdapter : "A2A Protocol (HTTP)"
+```
+
+**Capability-driven pipeline**: The pipeline uses `AgentCapabilities` to decide behavior:
+- `multiTurn` → include conversation history from ledger
+- `streaming` → use `stream()` when channel supports progressive update
+- `resume` → enable HITL continuation after `input_required`
+
+### 2.3 Canonical Event Model
+
+All canonical events share a common envelope. The happy path for one user turn is a fixed seven-event chain:
+
+```
+message.received           → user's message, canonicalized from any platform
+  policy.decision.made     → governance outcome (allow / deny)
+  route.decision.made      → which agent handles this
+  agent.invocation.requested → dispatch to agent runtime
+  agent.response.completed → agent's reply captured
+  message.send.requested   → queued for delivery
+  message.sent             → delivered to user's chat platform
+```
+
+Every event carries `correlation_id` (links all events in a request) and `causation_id` (parent → child).
+
+---
+
+## 3. Pipeline — Event Chain Orchestration
+
+The `FirstExecutablePathPipeline` is the core orchestrator. It processes one user turn end-to-end, appending each event to the ledger as it progresses.
+
+**Inbound path**: Before route and inbound policy, the pipeline applies **access control** (sender allowlist/blocklist) and **rate limiting** (sliding window; scope configurable per sender, conversation, or tenant). Failures short-circuit to `event.blocked` like other governance denies.
+
+**Outbound path**: After `agent.response.completed` and before delivery, an **outbound governance** step runs a **pre-send policy** on the agent’s text so unsafe or policy-violating replies are blocked before they reach the channel.
 
 ```mermaid
 sequenceDiagram
-  participant CP as Chat Platform
-  participant CA as Channel Adapter
-  participant MW as Middleware
-  participant BE as Backend Adapter
+  participant User as Chat Platform
+  participant CA as ChannelAdapter
+  participant PL as Pipeline
+  participant Agent as AgentAdapter
   participant DL as Delivery
-  participant LG as Event Ledger
+  participant Ledger as Event Ledger
 
-  CP->>CA: Raw message
-  CA->>MW: message.received
-  MW->>MW: policy.decision.made
-  MW->>MW: route.decision.made
-  MW->>BE: agent.invocation.requested
-  BE->>DL: agent.response.completed
-  DL->>CA: message.send.requested
-  CA->>LG: message.sent
+  User->>CA: raw platform event
+  CA->>PL: canonicalize → message.received
+  PL->>Ledger: append message.received
+  PL->>PL: access control check
+  PL->>PL: rate limit check
+  PL->>PL: inbound policy → policy.decision.made
+  PL->>Ledger: append policy.decision.made
+
+  alt inbound policy = deny
+    PL->>Ledger: append event.blocked (governance)
+  else inbound policy = allow
+    PL->>PL: evaluate route → route.decision.made
+    PL->>Ledger: append route.decision.made
+    PL->>Agent: invoke / stream
+    Agent-->>PL: agent.response.completed
+    PL->>Ledger: append agent.response.completed
+    PL->>PL: outbound policy check (pre-send)
+    alt outbound policy = deny
+      PL->>Ledger: append event.blocked (governance)
+    else outbound policy = allow
+      PL->>DL: deliver(event, sender)
+      CA->>User: send reply
+      DL-->>PL: message.send.requested + message.sent
+      PL->>Ledger: append both
+    end
+  end
 ```
 
-## Trust boundaries
+### HITL (human-in-the-loop)
 
-Three coarse zones limit how much each part of the system must trust the others:
+When the agent signals input-required (A2A), the pipeline does not treat the turn as finished with a normal assistant message:
 
-- **Chat platform boundary** — Untrusted or semi-trusted vendor payloads. Channel adapters are responsible for validation, deduplication hints, and mapping into CAR’s envelope. Downstream code should assume nothing about wire format beyond validated canonical events.
-- **CAR core** — Middleware and delivery orchestration operate on canonical events only. Policy and routing see the same shaped facts the ledger stores, which keeps governance and audit aligned.
-- **Agent runtime boundary** — Backend adapters isolate protocol details (HTTP shapes, streaming, API keys) from middleware. Failures are translated into structured backend errors and, when appropriate, into `event.blocked` rather than leaking raw stack traces into the ledger.
-
-The ledger sits at the center of accountability: once appended, events are the source of truth for “what happened” on a turn, independent of which adapter produced them.
-
-## Package dependency graph
-
-The repository ships **eleven** workspace packages. Arrows follow `dependencies` in each `package.json` (production dependencies only). `@chat-agent-relay/contract-harness` is the shared contract root (JSON Schema + Ajv validation). Nothing in `packages/` depends on `@chat-agent-relay/server`; the server is the runnable composition layer.
-
-```mermaid
-graph TD
-  CH["@chat-agent-relay/contract-harness"]
-
-  EL["@chat-agent-relay/event-ledger"]
-  CWC["@chat-agent-relay/channel-web-chat"]
-  CS["@chat-agent-relay/channel-slack"]
-  MW["@chat-agent-relay/middleware"]
-  DEL["@chat-agent-relay/delivery"]
-  BH["@chat-agent-relay/backend-http"]
-  BO["@chat-agent-relay/backend-openai"]
-  PL["@chat-agent-relay/pipeline"]
-  SR["@chat-agent-relay/server"]
-  AC["@chat-agent-relay/adapter-conformance"]
-
-  EL --> CH
-  CWC --> CH
-  CS --> CH
-  MW --> CH
-  DEL --> CH
-  BH --> CH
-  BO --> CH
-  BO --> BH
-
-  PL --> CH
-  PL --> CWC
-  PL --> MW
-  PL --> BH
-  PL --> DEL
-  PL --> EL
-
-  SR --> PL
-  SR --> CS
-  SR --> BO
-  SR --> EL
-  SR --> MW
-
-  AC --> CH
-  AC --> BH
-  AC --> BO
-  AC --> CWC
-  AC --> CS
+```
+Agent returns input-required → Pipeline stores pending session → User reply → Pipeline resumes agent
 ```
 
-| Package | Role |
-|---------|------|
-| `@chat-agent-relay/contract-harness` | Schema load and event validation |
-| `@chat-agent-relay/event-ledger` | Append-only store (in-memory, SQLite) |
-| `@chat-agent-relay/channel-web-chat` | Web chat ingress canonicalization |
-| `@chat-agent-relay/channel-slack` | Slack ingress, send, streaming updates |
-| `@chat-agent-relay/middleware` | Policy, routing, invocation event emission |
-| `@chat-agent-relay/backend-http` | Configurable HTTP backend (custom headers, request/response mapping) |
-| `@chat-agent-relay/backend-openai` | OpenAI Chat Completions + streaming |
-| `@chat-agent-relay/delivery` | Outbound orchestration, retry, DLQ behavior |
-| `@chat-agent-relay/pipeline` | End-to-end orchestration and ledger appends |
-| `@chat-agent-relay/server` | CLI / HTTP API runtime wiring Slack + OpenAI + SQLite |
-| `@chat-agent-relay/adapter-conformance` | Shared tests for channel and backend adapters |
+The pending session ties the user’s follow-up to `resume` / `resumeStream` on the same agent adapter so HITL is a transparent relay of the A2A input-required state.
 
-`@chat-agent-relay/pipeline` additionally lists `@chat-agent-relay/channel-slack` and `@chat-agent-relay/backend-openai` under **devDependencies** for integration tests; those edges are omitted from the graph above.
+### Error Path (`event.blocked`)
 
-## Adapter contracts
-
-**Channel adapters** implement ingress (and often outbound send) behind a small interface: accept provider-native input, return a schema-valid `message.received` or a structured error; for delivery, execute sends and return a provider message identifier when available. They MUST NOT silently drop failures where the contract calls for `error.occurred` or downstream handling; see the channel adapter RFCs for full rules.
-
-**Backend adapters** accept an **invocation context** derived from `message.received`, policy, route, and `agent.invocation.requested`. They MUST produce a schema-valid `agent.response.completed` on success or a structured failure (including retry hints) on error. This keeps middleware and delivery free of vendor-specific SDK details.
-
-Both adapter families are covered by `@chat-agent-relay/adapter-conformance`, which reuses `@chat-agent-relay/contract-harness` validators to enforce the same schemas production code uses.
-
-## Error path (`event.blocked`)
-
-When policy denies, the backend returns an error, or delivery exhausts retries, the pipeline stops the happy chain and appends **`event.blocked`**. The payload records **`block_stage`** (`governance`, `backend_invocation`, or `delivery` in the reference implementation) so replay and APIs can explain whether the turn failed before routing, during agent execution, or while sending the reply.
+When policy denies, the agent fails, or delivery exhausts retries, the pipeline emits `event.blocked` with `block_stage`, `reason`, and `retryable`:
 
 ```mermaid
 flowchart TD
-  MR["message.received"]
-  PD["policy.decision.made"]
-  RD["route.decision.made"]
-  AI["agent.invocation.requested"]
-  AR["agent.response.completed"]
-  EB["event.blocked"]
-  L[("Event Ledger")]
+  MR["message.received"] --> PD["policy.decision.made"]
+  PD -->|deny| EB1["event.blocked\n(governance)"]
+  PD -->|allow| RD["route.decision.made"]
+  RD --> AI["agent.invocation.requested"]
+  AI -->|failure| EB2["event.blocked\n(backend_invocation)"]
+  AI -->|success| AR["agent.response.completed"]
+  AR -->|delivery failure| EB3["event.blocked\n(delivery)"]
+  AR -->|delivery ok| MS["message.sent"]
 
-  MR --> PD
-  PD -->|"deny"| EB
-  PD -->|"allow"| RD
-  RD --> AI
-  AI -->|"failure"| EB
-  AI -->|"success"| AR
-  AR -->|"delivery failure"| EB
-  MR --> L
-  PD --> L
-  RD --> L
-  AI --> L
-  AR --> L
-  EB --> L
+  MR & PD & RD & AI & AR & MS --> L[("Ledger")]
+  EB1 & EB2 & EB3 --> L
+
+  style EB1 fill:#f66,stroke:#900
+  style EB2 fill:#f66,stroke:#900
+  style EB3 fill:#f66,stroke:#900
 ```
 
-## Data flow through pipeline stages and the ledger
+---
 
-Conceptually, each stage consumes canonical facts and emits the next ones; the ledger captures every append in order for the same `correlation_id` / conversation. The diagram below matches how `@chat-agent-relay/pipeline` sequences work: ingress and middleware events are appended before the backend runs; `agent.response.completed` is appended after a successful invocation; delivery emits `message.send.requested`, performs the channel send, then records `message.sent`.
+## 4. Runtime Architecture
+
+### 4.1 Factory Registration Pattern
+
+Registries use a factory pattern for zero-coupling to specific adapter implementations:
+
+```mermaid
+flowchart TD
+  subgraph Startup["Server Startup"]
+    M["main.ts"]
+    CF["channel-factories.ts"]
+    AF["agent-factories.ts"]
+  end
+
+  subgraph Registry["Registries (adapter-agnostic)"]
+    CR["ChannelRegistry\n.registerFactory(type, fn)"]
+    AR["AgentRegistry\n.registerFactory(type, fn)"]
+  end
+
+  subgraph Adapters["Concrete Adapters"]
+    SA["SlackIngress"]
+    DA["DiscordIngress"]
+    WCI["WebChatIngress"]
+    TA["TelegramIngress"]
+    LA["LarkIngress"]
+    DTA["DingTalkIngress"]
+    TMI["TeamsIngress"]
+    WMI["WhatsAppIngress"]
+    A2A["A2AAgentAdapter"]
+  end
+
+  M --> CF --> CR
+  M --> AF --> AR
+  CF -.->|creates| SA & DA & WCI & TA & LA & DTA & TMI & WMI
+  AF -.->|creates| A2A
+```
+
+**Key property**: `ChannelRegistry` and `AgentRegistry` contain zero imports of specific adapters. All adapter knowledge lives in the factory files. Third parties register custom types via `registry.registerFactory("custom", myFactory)`.
+
+### 4.2 Lifecycle Management
+
+Long-lived adapter connections (WebSocket) implement lifecycle interfaces from `contract-harness`:
 
 ```mermaid
 flowchart LR
-  subgraph Ingress
-    I[Canonicalize raw input]
+  subgraph Interfaces["Lifecycle Interfaces"]
+    D["Disconnectable\ndisconnect(): void"]
   end
-  subgraph Middleware
-    M[Policy, route, dispatch]
-  end
-  subgraph Backend
-    B[Invoke agent runtime]
-  end
-  subgraph Outbound
-    D[Delivery orchestrator]
-    S[Channel send]
-  end
-  L[("Ledger")]
 
-  I -->|"message.received"| L
-  I --> M
-  M -->|"policy / route / invocation"| L
-  M --> B
-  B -->|"agent.response.completed"| L
-  B --> D
-  D -->|"message.send.requested"| L
-  D --> S
-  S -->|"message.sent"| L
+  subgraph Implementations
+    SSC["SlackSocketConnection"] -.-> D
+    DGC["DiscordGatewayConnection"] -.-> D
+  end
+
+  subgraph Guards["Type Guards"]
+    ID["isDisconnectable(obj)"]
+  end
+
+  Guards --> Interfaces
 ```
 
-## How to extend
+Registries use type guards (not `instanceof`) for cleanup during `unregister()`.
 
-**New chat platforms** — Add a package (or module) that implements the channel ingress contract: map vendor webhooks or socket payloads to `message.received`, preserve correlation and conversation identifiers, and wire a `sendFn` (or equivalent) so delivery can post replies. Run the adapter against `@chat-agent-relay/adapter-conformance` channel fixtures before relying on it in production.
+### 4.3 Streaming Models
 
-**New agent runtimes** — If your agent exposes an HTTP endpoint, you may not need a new adapter at all: `GenericHttpBackend` supports custom headers, a request body builder function, and configurable response field extraction via dot-path (e.g. `"result.text"`), so many agents can be connected through configuration alone. For agents with non-HTTP protocols, implement `AgentAdapter`: map `agent.invocation.requested` and conversation history into your runtime’s API, then map success and failure outcomes to `agent.response.completed` or structured errors. Conformance tests cover both HTTP and OpenAI-style adapters today; new backends can follow the same pattern with additional fixtures if needed.
+CAR supports two streaming approaches, determined by `ChannelCapabilities`:
 
-**Middleware policy and routing** — Replace or configure `PolicyFn` and routing rules inside `@chat-agent-relay/middleware` without changing channel or backend packages, as long as emitted events remain schema-valid and causally linked.
+```mermaid
+flowchart TD
+  subgraph Progressive["Progressive Update\n(Slack, Discord)"]
+    P1["1. sender.send('...')"] --> P2["2. agent streams deltas"]
+    P2 --> P3["3. sender.edit(id, accumulated)"]
+    P3 --> P2
+  end
+
+  subgraph Native["Native SSE\n(WebChat)"]
+    N1["1. postInitial → SSE status"] --> N2["2. agent streams deltas"]
+    N2 --> N3["3. updateMessage → SSE text_delta"]
+    N3 --> N2
+  end
+
+  CA["ChannelAdapter\n.describeCapabilities()"]
+  CA -->|"progressiveUpdate: true\nedit: true"| Progressive
+  CA -->|"nativeStreaming: true"| Native
+```
+
+---
+
+## 5. Delivery
+
+The `DeliveryOrchestrator` accepts a `ChannelSender` (not a bare function) and handles retry with exponential backoff:
+
+```mermaid
+flowchart LR
+  ARC["agent.response.completed"] --> DO["DeliveryOrchestrator"]
+  DO -->|"sender.send(text)"| CS["ChannelSender"]
+  CS -->|success| MSR["message.send.requested\nmessage.sent"]
+  CS -->|failure| RT{retry?}
+  RT -->|"attempt ≤ max"| DO
+  RT -->|exhausted| DEE["DeliveryExhaustedError\n→ event.blocked"]
+```
+
+---
+
+## 6. Trust Boundaries
+
+```mermaid
+flowchart LR
+  subgraph Untrusted["Zone A: Untrusted"]
+    CP["Chat Platform\n(vendor payloads)"]
+  end
+
+  subgraph Boundary1["Boundary: Channel Adapter"]
+    CA["Validate, canonicalize,\nfilter bots"]
+  end
+
+  subgraph Trusted["Zone B: CAR Core"]
+    MW["Policy + Route + Ledger\n(canonical events only)"]
+  end
+
+  subgraph Boundary2["Boundary: Agent Adapter"]
+    BA["Isolate protocol,\nmap to canonical"]
+  end
+
+  subgraph External["Zone C: Agent Runtime"]
+    AR["AI Model / Agent\n(external trust)"]
+  end
+
+  CP --> CA --> MW --> BA --> AR
+```
+
+- **Zone A → B**: Channel adapters validate signatures, reject bot messages, canonicalize raw payloads. No raw vendor data crosses inward.
+- **Zone B**: All governance, routing, and recording operate on canonical events. Provider details stay in `provider_extensions`.
+- **Zone B → C**: Agent adapters isolate protocol details. Failures become structured errors, not raw stack traces.
+- **Event Ledger**: Sits at the center of accountability — the source of truth for what happened.
+
+---
+
+## 7. Package Dependency Graph
+
+The repository ships **17** workspace packages under `packages/`. Arrows follow production `dependencies`.
+
+```mermaid
+graph TD
+  CH["contract-harness\n(types, schemas, lifecycle)"]
+
+  EL["event-ledger"] --> CH
+  MW["middleware"] --> CH
+  DEL["delivery"] --> CH
+  BA2A["backend-a2a"] --> CH
+  CWC["channel-web-chat"] --> CH
+  CS["channel-slack"] --> CH
+  CD["channel-discord"] --> CH
+  CT["channel-telegram"] --> CH
+  CL["channel-lark"] --> CH
+  CDT["channel-dingtalk"] --> CH
+  CTM["channel-teams"] --> CH
+  CWA["channel-whatsapp"] --> CH
+  CFG["config-store"] --> CH
+
+  PL["pipeline"] --> CH & EL & MW & DEL
+
+  SR["server"] --> PL & CFG & EL & CS & CD & CT & CL & CDT & CTM & CWA & CWC & BA2A & MW
+
+  AC["adapter-conformance"] --> CH
+
+  style CH fill:#ffd,stroke:#aa0
+  style SR fill:#ddf,stroke:#00a
+  style PL fill:#dfd,stroke:#0a0
+```
+
+| Package | Purpose |
+|---------|---------|
+| `contract-harness` | Schema validation, canonical types, lifecycle interfaces (`Disconnectable`), channel/agent type definitions |
+| `event-ledger` | Append-only store (`LedgerStore` interface), in-memory and SQLite implementations |
+| `middleware` | Inbound/outbound policy, access control, rate limiting, routing |
+| `delivery` | Outbound orchestration with `ChannelSender`, retry + exponential backoff |
+| `pipeline` | End-to-end 7-event chain orchestration, capability-driven streaming, multi-turn context |
+| `config-store` | SQLite-backed `ConfigStore` for channels, agents, routes, settings; AES-256-GCM credential encryption |
+| `channel-slack` | Slack Socket Mode ingress + `chat.postMessage` / `chat.update` sender |
+| `channel-discord` | Discord Gateway ingress + REST API sender |
+| `channel-telegram` | Telegram Bot API webhook ingress + sender |
+| `channel-lark` | Lark/飞书 Event Subscription ingress + sender |
+| `channel-dingtalk` | DingTalk/钉钉 callback ingress + webhook sender |
+| `channel-teams` | Microsoft Teams Bot Framework ingress + sender |
+| `channel-whatsapp` | WhatsApp Cloud API webhook ingress + sender |
+| `channel-web-chat` | HTTP ingress + SSE streaming |
+| `backend-a2a` | A2A protocol adapter (streaming, HITL, artifacts, cancel) — covers CrewAI, Google ADK, AutoGen, LangGraph, Mastra, and all A2A-compliant agents |
+| `server` | CLI entry point, HTTP API, factory wiring, graceful shutdown |
+| `adapter-conformance` | Reusable conformance tests for channel and agent adapters |
+
+---
+
+## 8. Configuration and Management
+
+```mermaid
+flowchart LR
+  subgraph CLI["CLI (car command)"]
+    CC["car channel add/list/remove"]
+    CA["car agent add/list/remove"]
+    CRT["car route add/list/remove"]
+    CCF["car config set/get"]
+  end
+
+  subgraph API["HTTP API"]
+    AC["/api/channels"]
+    AA["/api/agents"]
+    ART["/api/routes"]
+    ACF["/api/config"]
+  end
+
+  subgraph Store["ConfigStore (SQLite)"]
+    DB[("car.db\n+ AES-256-GCM\nencrypted secrets")]
+  end
+
+  CLI --> DB
+  API --> DB
+  DB --> CR["ChannelRegistry\n(hot-pluggable)"] & AR["AgentRegistry\n(hot-pluggable)"]
+```
+
+Channels and agents can be added, updated, enabled, disabled, or removed at runtime without restarting the server.
+
+---
+
+## 9. Adapter Capability Matrix
+
+### Channel Adapters
+
+| Channel | Text | Attachments | Reactions | Threads | Progressive Update | Native Streaming | Edit | Commands |
+|---------|------|-------------|-----------|---------|-------------------|-----------------|------|----------|
+| Slack | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ |
+| Discord | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ |
+| Telegram | ✓ | ✓ | ✗ | ✓ | ✓ | ✗ | ✓ | ✓ |
+| Lark | ✓ | ✗ | ✗ | ✗ | ✓ | ✗ | ✓ | ✗ |
+| DingTalk | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| Teams | ✓ | ✗ | ✗ | ✓ | ✓ | ✗ | ✓ | ✗ |
+| WhatsApp | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| WebChat | ✓ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✓ |
+
+### Agent Adapters
+
+| Agent | Streaming | Multi-Turn | Resume | HITL | Cancel | Artifacts |
+|-------|-----------|-----------|--------|------|--------|-----------|
+| A2A | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+---
+
+## 10. Extending CAR
+
+### New chat platform
+
+1. Implement `ChannelAdapter` (4 members: `channelType`, `describeCapabilities`, `canonicalize`, `createSender`)
+2. Run `testChannelAdapter()` from `adapter-conformance` to validate
+3. Create a factory function and register via `registry.registerFactory("mytype", factory)`
+
+### New agent runtime
+
+1. Implement `AgentAdapter` (at minimum `describeCapabilities` + `invoke`; optionally `stream`, `resume`, `cancel`)
+2. Run `testAgentAdapter()` from `adapter-conformance` to validate
+3. Create a factory function and register via `registry.registerFactory("mytype", factory)`
+
+### Custom middleware
+
+Replace or configure `PolicyFn` and routing rules in `@chat-agent-relay/middleware` without changing adapter packages.
+
+---
+
+## 12. Security
+
+- **API authentication**: HTTP API requests can require a **Bearer** token; when `CAR_API_KEY` is set, clients must send `Authorization: Bearer <key>`.
+- **Webhook signature verification**: Untrusted ingress uses the **`WebhookVerifier`** interface in `contract-harness`. Implementations cover **Slack**, **Microsoft Teams**, **Telegram**, **Lark**, **DingTalk**, and **WhatsApp** so platform callbacks are authenticated before canonicalization.
+- **Tenant isolation**: When `tenant.isolation` is enabled, **`X-Tenant-ID`** scopes ledger query and replay APIs so tenants cannot read each other’s history.
+- **Credential encryption**: Sensitive fields in `ConfigStore` (tokens, API keys) use **AES-256-GCM** when `CAR_ENCRYPTION_KEY` is configured (see section 8).
+
+---
+
+## 13. Governance
+
+- **Inbound policy (pre-route)**: Structured conditions over sender, channel, time window, content length, and boolean composition (`and` / `or` / `not`). Deny rules are mandatory when they match.
+- **Outbound policy (pre-send)**: Content filtering on agent responses before delivery; complements inbound rules for the assistant → user direction.
+- **Access control**: Sender **allowlist** / **blocklist** evaluated early on the inbound path.
+- **Rate limiting**: **Sliding window** limits with configurable **scope** (per sender, conversation, or tenant).
+- **HITL**: **Transparent relay** of A2A **input-required** state — pending sessions and `resume` keep the human turn in-band without bespoke channel code.
+
+---
+
+## 11. Known Technical Debt
+
+| Item | Status | Notes |
+|------|--------|-------|
+| Pipeline creates new instance per request | By design | Ensures statelessness. **`ContractHarnessValidators.getShared()`** supplies a process-wide cached validator so JSON Schema / Ajv work is not duplicated per request. |
+| WebChat streaming uses `streamingOverride` | Acceptable | HTTP-response-based channels cannot use `sender.edit()`. Override path is the correct escape hatch. |
+
+---
 
 RFCs in `docs/rfcs/` remain authoritative when this overview and the code disagree; prefer updating the RFCs first when changing normative behavior.

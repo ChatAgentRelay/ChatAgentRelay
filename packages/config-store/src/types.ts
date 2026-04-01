@@ -1,5 +1,5 @@
-export type ChannelType = "slack" | "discord" | "webchat";
-export type AgentType = "a2a" | "langgraph" | "acp" | "http";
+export type ChannelType = "slack" | "discord" | "webchat" | "telegram" | "lark" | "dingtalk" | "teams" | "whatsapp";
+export type AgentType = "a2a";
 
 export type ChannelRecord = {
   name: string;
@@ -38,11 +38,13 @@ export type SettingRecord = {
 };
 
 export const SENSITIVE_FIELDS: Record<string, string[]> = {
-  slack: ["botToken", "appToken"],
+  slack: ["botToken", "appToken", "signingSecret"],
   discord: ["botToken"],
   webchat: [],
+  telegram: ["botToken", "secretToken"],
+  lark: ["appId", "appSecret", "encryptKey"],
+  dingtalk: ["appKey", "appSecret", "secret"],
+  teams: ["appSecret"],
+  whatsapp: ["accessToken", "appSecret"],
   a2a: ["headers"],
-  langgraph: ["apiKey", "headers"],
-  acp: [],
-  http: ["headers"],
 };

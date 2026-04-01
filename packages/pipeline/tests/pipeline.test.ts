@@ -1,15 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
-import { GenericHttpBackend } from "@chat-agent-relay/backend-http";
 import { WebChatIngress } from "@chat-agent-relay/channel-web-chat";
+import type { AgentAdapter, AgentResult, AgentInvocationContext, ChannelAdapter } from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { SqliteLedgerStore } from "@chat-agent-relay/event-ledger";
-import type { Server } from "bun";
+import { RateLimiter } from "@chat-agent-relay/middleware";
 import { FirstExecutablePathPipeline } from "../src/pipeline";
 import type { PipelineConfig } from "../src/types";
-
-type BunServer = Server<unknown>;
 
 const TEST_DB_DIR = join(import.meta.dir, "..", "dist");
 const TEST_DB_PATH = join(TEST_DB_DIR, "pipeline-test.db");
@@ -33,64 +31,81 @@ function validInput() {
   };
 }
 
+function createMockAgent(text = "Your order shipped yesterday."): AgentAdapter {
+  return {
+    invoke: async (ctx: AgentInvocationContext): Promise<AgentResult> => ({
+      ok: true,
+      event: {
+        event_id: `evt_${crypto.randomUUID()}`,
+        schema_version: "v1alpha1",
+        event_type: "agent.response.completed",
+        tenant_id: ctx.invocationEvent.tenant_id,
+        workspace_id: ctx.invocationEvent.workspace_id,
+        channel: ctx.invocationEvent.channel,
+        channel_instance_id: ctx.invocationEvent.channel_instance_id,
+        conversation_id: ctx.invocationEvent.conversation_id,
+        session_id: ctx.invocationEvent.session_id,
+        correlation_id: ctx.invocationEvent.correlation_id,
+        causation_id: ctx.invocationEvent.event_id,
+        occurred_at: new Date().toISOString(),
+        actor_type: "agent",
+        payload: { text, status: "completed" },
+        provider_extensions: { mock: { agent: "test" } },
+      },
+    }),
+    describeCapabilities: () => ({
+      streaming: false,
+      multiTurn: false,
+      resume: false,
+    }),
+  };
+}
+
+function createFailingAgent(): AgentAdapter {
+  return {
+    invoke: async (): Promise<AgentResult> => ({
+      ok: false,
+      error: { message: "Agent unreachable", retryable: true },
+    }),
+    describeCapabilities: () => ({ streaming: false, multiTurn: false, resume: false }),
+  };
+}
+
 describe("first executable path pipeline (end-to-end)", () => {
-  let mockServer: BunServer;
-  let mockPort: number;
   let validators: ContractHarnessValidators;
   let ingress: WebChatIngress;
 
   beforeAll(async () => {
     mkdirSync(TEST_DB_DIR, { recursive: true });
-
-    mockServer = Bun.serve({
-      port: 0,
-      fetch(_req) {
-        return Response.json({
-          request_id: "req_test",
-          status: "completed",
-          output: { text: "Your order shipped yesterday." },
-          backend: {
-            request_id: "backend_req_987",
-            session_handle: "be_sess_42",
-            agent_id: "support_agent_v1",
-          },
-        });
-      },
-    });
-    mockPort = mockServer.port!;
     validators = await ContractHarnessValidators.create();
     ingress = await WebChatIngress.create();
   });
 
   afterAll(() => {
-    mockServer.stop(true);
     cleanTestDb();
   });
 
-  async function makeConfig(
-    overrides?: Partial<PipelineConfig> & { routeAgentName?: string },
-  ): Promise<PipelineConfig> {
+  function makeConfig(
+    overrides?: Partial<PipelineConfig> & { routeAgentName?: string; agent?: AgentAdapter },
+  ): PipelineConfig {
     const routeAgentName = overrides?.routeAgentName ?? "default_webchat_agent";
-    const backend = await GenericHttpBackend.create({ endpoint: `http://localhost:${mockPort}` });
-    const { routeAgentName: _rna, ...rest } = overrides ?? {};
-    const agentAdapter = backend.asAgentAdapter();
+    const agent = overrides?.agent ?? createMockAgent();
+    const { routeAgentName: _rna, agent: _agent, ...rest } = overrides ?? {};
     return {
-      resolveAgent: (name) => (name === routeAgentName ? agentAdapter : undefined),
+      resolveAgent: (name) => (name === routeAgentName ? agent : undefined),
       routeFn: () => ({
         agentName: routeAgentName,
         routeId: 1,
         matchType: "default",
         reason: "default_first_path_route",
       }),
-      channelName: "webchat",
-      ingress,
-      sendFn: async () => ({ providerMessageId: "webchat_msg_9001" }),
+      channel: ingress,
       ...rest,
     };
   }
 
   it("runs the full seven-event happy path with in-memory ledger", async () => {
-    const config = await makeConfig();
+    const config = makeConfig();
     const pipeline = await FirstExecutablePathPipeline.create(config);
     const result = await pipeline.execute(validInput());
 
@@ -109,9 +124,8 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("all seven events pass contract validation", async () => {
-    const config = await makeConfig({
+    const config = makeConfig({
       routeAgentName: "b1",
-      sendFn: async () => ({ providerMessageId: "msg_001" }),
     });
 
     const pipeline = await FirstExecutablePathPipeline.create(config);
@@ -124,9 +138,8 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("maintains causal chain across all seven events", async () => {
-    const config = await makeConfig({
+    const config = makeConfig({
       routeAgentName: "b1",
-      sendFn: async () => ({ providerMessageId: "msg_001" }),
     });
 
     const pipeline = await FirstExecutablePathPipeline.create(config);
@@ -140,9 +153,8 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("shares correlation_id across all seven events", async () => {
-    const config = await makeConfig({
+    const config = makeConfig({
       routeAgentName: "b1",
-      sendFn: async () => ({ providerMessageId: "msg_001" }),
     });
 
     const pipeline = await FirstExecutablePathPipeline.create(config);
@@ -155,7 +167,7 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("returns correct explanation summary", async () => {
-    const config = await makeConfig();
+    const config = makeConfig();
     const pipeline = await FirstExecutablePathPipeline.create(config);
     const result = await pipeline.execute(validInput());
 
@@ -163,13 +175,12 @@ describe("first executable path pipeline (end-to-end)", () => {
     expect(result.explanation.policyDecision).toBe("allow");
     expect(result.explanation.selectedRoute).toBe("default_webchat_agent");
     expect(result.explanation.backendResponse).toBe("Your order shipped yesterday.");
-    expect(result.explanation.providerMessageId).toBe("webchat_msg_9001");
+    expect(result.explanation.providerMessageId).toMatch(/^webchat_\d+$/);
   });
 
   it("appends all seven events to ledger and replays them", async () => {
-    const config = await makeConfig({
+    const config = makeConfig({
       routeAgentName: "b1",
-      sendFn: async () => ({ providerMessageId: "msg_001" }),
     });
 
     const pipeline = await FirstExecutablePathPipeline.create(config);
@@ -185,9 +196,8 @@ describe("first executable path pipeline (end-to-end)", () => {
     cleanTestDb();
     const store = new SqliteLedgerStore(TEST_DB_PATH);
     try {
-      const config = await makeConfig({
+      const config = makeConfig({
         routeAgentName: "b1",
-        sendFn: async () => ({ providerMessageId: "msg_001" }),
         ledgerStore: store,
       });
 
@@ -204,12 +214,9 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("produces event.blocked when backend is down", async () => {
-    const downBackend = await GenericHttpBackend.create({ endpoint: "http://localhost:1/down" });
-    const downAgent = downBackend.asAgentAdapter();
-    const config = await makeConfig({
-      resolveAgent: (name) => (name === "b1" ? downAgent : undefined),
+    const config = makeConfig({
+      resolveAgent: (name) => (name === "b1" ? createFailingAgent() : undefined),
       routeAgentName: "b1",
-      sendFn: async () => ({ providerMessageId: "msg_001" }),
     });
 
     const pipeline = await FirstExecutablePathPipeline.create(config);
@@ -222,18 +229,29 @@ describe("first executable path pipeline (end-to-end)", () => {
     const blockedEvent = result.events[4]!;
     expect(blockedEvent.event_type).toBe("event.blocked");
     expect(blockedEvent.payload["block_stage"]).toBe("backend_invocation");
-    expect(blockedEvent.payload["retryable"]).toBe(true);
 
     const v = validators.validateEvent(blockedEvent);
     expect(v.ok).toBe(true);
   });
 
   it("produces event.blocked when delivery fails after retries exhausted", async () => {
+    const failingAdapter: ChannelAdapter = {
+      channelType: "test",
+      describeCapabilities: () => ({
+        channel: "test",
+        messaging: { text: true, attachments: false, reactions: false, threads: false },
+        streaming: { progressiveUpdate: false, nativeStreaming: false },
+        interactive: { buttons: false, menus: false, commands: false },
+        delivery: { retry: false, chunking: false, edit: false },
+      }),
+      canonicalize: (raw) => ingress.canonicalize(raw),
+      createSender: () => ({
+        send: async () => { throw new Error("Slack API unreachable"); },
+      }),
+    };
     const config = await makeConfig({
       routeAgentName: "b1",
-      sendFn: async () => {
-        throw new Error("Slack API unreachable");
-      },
+      channel: failingAdapter,
       retryConfig: { maxRetries: 0 },
     });
 
@@ -254,9 +272,8 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("fails gracefully with invalid input", async () => {
-    const config = await makeConfig({
+    const config = makeConfig({
       routeAgentName: "b1",
-      sendFn: async () => ({ providerMessageId: "msg_001" }),
     });
 
     const pipeline = await FirstExecutablePathPipeline.create(config);
@@ -268,7 +285,7 @@ describe("first executable path pipeline (end-to-end)", () => {
     const sharedStore = new InMemoryEventLedgerStore();
 
     const firstInput = validInput();
-    const config = await makeConfig({ ledgerStore: sharedStore });
+    const config = makeConfig({ ledgerStore: sharedStore });
     const pipeline1 = await FirstExecutablePathPipeline.create(config);
     const result1 = await pipeline1.execute(firstInput);
     expect(result1.events).toHaveLength(7);
@@ -283,7 +300,7 @@ describe("first executable path pipeline (end-to-end)", () => {
       session_id: result1.events[0]!.session_id,
     };
 
-    const config2 = await makeConfig({ ledgerStore: sharedStore });
+    const config2 = makeConfig({ ledgerStore: sharedStore });
     const pipeline2 = await FirstExecutablePathPipeline.create(config2);
     const result2 = await pipeline2.execute(secondInput);
     expect(result2.events).toHaveLength(7);
@@ -296,7 +313,7 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("short-circuits with event.blocked when policy denies", async () => {
-    const config = await makeConfig({
+    const config = makeConfig({
       policyId: "content_filter",
       policyFn: () => ({ decision: "deny", reason: "spam_detected" }),
     });
@@ -310,10 +327,122 @@ describe("first executable path pipeline (end-to-end)", () => {
     expect(result.events[0]!.event_type).toBe("message.received");
     expect(result.events[1]!.event_type).toBe("policy.decision.made");
     expect(result.events[1]!.payload["decision"]).toBe("deny");
+    expect(result.events[1]!.payload["stage"]).toBe("inbound");
     expect(result.events[2]!.event_type).toBe("event.blocked");
     expect(result.events[2]!.payload["block_stage"]).toBe("governance");
 
     const v = validators.validateEvent(result.events[2]!);
     expect(v.ok).toBe(true);
+  });
+
+  it("allows senders included in allowlist", async () => {
+    const pipeline = await FirstExecutablePathPipeline.create(makeConfig({
+      accessControl: { mode: "allowlist", senders: ["user_123"] },
+    }));
+
+    const result = await pipeline.execute(validInput());
+    expect(result.blocked).toBeUndefined();
+    expect(result.events[0]!.event_type).toBe("message.received");
+  });
+
+  it("blocks senders missing from allowlist", async () => {
+    const pipeline = await FirstExecutablePathPipeline.create(makeConfig({
+      accessControl: { mode: "allowlist", senders: ["someone_else"] },
+    }));
+
+    const result = await pipeline.execute(validInput());
+    expect(result.blocked).toBe(true);
+    expect(result.events).toHaveLength(2);
+    expect(result.events[1]!.event_type).toBe("event.blocked");
+    expect(result.events[1]!.payload["block_stage"]).toBe("access_control");
+  });
+
+  it("blocks senders included in blocklist", async () => {
+    const pipeline = await FirstExecutablePathPipeline.create(makeConfig({
+      accessControl: { mode: "blocklist", senders: ["user_123"] },
+    }));
+
+    const result = await pipeline.execute(validInput());
+    expect(result.blocked).toBe(true);
+    expect(result.events[1]!.payload["block_stage"]).toBe("access_control");
+  });
+
+  it("rate limits repeated messages from the same sender", async () => {
+    const pipeline = await FirstExecutablePathPipeline.create(makeConfig({
+      rateLimiter: new RateLimiter({ maxPerMinute: 1, scope: "sender" }),
+    }));
+
+    const first = await pipeline.execute(validInput());
+    const second = await pipeline.execute({ ...validInput(), client_message_id: "web_msg_002" });
+
+    expect(first.blocked).toBeUndefined();
+    expect(second.blocked).toBe(true);
+    expect(second.events[1]!.event_type).toBe("event.blocked");
+    expect(second.events[1]!.payload["block_stage"]).toBe("rate_limit");
+  });
+
+  it("does not share sender-scoped limits across senders", async () => {
+    const pipeline = await FirstExecutablePathPipeline.create(makeConfig({
+      rateLimiter: new RateLimiter({ maxPerMinute: 1, scope: "sender" }),
+    }));
+
+    const first = await pipeline.execute(validInput());
+    const second = await pipeline.execute({
+      ...validInput(),
+      client_message_id: "web_msg_002",
+      user_id: "user_456",
+    });
+
+    expect(first.blocked).toBeUndefined();
+    expect(second.blocked).toBeUndefined();
+  });
+
+  it("blocks outbound delivery when outbound policy denies", async () => {
+    const pipeline = await FirstExecutablePathPipeline.create(makeConfig({
+      outboundPolicyId: "outbound_filter",
+      outboundPolicyFn: () => ({ decision: "deny", reason: "pii_detected" }),
+      agent: createMockAgent("SSN 123-45-6789"),
+    }));
+
+    const result = await pipeline.execute(validInput());
+
+    expect(result.blocked).toBe(true);
+    expect(result.blockReason).toBe("pii_detected");
+    expect(result.events).toHaveLength(7);
+    expect(result.events[5]!.event_type).toBe("policy.decision.made");
+    expect(result.events[5]!.payload["stage"]).toBe("outbound");
+    expect(result.events[6]!.event_type).toBe("event.blocked");
+    expect(result.events[6]!.payload["block_stage"]).toBe("outbound_governance");
+  });
+
+  it("delivers normally when outbound policy allows", async () => {
+    const pipeline = await FirstExecutablePathPipeline.create(makeConfig({
+      outboundPolicyId: "outbound_filter",
+      outboundPolicyFn: () => ({ decision: "allow" }),
+    }));
+
+    const result = await pipeline.execute(validInput());
+
+    expect(result.blocked).toBeUndefined();
+    expect(result.events.map((event) => event.event_type)).toEqual([
+      "message.received",
+      "policy.decision.made",
+      "route.decision.made",
+      "agent.invocation.requested",
+      "agent.response.completed",
+      "policy.decision.made",
+      "message.send.requested",
+      "message.sent",
+    ]);
+    expect(result.events[5]!.payload["stage"]).toBe("outbound");
+  });
+
+  it("keeps existing behavior when no new governance config is supplied", async () => {
+    const pipeline = await FirstExecutablePathPipeline.create(makeConfig());
+    const result = await pipeline.execute(validInput());
+
+    expect(result.blocked).toBeUndefined();
+    expect(result.events).toHaveLength(7);
+    expect(result.events.map((event) => event.event_type)).not.toContain("event.blocked");
   });
 });

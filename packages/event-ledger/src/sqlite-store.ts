@@ -1,5 +1,5 @@
 import { Database } from "bun:sqlite";
-import type { HealthStatus, LedgerStore, StoredCanonicalEvent } from "./types";
+import type { HealthStatus, LedgerStore, StoredCanonicalEvent, TenantScope } from "./types";
 
 const CREATE_TABLE = `
 CREATE TABLE IF NOT EXISTS canonical_events (
@@ -24,6 +24,8 @@ const CREATE_INDEXES = [
   "CREATE INDEX IF NOT EXISTS idx_events_conversation ON canonical_events(conversation_id, occurred_at)",
   "CREATE INDEX IF NOT EXISTS idx_events_correlation ON canonical_events(correlation_id, occurred_at)",
   "CREATE INDEX IF NOT EXISTS idx_events_type ON canonical_events(event_type)",
+  "CREATE INDEX IF NOT EXISTS idx_events_tenant_conversation ON canonical_events(tenant_id, conversation_id, occurred_at)",
+  "CREATE INDEX IF NOT EXISTS idx_events_tenant_correlation ON canonical_events(tenant_id, correlation_id, occurred_at)",
 ];
 
 const INSERT_EVENT = `
@@ -38,14 +40,20 @@ INSERT OR IGNORE INTO canonical_events (
 )`;
 
 const SELECT_BY_ID = "SELECT event_json FROM canonical_events WHERE event_id = $event_id";
+const SELECT_BY_ID_TENANT = "SELECT event_json FROM canonical_events WHERE event_id = $event_id AND tenant_id = $tenant_id";
 
 const SELECT_ALL = "SELECT event_json FROM canonical_events ORDER BY occurred_at ASC, rowid ASC";
+const SELECT_ALL_TENANT = "SELECT event_json FROM canonical_events WHERE tenant_id = $tenant_id ORDER BY occurred_at ASC, rowid ASC";
 
 const SELECT_BY_CONVERSATION =
   "SELECT event_json FROM canonical_events WHERE conversation_id = $conversation_id ORDER BY occurred_at ASC, rowid ASC";
+const SELECT_BY_CONVERSATION_TENANT =
+  "SELECT event_json FROM canonical_events WHERE conversation_id = $conversation_id AND tenant_id = $tenant_id ORDER BY occurred_at ASC, rowid ASC";
 
 const SELECT_BY_CORRELATION =
   "SELECT event_json FROM canonical_events WHERE correlation_id = $correlation_id ORDER BY occurred_at ASC, rowid ASC";
+const SELECT_BY_CORRELATION_TENANT =
+  "SELECT event_json FROM canonical_events WHERE correlation_id = $correlation_id AND tenant_id = $tenant_id ORDER BY occurred_at ASC, rowid ASC";
 
 type EventRow = { event_json: string };
 
@@ -53,9 +61,13 @@ export class SqliteLedgerStore implements LedgerStore {
   private readonly db: Database;
   private readonly insertStmt: ReturnType<Database["prepare"]>;
   private readonly selectByIdStmt: ReturnType<Database["prepare"]>;
+  private readonly selectByIdTenantStmt: ReturnType<Database["prepare"]>;
   private readonly selectAllStmt: ReturnType<Database["prepare"]>;
+  private readonly selectAllTenantStmt: ReturnType<Database["prepare"]>;
   private readonly selectByConversationStmt: ReturnType<Database["prepare"]>;
+  private readonly selectByConversationTenantStmt: ReturnType<Database["prepare"]>;
   private readonly selectByCorrelationStmt: ReturnType<Database["prepare"]>;
+  private readonly selectByCorrelationTenantStmt: ReturnType<Database["prepare"]>;
 
   constructor(path: string = ":memory:") {
     this.db = new Database(path);
@@ -67,9 +79,13 @@ export class SqliteLedgerStore implements LedgerStore {
     }
     this.insertStmt = this.db.prepare(INSERT_EVENT);
     this.selectByIdStmt = this.db.prepare(SELECT_BY_ID);
+    this.selectByIdTenantStmt = this.db.prepare(SELECT_BY_ID_TENANT);
     this.selectAllStmt = this.db.prepare(SELECT_ALL);
+    this.selectAllTenantStmt = this.db.prepare(SELECT_ALL_TENANT);
     this.selectByConversationStmt = this.db.prepare(SELECT_BY_CONVERSATION);
+    this.selectByConversationTenantStmt = this.db.prepare(SELECT_BY_CONVERSATION_TENANT);
     this.selectByCorrelationStmt = this.db.prepare(SELECT_BY_CORRELATION);
+    this.selectByCorrelationTenantStmt = this.db.prepare(SELECT_BY_CORRELATION_TENANT);
   }
 
   append(event: StoredCanonicalEvent): StoredCanonicalEvent | undefined {
@@ -98,24 +114,32 @@ export class SqliteLedgerStore implements LedgerStore {
     return undefined;
   }
 
-  getById(eventId: string): StoredCanonicalEvent | undefined {
-    const row = this.selectByIdStmt.get({ $event_id: eventId }) as EventRow | null;
+  getById(eventId: string, scope?: TenantScope): StoredCanonicalEvent | undefined {
+    const row = scope?.tenantId
+      ? this.selectByIdTenantStmt.get({ $event_id: eventId, $tenant_id: scope.tenantId }) as EventRow | null
+      : this.selectByIdStmt.get({ $event_id: eventId }) as EventRow | null;
     if (!row) return undefined;
     return JSON.parse(row.event_json) as StoredCanonicalEvent;
   }
 
-  getAll(): StoredCanonicalEvent[] {
-    const rows = this.selectAllStmt.all() as EventRow[];
+  getAll(scope?: TenantScope): StoredCanonicalEvent[] {
+    const rows = scope?.tenantId
+      ? this.selectAllTenantStmt.all({ $tenant_id: scope.tenantId }) as EventRow[]
+      : this.selectAllStmt.all() as EventRow[];
     return rows.map((row) => JSON.parse(row.event_json) as StoredCanonicalEvent);
   }
 
-  getByConversationId(conversationId: string): StoredCanonicalEvent[] {
-    const rows = this.selectByConversationStmt.all({ $conversation_id: conversationId }) as EventRow[];
+  getByConversationId(conversationId: string, scope?: TenantScope): StoredCanonicalEvent[] {
+    const rows = scope?.tenantId
+      ? this.selectByConversationTenantStmt.all({ $conversation_id: conversationId, $tenant_id: scope.tenantId }) as EventRow[]
+      : this.selectByConversationStmt.all({ $conversation_id: conversationId }) as EventRow[];
     return rows.map((row) => JSON.parse(row.event_json) as StoredCanonicalEvent);
   }
 
-  getByCorrelationId(correlationId: string): StoredCanonicalEvent[] {
-    const rows = this.selectByCorrelationStmt.all({ $correlation_id: correlationId }) as EventRow[];
+  getByCorrelationId(correlationId: string, scope?: TenantScope): StoredCanonicalEvent[] {
+    const rows = scope?.tenantId
+      ? this.selectByCorrelationTenantStmt.all({ $correlation_id: correlationId, $tenant_id: scope.tenantId }) as EventRow[]
+      : this.selectByCorrelationStmt.all({ $correlation_id: correlationId }) as EventRow[];
     return rows.map((row) => JSON.parse(row.event_json) as StoredCanonicalEvent);
   }
 

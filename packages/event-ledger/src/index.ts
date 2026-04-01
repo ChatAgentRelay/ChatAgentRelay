@@ -17,5 +17,6 @@ export type {
   HealthStatus,
   LedgerStore,
   StoredCanonicalEvent,
+  TenantScope,
   TimeRange,
 } from "./types";

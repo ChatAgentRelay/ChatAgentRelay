@@ -1,5 +1,5 @@
 import { beforeAll } from "bun:test";
-import { testChannelIngress } from "@chat-agent-relay/adapter-conformance";
+import { testChannelAdapter } from "@chat-agent-relay/adapter-conformance";
 import { DiscordIngress } from "./discord-ingress";
 
 let discordIngress: DiscordIngress;
@@ -8,9 +8,9 @@ beforeAll(async () => {
   discordIngress = await DiscordIngress.create();
 });
 
-testChannelIngress({
+testChannelAdapter({
   name: "DiscordIngress (example skeleton)",
-  get ingress() {
+  get adapter() {
     return discordIngress;
   },
   expectedChannel: "discord",

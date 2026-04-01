@@ -1,6 +1,6 @@
-import type { CanonicalEvent, ValidationResult } from "@chat-agent-relay/contract-harness";
+import type { CanonicalEvent, ChannelSender, ValidationResult } from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
-import type { DeliveryResult, RetryConfig, SendFn } from "./types";
+import type { DeliveryResult, RetryConfig } from "./types";
 
 const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_BASE_DELAY_MS = 500;
@@ -63,11 +63,11 @@ export class DeliveryOrchestrator {
   }
 
   static async create(retryConfig?: RetryConfig): Promise<DeliveryOrchestrator> {
-    const validators = await ContractHarnessValidators.create();
+    const validators = await ContractHarnessValidators.getShared();
     return new DeliveryOrchestrator(validators, retryConfig);
   }
 
-  async deliver(agentResponseCompleted: CanonicalEvent, sendFn: SendFn): Promise<DeliveryResult> {
+  async deliver(agentResponseCompleted: CanonicalEvent, sender: ChannelSender): Promise<DeliveryResult> {
     if (agentResponseCompleted.event_type !== "agent.response.completed") {
       throw new Error(`Expected agent.response.completed, got ${agentResponseCompleted.event_type}`);
     }
@@ -86,7 +86,7 @@ export class DeliveryOrchestrator {
     );
     this.assertValid(sendRequestedEvent);
 
-    const sendResult = await this.sendWithRetry(sendFn, responseText);
+    const sendResult = await this.sendWithRetry(sender, responseText);
 
     const sentEvent = deriveEvent(
       agentResponseCompleted,
@@ -105,12 +105,12 @@ export class DeliveryOrchestrator {
     };
   }
 
-  private async sendWithRetry(sendFn: SendFn, text: string): Promise<{ providerMessageId: string }> {
+  private async sendWithRetry(sender: ChannelSender, text: string): Promise<{ providerMessageId: string }> {
     let lastError: Error | undefined;
 
     for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
       try {
-        return await sendFn(text);
+        return await sender.send(text);
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
         if (attempt < this.retryConfig.maxRetries) {

@@ -73,7 +73,7 @@ export class EventLedgerAppender {
   ) {}
 
   static async create(store: LedgerStore = new InMemoryEventLedgerStore()): Promise<EventLedgerAppender> {
-    const validators = await ContractHarnessValidators.create();
+    const validators = await ContractHarnessValidators.getShared();
     return new EventLedgerAppender(validators, store);
   }
 

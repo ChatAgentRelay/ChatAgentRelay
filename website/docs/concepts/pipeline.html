@@ -78,14 +78,14 @@
     <a href="/ChatAgentRelay/docs/channels/slack.html" class="sidebar-link">Slack</a>
     <a href="/ChatAgentRelay/docs/channels/discord.html" class="sidebar-link">Discord</a>
     <a href="/ChatAgentRelay/docs/channels/webchat.html" class="sidebar-link">WebChat</a>
+    <a href="/ChatAgentRelay/docs/channels/telegram.html" class="sidebar-link">Telegram</a>
+    <a href="/ChatAgentRelay/docs/channels/lark.html" class="sidebar-link">Lark / 飞书</a>
+    <a href="/ChatAgentRelay/docs/channels/dingtalk.html" class="sidebar-link">DingTalk / 钉钉</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Agents</span>
     <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
     <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
-    <a href="/ChatAgentRelay/docs/agents/langgraph.html" class="sidebar-link">LangGraph</a>
-    <a href="/ChatAgentRelay/docs/agents/http.html" class="sidebar-link">HTTP</a>
-    <a href="/ChatAgentRelay/docs/agents/acp.html" class="sidebar-link">ACP</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Configuration</span>
@@ -131,7 +131,7 @@
   │     ├─ stream  ──▶ deltas → agent.response.completed
   │     └─ error   ──▶ event.blocked → stop
   │
-  └─▶ delivery         Send response via channel adapter (sendFn)
+  └─▶ delivery         Send response via channel adapter (createSender)
         ├─ success ──▶ message.sent
         └─ exhaust ──▶ event.blocked (DeliveryExhaustedError)</code></pre>
 
@@ -143,11 +143,10 @@
       <tr><th>Property</th><th>Type</th><th>Description</th></tr>
     </thead>
     <tbody>
-      <tr><td><code>ingress</code></td><td><code>ChannelIngress</code></td><td>The channel adapter that produced the incoming event</td></tr>
+      <tr><td><code>channelAdapter</code></td><td><code>ChannelAdapter</code></td><td>The channel adapter that canonicalizes input and creates senders for delivery</td></tr>
       <tr><td><code>resolveAgent</code></td><td><code>(name: string) =&gt; AgentAdapter</code></td><td>Resolves an agent adapter by name from the registry</td></tr>
       <tr><td><code>routeFn</code></td><td><code>(event) =&gt; string</code></td><td>Returns the agent name for a given event (from route rules)</td></tr>
       <tr><td><code>policyFn</code></td><td><code>(event) =&gt; PolicyResult</code></td><td>Evaluates governance rules; returns allow or deny with reason</td></tr>
-      <tr><td><code>sendFn</code></td><td><code>(event) =&gt; Promise&lt;void&gt;</code></td><td>Delivers the response back to the chat platform</td></tr>
       <tr><td><code>ledgerStore</code></td><td><code>LedgerStore</code></td><td>Where events are appended</td></tr>
       <tr><td><code>streaming</code></td><td><code>boolean</code></td><td>Whether to use streaming invocation when the agent supports it</td></tr>
     </tbody>
@@ -155,20 +154,20 @@
 
   <h2 id="streaming">Streaming</h2>
   <p>
-    When <code>streaming</code> is enabled and the agent adapter implements <code>invokeStreaming()</code>, the pipeline receives incremental deltas as the agent generates its response. Each delta can be forwarded to the chat platform in real time (e.g., updating a Slack message progressively).
+    When <code>streaming</code> is enabled and the agent adapter implements <code>stream()</code>, the pipeline receives incremental deltas as the agent generates its response. Each delta can be forwarded to the chat platform in real time (e.g., updating a Slack message progressively).
   </p>
   <p>The flow for streaming:</p>
   <ol>
-    <li>Pipeline calls <code>agent.invokeStreaming(event)</code></li>
-    <li>Agent yields deltas via an async iterable</li>
-    <li>Each delta is forwarded to the channel adapter's update mechanism</li>
-    <li>When the stream completes, the full response is captured in <code>agent.response.completed</code></li>
+    <li>Pipeline calls <code>agent.stream(context)</code></li>
+    <li>Agent yields <code>text_delta</code>, <code>status</code>, <code>input_required</code>, and <code>artifact</code> events via an async generator</li>
+    <li>Each event is forwarded to the channel adapter's update mechanism</li>
+    <li>When the generator returns, the full response is captured in <code>agent.response.completed</code></li>
     <li>Delivery proceeds with the final message</li>
   </ol>
 
   <div class="callout callout-info">
-    <strong>Streaming support by adapter</strong>
-    OpenAI, A2A, and LangGraph adapters support streaming natively. The HTTP adapter does not stream. ACP streams via stdout line buffering. If an agent does not support streaming, the pipeline falls back to <code>invoke()</code> automatically.
+    <strong>Streaming support</strong>
+    The A2A adapter supports streaming natively via SSE using the <code>message/stream</code> JSON-RPC method. If an agent does not support streaming, the pipeline falls back to <code>invoke()</code> automatically.
   </div>
 
   <h2 id="error-handling">Error Handling</h2>
@@ -195,16 +194,6 @@
   └─▶ agent.input.requested   ← agent pauses, asks for input
         └─▶ agent.input.provided   ← user provides input
               └─▶ agent.response.completed   ← agent resumes and completes</code></pre>
-
-  <h2 id="legacy-bridge">Legacy Bridge</h2>
-  <p>
-    Older <code>BackendAdapter</code> implementations (HTTP, OpenAI) can be wrapped with <code>legacyBridge()</code> to conform to the <code>AgentAdapter</code> interface. This allows them to work with the pipeline without modification:
-  </p>
-  <pre><code>import { legacyBridge } from '@chat-agent-relay/pipeline';
-import { OpenAIBackend } from '@chat-agent-relay/backend-openai';
-
-const openai = new OpenAIBackend({ apiKey: '...', model: 'gpt-4o' });
-const agent = legacyBridge(openai);</code></pre>
 
   <!-- Pagination -->
   <div class="doc-pagination">

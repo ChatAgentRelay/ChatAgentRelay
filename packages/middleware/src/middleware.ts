@@ -33,7 +33,7 @@ export class MiddlewarePipeline {
   ) {}
 
   static async create(config: MiddlewareConfig): Promise<MiddlewarePipeline> {
-    const validators = await ContractHarnessValidators.create();
+    const validators = await ContractHarnessValidators.getShared();
     return new MiddlewarePipeline(validators, config);
   }
 

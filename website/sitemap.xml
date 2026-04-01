@@ -6,11 +6,13 @@
   <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/slack.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/discord.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/webchat.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/telegram.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/lark.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/teams.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/whatsapp.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/dingtalk.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/docs/agents/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/docs/agents/a2a.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/docs/agents/langgraph.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/docs/agents/http.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
-  <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/docs/agents/acp.html</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/docs/configuration/</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
   <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/docs/configuration/routing.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
   <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/docs/configuration/storage.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
@@ -23,5 +25,9 @@
   <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/blog/introducing-chat-agent-relay/</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
   <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/blog/architecture-deep-dive/</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
   <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/blog/agent-compatibility-analysis/</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/blog/agent-adapter-capability-matrix/</loc><changefreq>yearly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/blog/one-protocol-a2a/</loc><changefreq>yearly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/blog/v1-road-to-production/</loc><changefreq>yearly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/blog/enterprise-governance-deep-dive/</loc><changefreq>yearly</changefreq><priority>0.6</priority></url>
   <url><loc>https://ChatAgentRelay.github.io/ChatAgentRelay/compare/diy/</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
 </urlset>

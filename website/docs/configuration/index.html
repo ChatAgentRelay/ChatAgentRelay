@@ -78,14 +78,14 @@
     <a href="/ChatAgentRelay/docs/channels/slack.html" class="sidebar-link">Slack</a>
     <a href="/ChatAgentRelay/docs/channels/discord.html" class="sidebar-link">Discord</a>
     <a href="/ChatAgentRelay/docs/channels/webchat.html" class="sidebar-link">WebChat</a>
+    <a href="/ChatAgentRelay/docs/channels/telegram.html" class="sidebar-link">Telegram</a>
+    <a href="/ChatAgentRelay/docs/channels/lark.html" class="sidebar-link">Lark / 飞书</a>
+    <a href="/ChatAgentRelay/docs/channels/dingtalk.html" class="sidebar-link">DingTalk / 钉钉</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Agents</span>
     <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
     <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
-    <a href="/ChatAgentRelay/docs/agents/langgraph.html" class="sidebar-link">LangGraph</a>
-    <a href="/ChatAgentRelay/docs/agents/http.html" class="sidebar-link">HTTP</a>
-    <a href="/ChatAgentRelay/docs/agents/acp.html" class="sidebar-link">ACP</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Configuration</span>
@@ -140,10 +140,10 @@
   <p>The server exposes the HTTP API on the configured port. Use <code>Ctrl+C</code> or send <code>SIGTERM</code> for graceful shutdown.</p>
 
   <h2 id="car-channel"><code>car channel</code></h2>
-  <p>Manage channel adapters (Slack, Discord, WebChat, etc.).</p>
+  <p>Manage channel adapters. All six types &mdash; <code>slack</code>, <code>discord</code>, <code>webchat</code>, <code>telegram</code>, <code>lark</code>, and <code>dingtalk</code> &mdash; are wired into the server runtime and registered via this CLI.</p>
 
   <h3 id="channel-add"><code>car channel add</code></h3>
-  <pre><code>car channel add &lt;name&gt; --type=&lt;slack|discord|webchat&gt; [options]
+  <pre><code>car channel add &lt;name&gt; --type=&lt;slack|discord|webchat|telegram|lark|dingtalk&gt; [options]
 
 # Examples
 car channel add my-slack --type=slack \
@@ -178,28 +178,17 @@ car channel disable &lt;name&gt;</code></pre>
   <pre><code>car channel remove &lt;name&gt;</code></pre>
 
   <h2 id="car-agent"><code>car agent</code></h2>
-  <p>Manage agent backends (A2A, LangGraph, HTTP, OpenAI, ACP).</p>
+  <p>Manage agent backends. All agents connect via the <strong>A2A protocol</strong> and are registered via this CLI.</p>
 
   <h3 id="agent-add"><code>car agent add</code></h3>
-  <pre><code>car agent add &lt;name&gt; --type=&lt;a2a|langgraph|http|openai|acp&gt; [options]
+  <pre><code>car agent add &lt;name&gt; --endpoint=&lt;url&gt; [options]
 
 # Examples
-car agent add primary --type=a2a \
+car agent add primary \
   --endpoint=http://localhost:8080/a2a
 
-car agent add coder --type=langgraph \
-  --endpoint=http://localhost:8123 \
-  --graph-id=agent --api-key=lsv2_...
-
-car agent add fallback --type=http \
-  --endpoint=http://localhost:9000/chat \
-  --response-field=result.text
-
-car agent add gpt --type=openai \
-  --api-key=sk-... --model=gpt-4o
-
-car agent add dev --type=acp \
-  --command="node agent.js"</code></pre>
+car agent add support \
+  --endpoint=http://agents.internal:9000</code></pre>
 
   <h3 id="agent-list"><code>car agent list</code></h3>
   <pre><code>car agent list
@@ -207,8 +196,7 @@ car agent add dev --type=acp \
 # Output:
 # NAME       TYPE        ENABLED
 # primary    a2a         true
-# coder      langgraph   true
-# fallback   http        true</code></pre>
+# support    a2a         true</code></pre>
 
   <h3 id="agent-show"><code>car agent show</code></h3>
   <pre><code>car agent show &lt;name&gt;</code></pre>
@@ -276,9 +264,9 @@ car config set log_level debug</code></pre>
 
   <!-- Pagination -->
   <div class="doc-pagination">
-    <a href="/ChatAgentRelay/docs/agents/acp.html" class="prev">
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="prev">
       <span class="label">Previous</span>
-      <span class="title">&larr; ACP</span>
+      <span class="title">&larr; A2A Protocol</span>
     </a>
     <a href="/ChatAgentRelay/docs/configuration/routing.html" class="next">
       <span class="label">Next</span>

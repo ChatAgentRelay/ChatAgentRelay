@@ -55,28 +55,29 @@ These documents SHOULD:
 
 The repository has a complete first executable path and hardened feature set:
 
-### Approved Package Set (16 packages)
+### Approved Package Set (17 packages)
 
-- `packages/contract-harness` — contract validation baseline (15 event types including `event.blocked`, `message.updated`, `message.deleted`, `reaction.received`, `command.received`, `agent.status.changed`, `agent.input.requested`, `agent.input.provided`) and `AgentAdapter` interface definitions
-- `packages/event-ledger` — in-memory and SQLite-backed durable append via `LedgerStore` interface, with `getByConversationId` and `getByCorrelationId`
-- `packages/channel-web-chat` — web chat ingress canonicalization + HTTP transport with CORS
+- `packages/contract-harness` — contract validation baseline (15 event types including `event.blocked`, `message.updated`, `message.deleted`, `reaction.received`, `command.received`, `agent.status.changed`, `agent.input.requested`, `agent.input.provided`), `ChannelAdapter` and `AgentAdapter` definitions, optional lifecycle contracts (`Shutdownable`, `Disconnectable`, `isShutdownable()`, `isDisconnectable()` in `lifecycle.ts`), and `AgentCapabilities` including `streaming`, `multiTurn`, `resume`, HITL, cancel, and artifacts; **`ContractHarnessValidators.getShared()`** caches the validator singleton for reuse across the process (avoids per-request schema compile)
+- `packages/event-ledger` — in-memory and SQLite-backed durable append via `LedgerStore` interface (`getByConversationId`, `getByCorrelationId`, `close()`)
+- `packages/channel-web-chat` — web chat ingress canonicalization + HTTP transport with CORS; `buildWebChatStreaming()` exported from the package for progressive WebChat updates
 - `packages/channel-slack` — Slack Socket Mode ingress, `chat.postMessage` delivery, `chat.update` for streaming, ack reaction, text chunking, mention gating, access policy, app_mention, edit/delete/reaction events, slash commands, Block Kit output
 - `packages/channel-discord` — Discord Gateway ingress, REST API delivery, slash commands, embeds, access control
+- `packages/channel-telegram` — Telegram Bot API webhook ingress, bot commands, progressive streaming via editMessageText; optional `apiBase` for non-default API roots
+- `packages/channel-lark` — Lark/飞书 event subscription ingress, auto token management, message editing for streaming; optional `apiBase` for regional or custom endpoints
+- `packages/channel-dingtalk` — DingTalk/钉钉 robot webhook callback ingress, session-based webhook reply
+- `packages/channel-teams` — Microsoft Teams ingress + sender, JWT webhook verification
+- `packages/channel-whatsapp` — WhatsApp Business Cloud API ingress + sender, HMAC-SHA256 verification, 24h session tracking
 - `packages/middleware` — policy (allow/deny via `policyFn`), configurable keyword/regex policy engine, routing, dispatch
-- `packages/backend-http` — configurable HTTP backend invocation with custom headers, request body builder, and response field extraction; exposes `asAgentAdapter()`
-- `packages/backend-openai` — OpenAI Chat Completions + SSE streaming; exposes `asAgentAdapter()`
-- `packages/backend-a2a` — A2A (Agent-to-Agent protocol) native `AgentAdapter` with streaming, HITL, and session management
-- `packages/backend-langgraph` — LangGraph Platform native `AgentAdapter` with streaming, thread-based sessions, and interrupt/resume
-- `packages/backend-acp` — ACP Agent Client Protocol adapter for coding agents via stdin/stdout subprocess
-- `packages/delivery` — delivery orchestration with retry (exponential backoff) and `DeliveryExhaustedError`
-- `packages/pipeline` — end-to-end orchestration with error paths (`event.blocked`), deny path, conversation context, streaming; resolves agents via `resolveAgent` and routes via `routeFn` (multi-agent)
+- `packages/backend-a2a` — A2A (Agent-to-Agent protocol) native AgentAdapter with streaming, HITL, and session management
+- `packages/delivery` — delivery orchestration with retry (exponential backoff) and `DeliveryExhaustedError`; `deliver(event, sender: ChannelSender)` (no public `SendFn`)
+- `packages/pipeline` — end-to-end orchestration with error paths (`event.blocked`), deny path, conversation context, and streaming; uses `AgentCapabilities.multiTurn` to gate ledger-backed conversation history and `AgentCapabilities.streaming` to gate streaming invocation; resolves agents via `resolveAgent` and routes via `routeFn` (multi-agent)
 - `packages/config-store` — `ConfigStore` interface with `SqliteConfigStore` default implementation, AES-256-GCM encryption for sensitive fields (tokens, API keys), `RouteEngine` for dynamic routing; interface-driven so users can swap in PostgreSQL or other backends
-- `packages/server` — runtime entry point: CLI (`car`) + HTTP API; SQLite config/ledger; hot-pluggable channel and agent registries; multi-agent routing from stored route rules; structured logging + graceful shutdown
-- `packages/adapter-conformance` — reusable conformance test suite for channel adapters, backend adapters, and agent adapters (`testAgentAdapter`)
+- `packages/server` — runtime entry point: CLI (`car`) + HTTP API; SQLite config/ledger; **eight built-in channel types** (Slack, Discord, WebChat, Telegram, Lark, DingTalk, Teams, WhatsApp) and **one standard agent protocol** (A2A) are wired via `channel-factories.ts` / `agent-factories.ts` and `registerFactory(type, factory)` (no adapter-specific imports inside the registry modules); teardown calls `disconnect()` / `shutdown()` when adapters implement `Disconnectable` / `Shutdownable`; multi-agent routing from stored route rules; structured logging + graceful shutdown
+- `packages/adapter-conformance` — reusable conformance test suite for channel adapters (`testChannelAdapter`), backend adapters, and agent adapters (`testAgentAdapter`)
 
 ### Test Coverage
 
-542 tests across 43 test files verify:
+692 tests across 51 test files verify:
 - contract compliance and schema validation
 - causal linkage and correlation propagation
 - error path (`event.blocked` on backend/delivery failure)
@@ -85,7 +86,16 @@ The repository has a complete first executable path and hardened feature set:
 - delivery retry and exhaustion
 - streaming delta handling
 - replay/query HTTP API
-- adapter conformance (all adapters pass: 3 channel + 5 backend/agent)
+- adapter conformance (built-in channel adapters and A2A)
+- tenant isolation enforcement
+- webhook signature verification (Slack, Teams, Telegram, Lark, DingTalk, WhatsApp)
+- idempotency framework
+- HITL pipeline flow
+- structured policy conditions
+- config hot-reload
+- rate limiting and access control
+- outbound governance
+- API authentication
 - configurable policy engine (keyword/regex rules)
 - WebChat HTTP transport with CORS
 - audit explanation API
@@ -97,7 +107,7 @@ The repository has a complete first executable path and hardened feature set:
 - mention gating
 - access policy (DM/channel modes)
 - AgentAdapter interface and conformance tests
-- A2A, LangGraph, and ACP agent adapter conformance
+- A2A agent adapter conformance
 - HITL signaling (agent.input.requested / agent.input.provided)
 - CLI + SQLite configuration (`ConfigStore` interface, `SqliteConfigStore` default, AES-256-GCM for secrets) replacing environment-variable-based config
 - multi-agent routing (several agents registered; route rules select the handler per message)
@@ -107,10 +117,10 @@ The repository has a complete first executable path and hardened feature set:
 Implementation structure preserves these boundaries:
 - canonical event model remains central
 - channel adapters remain transport-side boundaries
-- `AgentAdapter` (A2A-aligned) is the primary agent-side interface; HTTP and OpenAI backends expose `asAgentAdapter()` for integration
+- `AgentAdapter` (A2A-aligned) is the primary agent-side interface; all agents connect via the A2A protocol
 - ledger, replay, audit, and governance remain first-class concerns
 - runtime configuration lives in SQLite (`CAR_DB_PATH`, default `./car.db`); optional `CAR_ENCRYPTION_KEY` enables AES-256-GCM for sensitive fields
-- channels and agents are registered dynamically (`ChannelRegistry`, `AgentRegistry`); route rules determine which agent handles each message; pipeline accepts `resolveAgent` and `routeFn` instead of a single fixed backend
+- channels and agents are registered dynamically (`ChannelRegistry`, `AgentRegistry`) via factory registration; route rules determine which agent handles each message; pipeline accepts `resolveAgent` and `routeFn` instead of a single fixed backend
 - operators use the `car` CLI for config and process management, for example: `car channel add|list|remove`, `car agent add|list|remove`, `car route add|list|remove`, `car config set|get`, and `car start` (see `docs/getting-started.md`)
 
 ## Commit Workflow

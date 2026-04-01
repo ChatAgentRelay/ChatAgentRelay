@@ -79,6 +79,10 @@
     <h1>Introducing Chat Agent Relay &mdash; Open-Source Chat-to-Agent Middleware</h1>
     <p class="meta">March 2026 &middot; Launch post</p>
 
+    <div style="background:#d1ecf1;border:1px solid #bee5eb;border-radius:6px;padding:1rem 1.25rem;margin:1.5rem 0">
+      <strong>Update (April 2026):</strong> Since this launch post, CAR has grown significantly: 8 channel adapters (added Teams, WhatsApp), A2A as the sole agent protocol (removed OpenAI/HTTP/LangGraph/ACP adapters), enterprise governance (structured policies, rate limiting, outbound filtering), API authentication, tenant isolation, and 692 tests. See <a href="/ChatAgentRelay/blog/v1-road-to-production/" style="font-weight:600">From Prototype to Production</a> for the full journey.
+    </div>
+
     <h2 id="problem">The problem</h2>
     <p>
       Teams ship chat-to-agent flows as point-to-point integrations: a Slack webhook into custom code, then OpenAI, then the Slack API.

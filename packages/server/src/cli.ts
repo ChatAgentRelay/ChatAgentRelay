@@ -13,7 +13,22 @@ function getEncKey(): string | undefined {
 }
 
 function getApiPort(): number {
-  return Number(process.env["CAR_API_PORT"] ?? DEFAULT_API_PORT);
+  const envPort = process.env["CAR_API_PORT"];
+  if (envPort) return Number(envPort);
+
+  try {
+    const db = openDb();
+    try {
+      const dbPort = db.getSetting("api.port");
+      if (dbPort) return Number(dbPort);
+    } finally {
+      db.close();
+    }
+  } catch {
+    // DB might not exist yet
+  }
+
+  return DEFAULT_API_PORT;
 }
 
 function out(msg: string): void {
@@ -73,10 +88,19 @@ async function isServerRunning(port: number): Promise<boolean> {
   }
 }
 
+function getApiKey(): string | undefined {
+  return process.env["CAR_API_KEY"];
+}
+
 async function apiCall(port: number, method: string, path: string, body?: unknown): Promise<unknown> {
+  const headers: Record<string, string> = {};
+  if (body) headers["Content-Type"] = "application/json";
+  const key = getApiKey();
+  if (key) headers["Authorization"] = `Bearer ${key}`;
+
   const resp = await fetch(`http://localhost:${port}${path}`, {
     method,
-    headers: body ? { "Content-Type": "application/json" } : {},
+    headers,
     body: body ? JSON.stringify(body) : undefined,
     signal: AbortSignal.timeout(5000),
   });
@@ -95,10 +119,11 @@ function openDb(): SqliteConfigStore {
 
 async function channelAdd(positional: string[], flags: Record<string, string>): Promise<void> {
   const name = positional[2];
-  if (!name) { err("Usage: car channel add <name> --type=slack|discord|webchat [options]"); return; }
+  if (!name) { err("Usage: car channel add <name> --type=slack|discord|webchat|telegram|lark|dingtalk|teams|whatsapp [options]"); return; }
 
-  const type = (flags["type"] ?? await prompt("Channel type (slack/discord/webchat): ")) as ChannelType;
-  if (!["slack", "discord", "webchat"].includes(type)) { err(`Invalid type: ${type}`); return; }
+  const validChannelTypes = ["slack", "discord", "webchat", "telegram", "lark", "dingtalk", "teams", "whatsapp"];
+  const type = (flags["type"] ?? await prompt("Channel type (slack/discord/webchat/telegram/lark/dingtalk/teams/whatsapp): ")) as ChannelType;
+  if (!validChannelTypes.includes(type)) { err(`Invalid type: ${type}. Valid: ${validChannelTypes.join(", ")}`); return; }
 
   const config: Record<string, unknown> = {};
 
@@ -110,6 +135,34 @@ async function channelAdd(positional: string[], flags: Record<string, string>): 
     config["botToken"] = flags["bot-token"] ?? await prompt("Bot Token: ");
     if (!config["botToken"]) { err("Discord requires --bot-token"); return; }
     if (flags["guild-allowlist"]) config["guildAllowlist"] = flags["guild-allowlist"].split(",");
+  } else if (type === "telegram") {
+    config["botToken"] = flags["bot-token"] ?? await prompt("Bot Token: ");
+    const secretToken = flags["secret-token"] ?? await prompt("Secret Token (optional): ");
+    if (!config["botToken"]) { err("Telegram requires --bot-token"); return; }
+    if (secretToken) config["secretToken"] = secretToken;
+  } else if (type === "lark") {
+    config["appId"] = flags["app-id"] ?? await prompt("App ID: ");
+    config["appSecret"] = flags["app-secret"] ?? await prompt("App Secret: ");
+    const encryptKey = flags["encrypt-key"] ?? await prompt("Encrypt Key (optional): ");
+    if (!config["appId"] || !config["appSecret"]) { err("Lark requires --app-id and --app-secret"); return; }
+    if (encryptKey) config["encryptKey"] = encryptKey;
+  } else if (type === "teams") {
+    config["appId"] = flags["app-id"] ?? await prompt("App ID: ");
+    config["appSecret"] = flags["app-secret"] ?? await prompt("App Secret: ");
+    config["tenantId"] = flags["tenant-id"] ?? await prompt("Tenant ID: ");
+    if (!config["appId"] || !config["appSecret"] || !config["tenantId"]) {
+      err("Teams requires --app-id, --app-secret, and --tenant-id");
+      return;
+    }
+  } else if (type === "whatsapp") {
+    config["phoneNumberId"] = flags["phone-number-id"] ?? await prompt("Phone Number ID: ");
+    config["accessToken"] = flags["access-token"] ?? await prompt("Access Token: ");
+    config["verifyToken"] = flags["verify-token"] ?? await prompt("Webhook Verify Token (optional): ");
+    config["appSecret"] = flags["app-secret"] ?? await prompt("App Secret (optional): ");
+    if (!config["phoneNumberId"] || !config["accessToken"]) {
+      err("WhatsApp requires --phone-number-id and --access-token");
+      return;
+    }
   }
 
   const port = getApiPort();
@@ -130,8 +183,7 @@ async function channelList(): Promise<void> {
   let channels: Array<{ name: string; type: string; enabled: boolean }>;
 
   if (await isServerRunning(port)) {
-    const data = await apiCall(port, "GET", "/api/channels") as { channels: typeof channels };
-    channels = data.channels;
+    channels = await apiCall(port, "GET", "/api/channels") as typeof channels;
   } else {
     const db = openDb();
     try {
@@ -203,37 +255,13 @@ async function channelRemove(positional: string[]): Promise<void> {
 
 async function agentAdd(positional: string[], flags: Record<string, string>): Promise<void> {
   const name = positional[2];
-  if (!name) { err("Usage: car agent add <name> --type=a2a|langgraph|acp|http [options]"); return; }
+  if (!name) { err("Usage: car agent add <name> --endpoint=URL [options]"); return; }
 
-  const type = (flags["type"] ?? await prompt("Agent type (a2a/langgraph/acp/http): ")) as AgentType;
-  if (!["a2a", "langgraph", "acp", "http"].includes(type)) { err(`Invalid type: ${type}`); return; }
+  const type: AgentType = "a2a";
 
   const config: Record<string, unknown> = {};
-
-  switch (type) {
-    case "a2a":
-      config["endpoint"] = flags["endpoint"] ?? await prompt("A2A endpoint URL: ");
-      if (!config["endpoint"]) { err("A2A requires --endpoint"); return; }
-      break;
-    case "langgraph":
-      config["endpoint"] = flags["endpoint"] ?? await prompt("LangGraph endpoint URL: ");
-      if (!config["endpoint"]) { err("LangGraph requires --endpoint"); return; }
-      if (flags["assistant-id"]) config["assistantId"] = flags["assistant-id"];
-      if (flags["api-key"]) config["apiKey"] = flags["api-key"];
-      break;
-    case "acp":
-      config["command"] = flags["command"] ?? await prompt("Agent command (e.g. claude): ");
-      if (!config["command"]) { err("ACP requires --command"); return; }
-      if (flags["args"]) config["args"] = flags["args"].split(" ");
-      if (flags["work-dir"]) config["workDir"] = flags["work-dir"];
-      if (flags["permission-policy"]) config["permissionPolicy"] = flags["permission-policy"];
-      break;
-    case "http":
-      config["endpoint"] = flags["endpoint"] ?? await prompt("HTTP endpoint URL: ");
-      if (!config["endpoint"]) { err("HTTP requires --endpoint"); return; }
-      if (flags["response-field"]) config["responseTextField"] = flags["response-field"];
-      break;
-  }
+  config["endpoint"] = flags["endpoint"] ?? await prompt("A2A endpoint URL: ");
+  if (!config["endpoint"]) { err("Agent requires --endpoint"); return; }
 
   if (flags["timeout-ms"]) config["timeoutMs"] = Number(flags["timeout-ms"]);
 
@@ -255,8 +283,7 @@ async function agentList(): Promise<void> {
   let agents: Array<{ name: string; type: string; enabled: boolean }>;
 
   if (await isServerRunning(port)) {
-    const data = await apiCall(port, "GET", "/api/agents") as { agents: typeof agents };
-    agents = data.agents;
+    agents = await apiCall(port, "GET", "/api/agents") as typeof agents;
   } else {
     const db = openDb();
     try {
@@ -367,8 +394,7 @@ async function routeList(): Promise<void> {
   let routes: Array<{ id: number; priority: number; match_type: string; match_value: string | null; agent_name: string; enabled: boolean }>;
 
   if (await isServerRunning(port)) {
-    const data = await apiCall(port, "GET", "/api/routes") as { routes: typeof routes };
-    routes = data.routes;
+    routes = await apiCall(port, "GET", "/api/routes") as typeof routes;
   } else {
     const db = openDb();
     try {
@@ -380,6 +406,23 @@ async function routeList(): Promise<void> {
   out("ID   PRI  TYPE      MATCH              AGENT            ON");
   for (const r of routes) {
     out(`${String(r.id).padEnd(5)}${String(r.priority).padEnd(5)}${r.match_type.padEnd(10)}${(r.match_value ?? "-").padEnd(19)}${r.agent_name.padEnd(17)}${r.enabled ? "yes" : "no"}`);
+  }
+}
+
+async function routeToggle(positional: string[], enable: boolean): Promise<void> {
+  const id = Number(positional[2]);
+  if (!id) { err(`Usage: car route ${enable ? "enable" : "disable"} <id>`); return; }
+  const port = getApiPort();
+  if (await isServerRunning(port)) {
+    await apiCall(port, "POST", `/api/routes/${id}/${enable ? "enable" : "disable"}`);
+    ok(`${enable ? "Enabled" : "Disabled"} route ${id} (live)`);
+  } else {
+    const db = openDb();
+    try {
+      const updated = db.updateRouteEnabled(id, enable);
+      if (!updated) { err(`Route ${id} not found`); return; }
+      ok(`${enable ? "Enabled" : "Disabled"} route ${id}`);
+    } finally { db.close(); }
   }
 }
 
@@ -443,12 +486,12 @@ async function status(): Promise<void> {
       const health = await apiCall(port, "GET", "/api/health") as Record<string, unknown>;
       out(`Server: running (port ${port})`);
       out(`Uptime: ${health["uptime_seconds"]}s`);
-      const agents = await apiCall(port, "GET", "/api/agents") as { agents: Array<{ name: string; type: string; enabled: boolean }> };
-      out(`Agents: ${agents.agents.length}`);
-      for (const a of agents.agents) out(`  ${a.name} (${a.type}) ${a.enabled ? "✓" : "✗"}`);
-      const channels = await apiCall(port, "GET", "/api/channels") as { channels: Array<{ name: string; type: string; enabled: boolean }> };
-      out(`Channels: ${channels.channels.length}`);
-      for (const c of channels.channels) out(`  ${c.name} (${c.type}) ${c.enabled ? "✓" : "✗"}`);
+      const agents = await apiCall(port, "GET", "/api/agents") as Array<{ name: string; type: string; enabled: boolean }>;
+      out(`Agents: ${agents.length}`);
+      for (const a of agents) out(`  ${a.name} (${a.type}) ${a.enabled ? "✓" : "✗"}`);
+      const channels = await apiCall(port, "GET", "/api/channels") as Array<{ name: string; type: string; enabled: boolean }>;
+      out(`Channels: ${channels.length}`);
+      for (const c of channels) out(`  ${c.name} (${c.type}) ${c.enabled ? "✓" : "✗"}`);
     } catch (e) {
       err(`Failed to get status: ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -484,7 +527,7 @@ Commands:
   channel disable <name>             Disable a channel
   channel remove <name>              Remove a channel
 
-  agent add <name> --type=TYPE       Add an agent
+  agent add <name> --endpoint=URL    Add an A2A agent
   agent list                         List agents
   agent show <name>                  Show agent details
   agent enable <name>                Enable an agent
@@ -493,6 +536,8 @@ Commands:
 
   route add --agent=NAME [options]   Add a route rule
   route list                         List routes
+  route enable <id>                  Enable a route
+  route disable <id>                 Disable a route
   route remove <id>                  Remove a route
 
   config set <key> <value>           Set a configuration value
@@ -501,13 +546,19 @@ Commands:
 
   status                             Show server and config status
 
-Channel types: slack, discord, webchat
-Agent types:   a2a, langgraph, acp, http
+Channel types: slack, discord, webchat, telegram, lark, dingtalk, teams, whatsapp
+
+Agent type:    a2a (all agents connect via A2A protocol)
+
+Agent options:
+  --endpoint=URL       A2A agent endpoint (required)
+  --timeout-ms=N       Request timeout in milliseconds (optional)
 
 Environment:
   CAR_DB_PATH          SQLite database path (default: ./car.db)
   CAR_ENCRYPTION_KEY   Encryption key for sensitive fields
   CAR_API_PORT         API port for dual-mode detection (default: 3000)
+  CAR_API_KEY          API key for management endpoint authentication
 `);
 }
 
@@ -556,8 +607,10 @@ async function cliMain(): Promise<void> {
         switch (sub) {
           case "add": await routeAdd(flags); break;
           case "list": await routeList(); break;
+          case "enable": await routeToggle(positional, true); break;
+          case "disable": await routeToggle(positional, false); break;
           case "remove": await routeRemove(positional); break;
-          default: err("Usage: car route add|list|remove"); break;
+          default: err("Usage: car route add|list|enable|disable|remove"); break;
         }
         break;
       case "config":

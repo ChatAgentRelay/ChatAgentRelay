@@ -1,4 +1,4 @@
-import type { HealthStatus, LedgerStore, StoredCanonicalEvent } from "./types";
+import type { HealthStatus, LedgerStore, StoredCanonicalEvent, TenantScope } from "./types";
 
 function cloneEvent(event: StoredCanonicalEvent): StoredCanonicalEvent {
   return structuredClone(event);
@@ -21,24 +21,29 @@ export class InMemoryEventLedgerStore implements LedgerStore {
     return undefined;
   }
 
-  getById(eventId: string): StoredCanonicalEvent | undefined {
+  getById(eventId: string, scope?: TenantScope): StoredCanonicalEvent | undefined {
     const event = this.eventsById.get(eventId);
-    return event ? cloneEvent(event) : undefined;
+    if (!event) return undefined;
+    if (scope?.tenantId && event.tenant_id !== scope.tenantId) return undefined;
+    return cloneEvent(event);
   }
 
-  getAll(): StoredCanonicalEvent[] {
-    return this.orderedEventIds
+  getAll(scope?: TenantScope): StoredCanonicalEvent[] {
+    let events = this.orderedEventIds
       .map((eventId) => this.eventsById.get(eventId))
-      .filter((event): event is StoredCanonicalEvent => event !== undefined)
-      .map(cloneEvent);
+      .filter((event): event is StoredCanonicalEvent => event !== undefined);
+    if (scope?.tenantId) {
+      events = events.filter((event) => event.tenant_id === scope.tenantId);
+    }
+    return events.map(cloneEvent);
   }
 
-  getByConversationId(conversationId: string): StoredCanonicalEvent[] {
-    return this.getAll().filter((event) => event.conversation_id === conversationId);
+  getByConversationId(conversationId: string, scope?: TenantScope): StoredCanonicalEvent[] {
+    return this.getAll(scope).filter((event) => event.conversation_id === conversationId);
   }
 
-  getByCorrelationId(correlationId: string): StoredCanonicalEvent[] {
-    return this.getAll().filter((event) => event.correlation_id === correlationId);
+  getByCorrelationId(correlationId: string, scope?: TenantScope): StoredCanonicalEvent[] {
+    return this.getAll(scope).filter((event) => event.correlation_id === correlationId);
   }
 
   healthCheck(): HealthStatus {
@@ -47,5 +52,10 @@ export class InMemoryEventLedgerStore implements LedgerStore {
       event_count: this.orderedEventIds.length,
       backend: "in-memory",
     };
+  }
+
+  close(): void {
+    this.eventsById.clear();
+    this.orderedEventIds.length = 0;
   }
 }

@@ -78,14 +78,14 @@
     <a href="/ChatAgentRelay/docs/channels/slack.html" class="sidebar-link">Slack</a>
     <a href="/ChatAgentRelay/docs/channels/discord.html" class="sidebar-link">Discord</a>
     <a href="/ChatAgentRelay/docs/channels/webchat.html" class="sidebar-link">WebChat</a>
+    <a href="/ChatAgentRelay/docs/channels/telegram.html" class="sidebar-link">Telegram</a>
+    <a href="/ChatAgentRelay/docs/channels/lark.html" class="sidebar-link">Lark / 飞书</a>
+    <a href="/ChatAgentRelay/docs/channels/dingtalk.html" class="sidebar-link">DingTalk / 钉钉</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Agents</span>
     <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
     <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
-    <a href="/ChatAgentRelay/docs/agents/langgraph.html" class="sidebar-link">LangGraph</a>
-    <a href="/ChatAgentRelay/docs/agents/http.html" class="sidebar-link">HTTP</a>
-    <a href="/ChatAgentRelay/docs/agents/acp.html" class="sidebar-link">ACP</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Configuration</span>
@@ -190,8 +190,7 @@
   <p><strong>Response</strong> <code>200 OK</code></p>
   <pre><code>[
   { "name": "primary", "type": "a2a", "enabled": true },
-  { "name": "coder", "type": "langgraph", "enabled": true },
-  { "name": "fallback", "type": "http", "enabled": false }
+  { "name": "helper", "type": "a2a", "enabled": false }
 ]</code></pre>
 
   <h3 id="post-agents"><span class="badge badge-blue">POST</span> <code>/api/agents</code></h3>
@@ -200,21 +199,20 @@
   -H "Content-Type: application/json" \
   -d '{
     "name": "support",
-    "type": "openai",
+    "type": "a2a",
     "config": {
-      "api_key": "sk-...",
-      "model": "gpt-4o"
+      "endpoint": "http://localhost:9000"
     }
   }'</code></pre>
   <p><strong>Response</strong> <code>201 Created</code></p>
-  <pre><code>{ "name": "support", "type": "openai", "enabled": true }</code></pre>
+  <pre><code>{ "name": "support", "type": "a2a", "enabled": true }</code></pre>
 
   <h3 id="put-agent"><span class="badge badge-purple">PUT</span> <code>/api/agents/:name</code></h3>
   <p>Update an existing agent&rsquo;s configuration.</p>
   <pre><code>curl -X PUT http://localhost:3000/api/agents/support \
   -H "Content-Type: application/json" \
   -d '{
-    "config": { "model": "gpt-4o-mini" }
+    "config": { "timeoutMs": 60000 }
   }'</code></pre>
   <p><strong>Response</strong> <code>200 OK</code></p>
 
@@ -225,12 +223,12 @@
 
   <h3 id="post-agent-enable"><span class="badge badge-blue">POST</span> <code>/api/agents/:name/enable</code></h3>
   <p>Enable a disabled agent.</p>
-  <pre><code>curl -X POST http://localhost:3000/api/agents/fallback/enable</code></pre>
+  <pre><code>curl -X POST http://localhost:3000/api/agents/helper/enable</code></pre>
   <p><strong>Response</strong> <code>200 OK</code></p>
 
   <h3 id="post-agent-disable"><span class="badge badge-blue">POST</span> <code>/api/agents/:name/disable</code></h3>
   <p>Disable an agent without removing it.</p>
-  <pre><code>curl -X POST http://localhost:3000/api/agents/fallback/disable</code></pre>
+  <pre><code>curl -X POST http://localhost:3000/api/agents/helper/disable</code></pre>
   <p><strong>Response</strong> <code>200 OK</code></p>
 
   <!-- ── Channels ────────────────────────────────────────── -->

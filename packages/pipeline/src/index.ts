@@ -1,6 +1,6 @@
 export { FirstExecutablePathPipeline } from "./pipeline";
 export type {
-  ChannelIngress,
+  ChannelAdapter,
   PipelineConfig,
   PipelineResult,
   RouteDecision,
