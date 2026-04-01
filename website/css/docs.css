@@ -118,10 +118,12 @@
   border-radius: var(--radius);
   padding: 16px 20px;
   overflow-x: auto;
+  overflow-y: hidden;
   margin-bottom: 20px;
   font-family: var(--mono);
   font-size: 13px;
   line-height: 1.6;
+  white-space: pre;
 }
 
 .doc-content code {

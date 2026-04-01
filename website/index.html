@@ -99,8 +99,7 @@
         <span class="terminal-dot green"></span>
         <span class="terminal-title">terminal</span>
       </div>
-      <div class="terminal-body">
-<span class="prompt-char">$</span> <span class="cmd">git clone https://github.com/ChatAgentRelay/ChatAgentRelay && cd ChatAgentRelay</span>
+      <div class="terminal-body"><pre><span class="prompt-char">$</span> <span class="cmd">git clone https://github.com/ChatAgentRelay/ChatAgentRelay &amp;&amp; cd ChatAgentRelay</span>
 <span class="prompt-char">$</span> <span class="cmd">bun install</span>
 <span class="output">installed workspace packages</span>
 <span class="prompt-char">$</span> <span class="cmd">cd packages/server &amp;&amp; export CAR_ENCRYPTION_KEY=$(openssl rand -hex 32)</span>
@@ -108,8 +107,7 @@
 <span class="prompt-char">$</span> <span class="cmd">car agent add bot --type=a2a --endpoint=http://localhost:9000 &amp;&amp; car route add --default --agent=bot</span>
 <span class="prompt-char">$</span> <span class="cmd">car start</span>
 <span class="output">[car] Slack connected &middot; Agent ready &middot; API on :3000</span>
-<span class="output">[car] Listening for messages...</span>
-      </div>
+<span class="output">[car] Listening for messages...</span></pre></div>
     </div>
   </div>
 </section>

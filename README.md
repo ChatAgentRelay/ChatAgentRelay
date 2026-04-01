@@ -16,15 +16,15 @@ You built an agent. It works. Now your PM says "put it in Slack." Then legal say
 **Chat Agent Relay (CAR) is that plumbing, done once, so you never build it again.**
 
 ```
-                      Chat Agent Relay
+                        Chat Agent Relay
 Slack     ─┐                                              ┌─ Your A2A agent
 Teams     ─┤                                              ├─ CrewAI / LangGraph
 Discord   ─┤→ [Access Control] → [Policy] → [Route]      ├─ Google ADK
-Telegram  ─┤       ↓                ↓           ↓         ├─ AutoGen / Mastra
-WhatsApp  ─┤  [Rate Limit]   [Outbound Gov]  [Invoke] ──→├─ Any A2A-compatible
-Lark      ─┤       ↓                                      └─   agent runtime
-DingTalk  ─┤
-WebChat   ─┘  [7-Event Audit Ledger]
+Telegram  ─┤      ↓                ↓          ↓           ├─ AutoGen / Mastra
+WhatsApp  ─┤  [Rate Limit]   [Outbound Gov]  [Invoke] ───→├─ Any A2A-compatible
+Lark      ─┤      ↓                                       ├─ agent runtime
+DingTalk  ─┤                                              │
+WebChat   ─┘  [7-Event Audit Ledger]                      │
 ```
 
 ## The Problem
@@ -72,13 +72,13 @@ bun install && bun test --recursive    # ~692 tests across 51 files
 Every message produces an immutable event chain — no exceptions, no hidden state:
 
 ```
-message.received           → user's message, canonicalized from any platform
-  policy.decision.made     → allow or deny (configurable rules)
-  route.decision.made      → which agent handles this
+message.received            → user's message, canonicalized from any platform
+  policy.decision.made      → allow or deny (configurable rules)
+  route.decision.made       → which agent handles this
   agent.invocation.requested → dispatch to your agent
-  agent.response.completed → agent's reply captured
-  message.send.requested   → queued for delivery with retry
-  message.sent             → delivered to user's chat platform
+  agent.response.completed  → agent's reply captured
+  message.send.requested    → queued for delivery with retry
+  message.sent              → delivered to user's chat platform
 ```
 
 If anything fails, `event.blocked` records what went wrong, at which stage, and why. The ledger is your single source of truth.

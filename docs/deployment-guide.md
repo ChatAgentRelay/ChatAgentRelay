@@ -110,35 +110,35 @@ CAR does not terminate TLS. Use a reverse proxy in front.
 
 ```nginx
 upstream car_backend {
-    server 127.0.0.1:3000;
-    keepalive 32;
+  server 127.0.0.1:3000;
+  keepalive 32;
 }
 
 server {
-    listen 443 ssl http2;
-    server_name car.example.com;
+  listen 443 ssl http2;
+  server_name car.example.com;
 
-    ssl_certificate     /etc/ssl/certs/car.example.com.pem;
-    ssl_certificate_key /etc/ssl/private/car.example.com.key;
+  ssl_certificate     /etc/ssl/certs/car.example.com.pem;
+  ssl_certificate_key /etc/ssl/private/car.example.com.key;
 
-    location / {
-        proxy_pass http://car_backend;
-        proxy_http_version 1.1;
+  location / {
+    proxy_pass http://car_backend;
+    proxy_http_version 1.1;
 
-        proxy_set_header Host              $host;
-        proxy_set_header X-Real-IP         $remote_addr;
-        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Host              $host;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
 
-        # SSE streaming support
-        proxy_set_header Connection '';
-        proxy_buffering off;
-        proxy_cache off;
+    # SSE streaming support
+    proxy_set_header Connection '';
+    proxy_buffering off;
+    proxy_cache off;
 
-        # Long timeout for agent invocations
-        proxy_read_timeout 300s;
-        proxy_send_timeout 300s;
-    }
+    # Long timeout for agent invocations
+    proxy_read_timeout 300s;
+    proxy_send_timeout 300s;
+  }
 }
 ```
 

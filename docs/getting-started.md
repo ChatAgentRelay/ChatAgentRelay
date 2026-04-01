@@ -148,13 +148,13 @@ curl http://localhost:3000/api/conversations/<conversation_id>/events
 Every message produces a seven-event chain in the ledger:
 
 ```
-message.received          — user's message canonicalized from Slack
-  → policy.decision.made  — governance decision (allow/deny)
-  → route.decision.made   — which agent handles this (multi-agent routing)
+message.received             — user's message canonicalized from Slack
+  → policy.decision.made     — governance decision (allow/deny)
+  → route.decision.made      — which agent handles this (multi-agent routing)
   → agent.invocation.requested — dispatch to backend
-  → agent.response.completed  — agent's reply
-  → message.send.requested    — outbound delivery queued
-  → message.sent              — delivered to Slack
+  → agent.response.completed — agent's reply
+  → message.send.requested   — outbound delivery queued
+  → message.sent             — delivered to Slack
 ```
 
 If something fails, an `event.blocked` event is appended instead, recording the failure stage and reason.
