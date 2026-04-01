@@ -126,6 +126,25 @@
       </a>
     </div>
 
+    <h2 id="framework-paths">Framework integration paths</h2>
+    <p>Most teams arrive here with a framework, not just a raw endpoint. The practical rule is simple: if the framework can expose an A2A server, CAR can route to it directly.</p>
+    <table>
+      <thead>
+        <tr><th>Framework</th><th>Integration path</th><th>CAR status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>LangGraph</code></td><td>Expose the graph through LangGraph Platform or an A2A-compatible deployment endpoint, then register that URL with <code>car agent add</code>.</td><td>Full</td></tr>
+        <tr><td><code>LangChain</code></td><td>Deploy through LangGraph&rsquo;s A2A path, then connect CAR to the resulting A2A endpoint.</td><td>Full</td></tr>
+        <tr><td><code>CrewAI</code></td><td>Use CrewAI&rsquo;s native <code>crewai.a2a</code> support and point CAR at the exposed A2A server.</td><td>Full</td></tr>
+        <tr><td><code>AutoGen / AG2</code></td><td>Run an <code>A2aRemoteAgent</code> or equivalent A2A server and register it in CAR.</td><td>Full</td></tr>
+        <tr><td><code>Google ADK</code></td><td>Export the agent with <code>to_a2a()</code> and use that HTTP endpoint in CAR.</td><td>Full</td></tr>
+        <tr><td><code>Mastra</code></td><td>Expose Mastra via its A2A implementation and route CAR traffic to that endpoint.</td><td>Full</td></tr>
+        <tr><td><code>Semantic Kernel / MS Agent Framework</code></td><td>Use the framework&rsquo;s native A2A integration and connect the published endpoint.</td><td>Full</td></tr>
+        <tr><td><code>OpenAI Agents SDK</code>, <code>Flowise</code>, <code>Haystack</code></td><td>Add a thin A2A wrapper in front of the runtime, then register the wrapper endpoint in CAR.</td><td>Wrappable</td></tr>
+      </tbody>
+    </table>
+    <p>For a broader ecosystem map, see <code>docs/agent-framework-coverage.md</code> in the repository and the dedicated <a href="/ChatAgentRelay/docs/agents/a2a.html">A2A Protocol</a> page.</p>
+
     <h2 id="capabilities">A2A capabilities</h2>
     <table>
       <thead>
@@ -216,13 +235,6 @@
   </div>
 </footer>
 
-<script>
-  document.querySelector('.nav-toggle').addEventListener('click', function () {
-    document.querySelector('.nav-links').classList.toggle('open');
-  });
-  document.querySelector('.sidebar-toggle').addEventListener('click', function () {
-    document.querySelector('.doc-sidebar').classList.toggle('open');
-  });
-</script>
+<script src="../../js/main.js"></script>
 </body>
 </html>

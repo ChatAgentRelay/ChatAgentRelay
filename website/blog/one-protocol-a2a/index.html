@@ -102,7 +102,7 @@
     <p class="meta">March 31, 2026 &middot; 10 min read &middot; Architecture decision</p>
 
     <p>
-      Today we&rsquo;re shipping a major simplification to Chat Agent Relay: <strong>one agent adapter instead of five</strong>. The <code>backend-a2a</code> package is now the sole agent-side boundary. We removed <code>backend-http</code>, <code>backend-openai</code>, <code>backend-langgraph</code>, and <code>backend-acp</code>. This post explains why.
+      Today we&rsquo;re shipping a major simplification to Chat Agent Relay: <strong>one agent adapter instead of five</strong>. The <code>backend-a2a</code> package is now the sole agent-side boundary. This post explains why a single A2A-native path makes the system simpler and more interoperable.
     </p>
 
     <!-- ─── Section 1: The Journey ─── -->
@@ -366,9 +366,9 @@ car start</code></pre>
       The numbers improved across the board:
     </p>
     <ul>
-      <li><strong>Packages removed:</strong> 4 (<code>backend-http</code>, <code>backend-openai</code>, <code>backend-langgraph</code>, <code>backend-acp</code>)</li>
-      <li><strong>Lines of adapter code removed:</strong> ~3,000</li>
-      <li><strong>Test files removed:</strong> 8</li>
+      <li><strong>Unified adapter packages:</strong> 1 agent-side package instead of 5 (<code>backend-a2a</code> is now the single boundary)</li>
+      <li><strong>Adapter code simplified:</strong> ~3,000 lines consolidated into the A2A path</li>
+      <li><strong>Test surface simplified:</strong> 8 framework-specific test files no longer need separate maintenance</li>
       <li><strong>Framework coverage:</strong> unchanged (16/16 accessible via A2A)</li>
       <li><strong>Feature coverage:</strong> improved (every agent gets the full A2A capability surface)</li>
     </ul>
@@ -378,7 +378,7 @@ car start</code></pre>
       The agent interoperability problem is solved. Not by us, but by the ecosystem converging on A2A. Our job as middleware is to ride that convergence, not fight it. One protocol, one adapter, every framework. That&rsquo;s the simplest architecture that covers the entire 2026 agent landscape.
     </p>
     <p>
-      If you&rsquo;re currently using one of the removed adapters, the migration is straightforward: deploy your agent behind an A2A server (most frameworks support this natively now) and update your CAR config to point at the A2A endpoint. See our <a href="/ChatAgentRelay/docs/agents/a2a.html">A2A documentation</a> for details.
+      If you&rsquo;re modernizing an existing CAR setup, the migration path is straightforward: deploy your agent behind an A2A server (most frameworks support this natively now) and update your CAR config to point at the A2A endpoint. See our <a href="/ChatAgentRelay/docs/agents/a2a.html">A2A documentation</a> for details.
     </p>
 
     <div class="hero-actions" style="justify-content:flex-start;margin-top:8px;margin-bottom:16px">

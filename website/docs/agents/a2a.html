@@ -113,10 +113,11 @@
 
     <h2 id="what-is-a2a">What is A2A?</h2>
     <p>A2A is an open protocol by Google for agent interoperability. It defines a standard HTTP+JSON interface for sending tasks to agents and receiving structured responses, including streaming updates, artifact delivery, and human-in-the-loop signaling.</p>
-    <p>Chat Agent Relay&rsquo;s <code>backend-a2a</code> package is a native <code>AgentAdapter</code> implementation &mdash; no legacy bridge required. It speaks A2A natively and maps every protocol feature into CAR&rsquo;s canonical event model.</p>
+    <p>Chat Agent Relay&rsquo;s <code>backend-a2a</code> package is a native <code>AgentAdapter</code> implementation. It speaks A2A directly and maps every protocol feature into CAR&rsquo;s canonical event model.</p>
 
     <h2 id="register">Register an A2A agent</h2>
     <p>Use the <code>car</code> CLI to add an A2A agent:</p>
+    <p>Typical framework paths are straightforward: <strong>CrewAI</strong> via native <code>crewai.a2a</code>, <strong>Google ADK</strong> via <code>to_a2a()</code>, <strong>AutoGen / AG2</strong> via <code>A2aRemoteAgent</code>, <strong>Mastra</strong> via its A2A server, and <strong>LangGraph / LangChain</strong> by deploying through an A2A-compatible LangGraph endpoint. CAR treats them all the same once they expose A2A over HTTP.</p>
     <pre><code>car agent add my-a2a --type=a2a --endpoint=http://localhost:9000</code></pre>
     <p>Then route messages to it:</p>
     <pre><code>car route add --default --agent=my-a2a</code></pre>
@@ -232,13 +233,6 @@ car start</code></pre>
   </div>
 </footer>
 
-<script>
-  document.querySelector('.nav-toggle').addEventListener('click', function () {
-    document.querySelector('.nav-links').classList.toggle('open');
-  });
-  document.querySelector('.sidebar-toggle').addEventListener('click', function () {
-    document.querySelector('.doc-sidebar').classList.toggle('open');
-  });
-</script>
+<script src="../../js/main.js"></script>
 </body>
 </html>

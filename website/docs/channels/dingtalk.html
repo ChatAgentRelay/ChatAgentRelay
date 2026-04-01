@@ -145,7 +145,7 @@
       <tr><th>Option</th><th>CLI flag</th><th>Required</th><th>Description</th></tr>
     </thead>
     <tbody>
-      <tr><td><code>webhookUrl</code></td><td><code>--webhook-url</code></td><td>No</td><td>Permanent webhook URL for the robot (fallback when sessionWebhook expires)</td></tr>
+      <tr><td><code>webhookUrl</code></td><td><code>--webhook-url</code></td><td>No</td><td>Permanent webhook URL for the robot, used when DingTalk returns a refreshed <code>sessionWebhook</code> later in the conversation</td></tr>
       <tr><td><code>secret</code></td><td><code>--secret</code></td><td>No</td><td>HMAC-SHA256 signing secret for signature verification</td></tr>
     </tbody>
   </table>
@@ -183,7 +183,8 @@
 
 </div>
 
-<button class="sidebar-toggle" onclick="document.querySelector('.doc-sidebar').classList.toggle('open')">&#9776;</button>
+<button class="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
 
+<script src="../../js/main.js"></script>
 </body>
 </html>

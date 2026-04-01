@@ -71,7 +71,110 @@
     });
   });
 
-  /* Copy to clipboard for code blocks */
+  /* Docs and mobile sidebar toggle */
+  var sidebarToggle = document.querySelector(".sidebar-toggle");
+  var sidebar = document.querySelector(".doc-sidebar");
+  if (sidebarToggle && sidebar) {
+    sidebarToggle.addEventListener("click", function () {
+      sidebar.classList.toggle("open");
+    });
+  }
+
+  function escapeHtml(text) {
+    return text
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  }
+
+  function detectLanguage(text) {
+    if (/^(curl|car|git|bun|cd |export |npm |yarn |pnpm )/m.test(text) || /\s\\$/m.test(text)) return "bash";
+    if (/^(rules:|\s+-\s+action:|[A-Za-z0-9_-]+:\s)/m.test(text) && /:\s/m.test(text) && !/[{};]/.test(text)) return "yaml";
+    if (/^\s*[\[{]/.test(text) || /"[A-Za-z0-9_\-.]+"\s*:/m.test(text)) return "json";
+    if (/^(upstream|server|location|proxy_set_header|listen)\b/m.test(text)) return "nginx";
+    if (/(interface|const|let|import |export |async |Promise<)/.test(text)) return "typescript";
+    return "text";
+  }
+
+  function highlightCode(text, language) {
+    var html = escapeHtml(text);
+
+    if (language === "bash") {
+      html = html.replace(/^(#.*)$/gm, '<span class="code-token-comment">$1</span>');
+      html = html.replace(/^(\$\s*)?([a-z][\w:-]*)/gim, function (match, prompt, command) {
+        return (prompt || "") + '<span class="code-token-command">' + command + '</span>';
+      });
+      html = html.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="code-token-string">$1</span>');
+      return html;
+    }
+
+    if (language === "json") {
+      html = html.replace(/("(?:[^"\\]|\\.)*")\s*:/g, '<span class="code-token-key">$1</span>:');
+      html = html.replace(/:\s*("(?:[^"\\]|\\.)*")/g, ': <span class="code-token-string">$1</span>');
+      html = html.replace(/:\s*(-?\d+(?:\.\d+)?)/g, ': <span class="code-token-number">$1</span>');
+      html = html.replace(/:\s*(true|false|null)/g, ': <span class="code-token-keyword">$1</span>');
+      return html;
+    }
+
+    if (language === "yaml") {
+      html = html.replace(/^(\s*#.*)$/gm, '<span class="code-token-comment">$1</span>');
+      html = html.replace(/^(\s*)([A-Za-z0-9_.-]+:)/gm, '$1<span class="code-token-key">$2</span>');
+      html = html.replace(/:\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, ': <span class="code-token-string">$1</span>');
+      html = html.replace(/:\s*(-?\d+(?:\.\d+)?|true|false|null)/g, ': <span class="code-token-number">$1</span>');
+      return html;
+    }
+
+    if (language === "nginx") {
+      html = html.replace(/^(\s*#.*)$/gm, '<span class="code-token-comment">$1</span>');
+      html = html.replace(/^(\s*)(upstream|server|location)\b/gm, '$1<span class="code-token-keyword">$2</span>');
+      html = html.replace(/^(\s*)([a-z_]+)\b/gm, '$1<span class="code-token-directive">$2</span>');
+      html = html.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="code-token-string">$1</span>');
+      return html;
+    }
+
+    if (language === "typescript") {
+      html = html.replace(/\b(interface|type|const|let|import|from|export|async|await|return|if)\b/g, '<span class="code-token-keyword">$1</span>');
+      html = html.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="code-token-string">$1</span>');
+      html = html.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="code-token-number">$1</span>');
+      return html;
+    }
+
+    return html;
+  }
+
+  function addCopyButton(pre, text) {
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "code-copy-button";
+    button.textContent = "Copy";
+    button.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      navigator.clipboard.writeText(text).then(function () {
+        button.textContent = "Copied!";
+        button.classList.add("copied");
+        setTimeout(function () {
+          button.textContent = "Copy";
+          button.classList.remove("copied");
+        }, 1500);
+        trackEvent("code_copy", { snippet: text.substring(0, 50) });
+      });
+    });
+    pre.appendChild(button);
+  }
+
+  document.querySelectorAll(".doc-content pre code, .article pre code").forEach(function (block) {
+    var pre = block.parentElement;
+    if (!pre) return;
+    var text = block.textContent.replace(/\s+$/, "");
+    var language = detectLanguage(text);
+    pre.classList.add("code-block");
+    pre.setAttribute("data-language", language);
+    block.innerHTML = highlightCode(text, language);
+    addCopyButton(pre, text);
+  });
+
+  /* Copy to clipboard for terminal blocks */
   document.querySelectorAll(".terminal").forEach(function (term) {
     term.style.cursor = "pointer";
     term.title = "Click to copy";

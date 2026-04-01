@@ -154,8 +154,10 @@ bun install</code></pre>
           <div class="card-desc">Google&rsquo;s Agent-to-Agent protocol with streaming, HITL, sessions, and artifacts.</div>
         </a>
       </div>
+      <p>Common integration paths include <strong>CrewAI</strong>, <strong>LangGraph / LangChain</strong>, <strong>Google ADK</strong>, <strong>AutoGen / AG2</strong>, and <strong>Mastra</strong> &mdash; all by exposing an A2A endpoint and registering it in CAR. If your framework does not speak A2A yet, put a thin A2A wrapper in front of it and connect CAR to that wrapper.</p>
       <p>Point CAR at your agent&rsquo;s A2A endpoint:</p>
       <pre><code>car agent add my-bot --endpoint=http://localhost:8080</code></pre>
+      <p>Then follow the dedicated agents docs for framework-specific paths and capabilities.</p>
     </div>
 
     <div class="step">
@@ -201,7 +203,8 @@ bun install</code></pre>
 
 </div>
 
-<button class="sidebar-toggle" onclick="document.querySelector('.doc-sidebar').classList.toggle('open')">&#9776;</button>
+<button class="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
 
+<script src="../js/main.js"></script>
 </body>
 </html>

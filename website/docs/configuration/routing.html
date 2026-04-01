@@ -124,7 +124,7 @@
     <tbody>
       <tr><td>1 (highest)</td><td><code>channel</code></td><td>Specific channel name</td><td><code>--channel=support-discord</code></td></tr>
       <tr><td>2</td><td><code>pattern</code></td><td>Regex against message text</td><td><code>--pattern="^/code"</code></td></tr>
-      <tr><td>3 (lowest)</td><td><code>default</code></td><td>Everything else (fallback)</td><td><code>--default</code></td></tr>
+      <tr><td>3 (lowest)</td><td><code>default</code></td><td>Everything else (catch-all route)</td><td><code>--default</code></td></tr>
     </tbody>
   </table>
   <p>
@@ -223,10 +223,6 @@ curl -X DELETE http://localhost:3000/api/routes/2</code></pre>
   </div>
 </footer>
 
-<script>
-document.querySelector('.sidebar-toggle')?.addEventListener('click', () => {
-  document.querySelector('.doc-sidebar')?.classList.toggle('open');
-});
-</script>
+<script src="../../js/main.js"></script>
 </body>
 </html>
