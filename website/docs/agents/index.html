@@ -126,24 +126,59 @@
       </a>
     </div>
 
-    <h2 id="framework-paths">Framework integration paths</h2>
-    <p>Most teams arrive here with a framework, not just a raw endpoint. The practical rule is simple: if the framework can expose an A2A server, CAR can route to it directly.</p>
+    <h2 id="framework-paths">Framework and tool integration paths</h2>
+    <p>Most teams arrive here with a framework, SDK, or coding tool rather than a raw A2A URL. The practical rule is simple: if the runtime exposes an A2A server directly, or can sit behind a small A2A bridge, CAR can route to it through the same <code>car agent add --endpoint=...</code> flow.</p>
+
+    <h3 id="native-frameworks">Native A2A frameworks</h3>
     <table>
       <thead>
-        <tr><th>Framework</th><th>Integration path</th><th>CAR status</th></tr>
+        <tr><th>Framework</th><th>Integration path</th><th>What CAR sees</th></tr>
       </thead>
       <tbody>
-        <tr><td><code>LangGraph</code></td><td>Expose the graph through LangGraph Platform or an A2A-compatible deployment endpoint, then register that URL with <code>car agent add</code>.</td><td>Full</td></tr>
-        <tr><td><code>LangChain</code></td><td>Deploy through LangGraph&rsquo;s A2A path, then connect CAR to the resulting A2A endpoint.</td><td>Full</td></tr>
-        <tr><td><code>CrewAI</code></td><td>Use CrewAI&rsquo;s native <code>crewai.a2a</code> support and point CAR at the exposed A2A server.</td><td>Full</td></tr>
-        <tr><td><code>AutoGen / AG2</code></td><td>Run an <code>A2aRemoteAgent</code> or equivalent A2A server and register it in CAR.</td><td>Full</td></tr>
-        <tr><td><code>Google ADK</code></td><td>Export the agent with <code>to_a2a()</code> and use that HTTP endpoint in CAR.</td><td>Full</td></tr>
-        <tr><td><code>Mastra</code></td><td>Expose Mastra via its A2A implementation and route CAR traffic to that endpoint.</td><td>Full</td></tr>
-        <tr><td><code>Semantic Kernel / MS Agent Framework</code></td><td>Use the framework&rsquo;s native A2A integration and connect the published endpoint.</td><td>Full</td></tr>
-        <tr><td><code>OpenAI Agents SDK</code>, <code>Flowise</code>, <code>Haystack</code></td><td>Add a thin A2A wrapper in front of the runtime, then register the wrapper endpoint in CAR.</td><td>Wrappable</td></tr>
+        <tr><td><code>Google ADK</code></td><td>Export the agent with <code>to_a2a()</code> or the framework&rsquo;s built-in A2A server mode, then publish that HTTP endpoint.</td><td>A standard A2A agent with streaming, sessions, and HITL when the agent supports them.</td></tr>
+        <tr><td><code>AG2 / AutoGen</code></td><td>Run the agent behind AG2&rsquo;s A2A transport such as an <code>A2aAgentServer</code> or equivalent remote-agent setup.</td><td>A standard A2A endpoint that CAR can invoke directly.</td></tr>
+        <tr><td><code>CrewAI</code></td><td>Use CrewAI&rsquo;s native A2A support to expose the crew as an HTTP A2A service.</td><td>A normal A2A agent registration in CAR.</td></tr>
+        <tr><td><code>Mastra</code></td><td>Enable Mastra&rsquo;s A2A server mode and register the published endpoint in CAR.</td><td>A normal A2A endpoint with CAR&rsquo;s standard routing and ledger behavior.</td></tr>
+        <tr><td><code>Semantic Kernel / Microsoft Agent Framework</code></td><td>Publish the agent through the framework&rsquo;s A2A surface and register that URL in CAR.</td><td>A normal A2A endpoint, typically with streaming and tool-aware session flows.</td></tr>
       </tbody>
     </table>
-    <p>For a broader ecosystem map, see <code>docs/agent-framework-coverage.md</code> in the repository and the dedicated <a href="/ChatAgentRelay/docs/agents/a2a.html">A2A Protocol</a> page.</p>
+
+    <h3 id="langgraph-langchain">LangGraph and LangChain path</h3>
+    <p><code>LangGraph</code> is the most direct route for teams in the LangChain ecosystem. If you deploy a graph behind an A2A-compatible endpoint, CAR connects to it directly. For <code>LangChain</code> applications, the common path is to wrap or host the LangChain runtime behind a LangGraph-style or python-a2a-compatible A2A server, then give CAR that resulting endpoint. In other words: LangChain itself is usually not what CAR talks to; CAR talks to the A2A server you place in front of the LangChain app.</p>
+    <div class="callout callout-info">
+      <strong>Recommended path</strong>
+      If you already use <code>LangGraph</code>, publish that graph as your A2A boundary and connect CAR directly. If you use plain <code>LangChain</code>, add a thin A2A wrapper in front of the chain or agent runtime rather than trying to make CAR talk to LangChain-specific internals.
+    </div>
+
+    <h3 id="wrapped-frameworks">Wrapped or bridged frameworks</h3>
+    <table>
+      <thead>
+        <tr><th>Runtime</th><th>Typical path to CAR</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>OpenAI Agents SDK</code></td><td>Deploy the SDK behind a small HTTP service or bridge that speaks A2A, then register that bridge URL.</td><td>CAR remains unaware of the SDK internals and only talks to the A2A boundary.</td></tr>
+        <tr><td><code>Anthropic Agent SDK</code></td><td>Expose the agent through an A2A-capable bridge or MCP-to-A2A relay, then point CAR at that endpoint.</td><td>Useful when the agent already runs inside an Anthropic/MCP-oriented toolchain.</td></tr>
+        <tr><td><code>LlamaIndex</code></td><td>Wrap the workflow server in an A2A-compatible HTTP service.</td><td>CAR then treats the LlamaIndex workflow like any other A2A agent.</td></tr>
+        <tr><td><code>Flowise</code>, <code>Dify</code>, <code>n8n</code>, <code>Activepieces</code>, <code>Make</code>, <code>Zapier</code></td><td>Place an A2A wrapper in front of the workflow or webhook surface.</td><td>Best for teams that want CAR&rsquo;s governance and routing in front of an automation product that does not natively speak A2A.</td></tr>
+      </tbody>
+    </table>
+
+    <h3 id="coding-tools">Coding tools and local agent runtimes</h3>
+    <p>The recommended pattern for coding tools is to keep the tool-specific protocol private and place a stable A2A façade in front of it. That façade can be a dedicated bridge, an MCP-to-A2A relay, or a general-purpose gateway that exposes one HTTP endpoint for CAR.</p>
+    <table>
+      <thead>
+        <tr><th>Tool</th><th>Typical path to CAR</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>Claude Code</code></td><td>Expose the tool through an A2A bridge or MCP-to-A2A relay, then register the bridge URL in CAR.</td><td>This preserves streaming and human-input workflows at the A2A boundary instead of coupling CAR to a local editor protocol.</td></tr>
+        <tr><td><code>OpenCode</code></td><td>Run an OpenCode-to-A2A bridge such as an <code>opencode-a2a</code>-style runtime, then point CAR at the published endpoint.</td><td>Useful when the coding agent is local-first but needs to be reachable by CAR over HTTP.</td></tr>
+        <tr><td><code>Gemini CLI</code></td><td>Use an A2A-capable wrapper or agent gateway that publishes the CLI runtime as an HTTP A2A service.</td><td>CAR sees the wrapper, not the CLI protocol itself.</td></tr>
+        <tr><td><code>GitHub Copilot</code> agents</td><td>Use a Copilot-to-A2A bridge or a platform surface that can expose Copilot agents over A2A.</td><td>Best treated as another bridged runtime from CAR&rsquo;s perspective.</td></tr>
+        <tr><td><code>coder/agentapi</code> and similar gateways</td><td>Put the gateway in front of the coding agent and register the gateway&rsquo;s A2A URL in CAR.</td><td>A good option when you want one stable A2A façade in front of multiple underlying coding tools.</td></tr>
+      </tbody>
+    </table>
+
+    <p>For a broader ecosystem map, see the dedicated <a href="/ChatAgentRelay/docs/agents/a2a.html">A2A Protocol</a> page and the A2A-focused architecture write-up on the blog.</p>
 
     <h2 id="capabilities">A2A capabilities</h2>
     <table>

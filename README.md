@@ -11,20 +11,21 @@
 
 ---
 
-You built an agent. It works. Now your PM says "put it in Slack." Then legal says "we need audit logs." Then another team wants it in Teams. Then someone asks "can we try a different model?" — and suddenly you're not building your product anymore. You're building plumbing.
+You built an agent. It works. Now your PM says "put it in Slack." Then legal says "we need audit logs." Then another team wants it in Teams. Then someone asks "can we add a different agent?" — and suddenly you're not building your product anymore. You're building plumbing.
 
 **Chat Agent Relay (CAR) is that plumbing, done once, so you never build it again.**
 
 ```
-                        Chat Agent Relay
-Slack     ─┐                                              ┌─ Your A2A agent
-Teams     ─┤                                              ├─ CrewAI / LangGraph
-Discord   ─┤→ [Access Control] → [Policy] → [Route]       ├─ Google ADK
-Telegram  ─┤      ↓                ↓          ↓           ├─ AutoGen / Mastra
-WhatsApp  ─┤  [Rate Limit]   [Outbound Gov]  [Invoke] ───→└─ Any A2A-compatible
-Lark      ─┤                                                  agent runtime
-DingTalk  ─┤
-WebChat   ─┘  [7-Event Audit Ledger]
+                          Chat Agent Relay
+Slack       ─┐
+Teams       ─┤ → [Access] → [Policy] → [Route]
+Discord     ─┤   [Limits]   [Gov.]     [Invoke]
+Telegram    ─┤
+WhatsApp    ─┤                         ┌─ A2A agent
+Lark        ─┤ → [7-Event Audit Log] → ├─ LangGraph, CrewAI, etc.
+DingTalk    ─┤                         ├─ Claude Code, OpenCode, etc.
+Web Chat    ─┤                         └─ Thin-wrapper agents
+More to come─┘
 ```
 
 ## The Problem
