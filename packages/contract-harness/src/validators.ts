@@ -20,12 +20,21 @@ export class UnknownEventTypeError extends Error {
 }
 
 export class ContractHarnessValidators {
+  private static sharedPromise: Promise<ContractHarnessValidators> | undefined;
+
   private readonly envelopeValidator: ValidateFunction;
   private readonly specializedValidators: Record<string, ValidateFunction>;
 
   private constructor(envelopeValidator: ValidateFunction, specializedValidators: Record<string, ValidateFunction>) {
     this.envelopeValidator = envelopeValidator;
     this.specializedValidators = specializedValidators;
+  }
+
+  static getShared(): Promise<ContractHarnessValidators> {
+    if (!ContractHarnessValidators.sharedPromise) {
+      ContractHarnessValidators.sharedPromise = ContractHarnessValidators.create();
+    }
+    return ContractHarnessValidators.sharedPromise;
   }
 
   static async create(): Promise<ContractHarnessValidators> {

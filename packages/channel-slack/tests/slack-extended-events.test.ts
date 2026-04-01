@@ -87,7 +87,7 @@ describe("Slack app_mention canonicalization", () => {
   let validators: ContractHarnessValidators;
 
   beforeAll(async () => {
-    ingress = await SlackIngress.create("tenant_acme", "ws_support");
+    ingress = await SlackIngress.create("xoxb-test-token", "tenant_acme", "ws_support");
     validators = await ContractHarnessValidators.create();
   });
 
@@ -128,7 +128,7 @@ describe("Slack message update canonicalization", () => {
   let validators: ContractHarnessValidators;
 
   beforeAll(async () => {
-    ingress = await SlackIngress.create("tenant_acme", "ws_support");
+    ingress = await SlackIngress.create("xoxb-test-token", "tenant_acme", "ws_support");
     validators = await ContractHarnessValidators.create();
   });
 
@@ -165,7 +165,7 @@ describe("Slack message delete canonicalization", () => {
   let validators: ContractHarnessValidators;
 
   beforeAll(async () => {
-    ingress = await SlackIngress.create("tenant_acme", "ws_support");
+    ingress = await SlackIngress.create("xoxb-test-token", "tenant_acme", "ws_support");
     validators = await ContractHarnessValidators.create();
   });
 
@@ -196,7 +196,7 @@ describe("Slack reaction canonicalization", () => {
   let validators: ContractHarnessValidators;
 
   beforeAll(async () => {
-    ingress = await SlackIngress.create("tenant_acme", "ws_support");
+    ingress = await SlackIngress.create("xoxb-test-token", "tenant_acme", "ws_support");
     validators = await ContractHarnessValidators.create();
   });
 

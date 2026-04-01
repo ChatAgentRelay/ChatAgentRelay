@@ -5,8 +5,8 @@
 | **Status** | Draft |
 | **Author** | Claude Code |
 | **Audience** | Channel adapter implementers |
-| **Version** | v0.2 |
-| **Last Updated** | 2026-03-25 |
+| **Version** | v0.4 |
+| **Last Updated** | 2026-03-31 |
 | **Companion** | `channel-adapter-contract.md` (high-level contract) |
 
 ## 1. Abstract
@@ -17,23 +17,53 @@ This document formalizes the TypeScript interface contracts that all Chat Agent 
 
 The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as described in RFC 2119.
 
-## 3. ChannelIngress Interface
+## 3. ChannelAdapter Interface
 
-A conforming channel ingress adapter MUST implement the following interface:
+A conforming channel adapter MUST implement the following interface:
 
 ```typescript
-interface ChannelIngress {
+interface ChannelAdapter {
+  readonly channelType: string;
+  describeCapabilities(): ChannelCapabilities;
   canonicalize(raw: unknown): CanonicalizationResult;
+  createSender(event: CanonicalEvent): ChannelSender;
 }
 ```
 
-### 3.1 Input Contract
+The `ChannelAdapter` interface unifies ingress (canonicalization of inbound messages) and egress (sender creation for outbound delivery) in a single boundary. This replaces the previous `ChannelIngress` (ingress-only) and separate `SendFn` / `ChannelUpdater` patterns.
+
+### 3.1 channelType
+
+- `channelType` MUST be a read-only string property identifying the channel platform (e.g., `"slack"`, `"discord"`, `"webchat"`).
+- The value MUST be stable across the adapter's lifetime.
+- It MUST match the `channel` field in canonical events produced by this adapter.
+
+### 3.2 describeCapabilities()
+
+```typescript
+type ChannelCapabilities = {
+  channel: string;
+  messaging: { text: boolean; attachments: boolean; reactions: boolean; threads: boolean };
+  streaming: { progressiveUpdate: boolean; nativeStreaming: boolean };
+  interactive: { buttons: boolean; menus: boolean; commands: boolean };
+  delivery: { retry: boolean; chunking: boolean; edit: boolean };
+};
+```
+
+- `describeCapabilities()` MUST return a `ChannelCapabilities` object describing what the channel supports.
+- `channel` MUST equal the adapter's `channelType`.
+- Each boolean field MUST accurately reflect the channel's capabilities.
+- The pipeline and server use this information to determine available features (e.g., whether to attempt streaming via progressive updates, whether editing is available).
+
+### 3.3 canonicalize(raw)
+
+#### Input Contract
 
 - `raw` MUST accept `unknown` — adapters MUST NOT require callers to pre-validate input.
 - Adapters MUST perform their own type narrowing and validation internally.
 - Adapters MUST NOT throw exceptions from `canonicalize()`; all failures MUST be returned as error results.
 
-### 3.2 CanonicalizationResult
+#### CanonicalizationResult
 
 ```typescript
 type CanonicalizationResult =
@@ -41,7 +71,7 @@ type CanonicalizationResult =
   | { ok: false; error: { code: string; message: string } };
 ```
 
-#### Success Path
+##### Success Path
 
 When canonicalization succeeds:
 
@@ -49,14 +79,32 @@ When canonicalization succeeds:
 - `event.event_type` MUST be `"message.received"`.
 - `idempotencyKey` MUST be a deterministic, stable key derived from provider-specific identifiers. The same provider delivery MUST always produce the same key.
 
-#### Failure Path
+##### Failure Path
 
 When canonicalization fails:
 
 - `error.code` MUST be a machine-readable identifier (e.g., `"unsupported_subtype"`, `"empty_text"`, `"invalid_input"`).
 - `error.message` SHOULD be a human-readable description suitable for logging.
 
-### 3.3 Required Event Fields
+### 3.4 createSender(event)
+
+```typescript
+interface ChannelSender {
+  send(text: string): Promise<{ providerMessageId: string }>;
+  edit?(providerMessageId: string, text: string): Promise<void>;
+}
+```
+
+- `createSender()` MUST accept a `CanonicalEvent` and return a `ChannelSender` scoped to the delivery target derived from the event's `provider_extensions`.
+- Adapters MUST NOT require callers to manually extract channel IDs, thread IDs, or other platform-specific routing information — the sender derives these from the event.
+- `send()` MUST deliver the text to the target channel and return the provider's message identifier.
+- `send()` MUST throw an `Error` on delivery failure. The error message SHOULD describe the failure.
+- `providerMessageId` MUST be the provider-assigned identifier for the sent message (e.g., Slack `ts`).
+- `edit()` is OPTIONAL. Adapters SHOULD implement `edit()` if the underlying provider supports message editing (used for streaming progressive updates).
+- `edit()` MUST NOT be present if the provider does not support message editing.
+- When `edit()` is present, it MUST update the identified message with the new text.
+
+### 3.5 Required Event Fields
 
 The produced `CanonicalEvent` MUST include:
 
@@ -76,7 +124,7 @@ The produced `CanonicalEvent` MUST include:
 | `actor_type` | MUST be `"end_user"` for user messages |
 | `payload` | MUST contain at least `{ text: string }` |
 
-### 3.4 Provider Extensions
+### 3.6 Provider Extensions
 
 Adapters SHOULD preserve provider-native metadata in `provider_extensions`, namespaced by channel type:
 
@@ -88,44 +136,20 @@ Adapters SHOULD preserve provider-native metadata in `provider_extensions`, name
 }
 ```
 
-## 4. SendFn Interface
+The `createSender()` method uses these extensions to derive the delivery target, so adapters MUST include sufficient information for outbound delivery in `provider_extensions`.
 
-A conforming channel delivery function MUST implement:
-
-```typescript
-type SendFn = (text: string) => Promise<{ providerMessageId: string }>;
-```
-
-### 4.1 Behavior Requirements
-
-- `SendFn` MUST deliver the text to the target channel and return the provider's message identifier.
-- `SendFn` MUST throw an `Error` on delivery failure. The error message SHOULD describe the failure.
-- `providerMessageId` MUST be the provider-assigned identifier for the sent message (e.g., Slack `ts`).
-
-## 5. Message Update (Optional)
-
-Adapters that support message editing SHOULD implement:
-
-```typescript
-interface ChannelUpdater {
-  update(channelId: string, messageTs: string, text: string): Promise<void>;
-}
-```
-
-This is used for streaming progressive updates. Adapters MUST NOT expose `update` if the underlying provider does not support message editing.
-
-## 6. Bot Self-Message Filtering
+## 4. Bot Self-Message Filtering
 
 Adapters MUST reject messages originating from the bot itself to prevent feedback loops. This SHOULD be implemented at the canonicalization layer by checking provider-specific bot identifiers (e.g., `bot_id` for Slack).
 
-## 7. Idempotency
+## 5. Idempotency
 
 - The `idempotencyKey` returned on successful canonicalization MUST be stable across retries.
 - It MUST be derived from provider-specific fields that uniquely identify a single delivery.
 - For Slack: `{tenant_id}:{channel}:{ts}`.
 - For WebChat: `{tenant_id}:{channel_instance_id}:{client_message_id}`.
 
-## 8. Error Taxonomy
+## 6. Error Taxonomy
 
 Adapters SHOULD use the following error codes:
 
@@ -137,11 +161,13 @@ Adapters SHOULD use the following error codes:
 | `bot_message` | Message originates from a bot |
 | `unsupported_type` | Event type is not `message` |
 
-## 9. Conformance Checklist
+## 7. Conformance Checklist
 
-A conforming `ChannelIngress` implementation MUST:
+A conforming `ChannelAdapter` implementation MUST:
 
-- [ ] Accept `unknown` input without throwing
+- [ ] Expose a stable `channelType` string property
+- [ ] Return accurate `ChannelCapabilities` from `describeCapabilities()`
+- [ ] Accept `unknown` input to `canonicalize()` without throwing
 - [ ] Return `CanonicalizationResult` (never throw)
 - [ ] Produce schema-valid `message.received` events on success
 - [ ] Return stable `idempotencyKey` on success
@@ -149,10 +175,29 @@ A conforming `ChannelIngress` implementation MUST:
 - [ ] Filter bot self-messages
 - [ ] Preserve provider metadata in `provider_extensions`
 - [ ] Set all required canonical event fields
+- [ ] Return a `ChannelSender` from `createSender(event)` that can deliver messages
+- [ ] Include `edit()` on the sender only if the platform supports message editing
 
-## 10. Existing Implementations
+## 8. Existing Implementations
 
 | Adapter | Package | Channel |
 |---|---|---|
-| `WebChatIngress` | `@chat-agent-relay/channel-web-chat` | `webchat` |
-| `SlackIngress` | `@chat-agent-relay/channel-slack` | `slack` |
+| `WebChatAdapter` | `@chat-agent-relay/channel-web-chat` | `webchat` |
+| `SlackAdapter` | `@chat-agent-relay/channel-slack` | `slack` |
+| `DiscordAdapter` | `@chat-agent-relay/channel-discord` | `discord` |
+| `TelegramAdapter` | `@chat-agent-relay/channel-telegram` | `telegram` |
+| `LarkAdapter` | `@chat-agent-relay/channel-lark` | `lark` |
+| `DingTalkAdapter` | `@chat-agent-relay/channel-dingtalk` | `dingtalk` |
+
+## 9. Optional lifecycle contracts (`contract-harness`)
+
+The `@chat-agent-relay/contract-harness` package defines optional teardown interfaces for long-lived adapter instances:
+
+- **`Shutdownable`** — `shutdown(): Promise<void>`
+- **`Disconnectable`** — `disconnect(): void`
+
+Type guards `isShutdownable()` and `isDisconnectable()` allow callers to detect support without narrowing manually. Channel or agent implementations MAY implement these when they hold connections, timers, or subprocesses that need cooperative cleanup. The server runtime uses these guards when stopping registered channels and agents.
+
+## 10. Server factory registration (informative)
+
+In the reference server, channel and agent construction is not hardcoded inside `ChannelRegistry` / `AgentRegistry` via per-type `switch` statements. Instead, each registry exposes `registerFactory(type, factory)`, and built-in types are wired in `channel-factories.ts` and `agent-factories.ts`. Third-party or forked deployments SHOULD register additional `type` strings through the same factory API so registry core code stays free of adapter-specific imports.

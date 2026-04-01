@@ -3,17 +3,20 @@ import type { RichMessage } from "./rich-message";
 import { richMessageToDiscordEmbed } from "./rich-message";
 import type { DiscordSendMessageResponse } from "./types";
 
-const DISCORD_API_BASE = "https://discord.com/api/v10";
+const DEFAULT_DISCORD_API_BASE = "https://discord.com/api/v10";
 
 export type DiscordSenderConfig = {
   token: string;
+  apiBase?: string;
 };
 
 export class DiscordSender {
   private readonly token: string;
+  private readonly apiBase: string;
 
   constructor(config: DiscordSenderConfig) {
     this.token = config.token;
+    this.apiBase = config.apiBase ?? DEFAULT_DISCORD_API_BASE;
   }
 
   async send(channelId: string, text: string, replyToMessageId?: string): Promise<{ providerMessageId: string }> {
@@ -37,7 +40,7 @@ export class DiscordSender {
       payload["message_reference"] = { message_id: replyToMessageId };
     }
 
-    const response = await fetch(`${DISCORD_API_BASE}/channels/${channelId}/messages`, {
+    const response = await fetch(`${this.apiBase}/channels/${channelId}/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -56,7 +59,7 @@ export class DiscordSender {
   }
 
   async update(channelId: string, messageId: string, text: string): Promise<void> {
-    const response = await fetch(`${DISCORD_API_BASE}/channels/${channelId}/messages/${messageId}`, {
+    const response = await fetch(`${this.apiBase}/channels/${channelId}/messages/${messageId}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -74,7 +77,7 @@ export class DiscordSender {
   async addReaction(channelId: string, messageId: string, emoji: string): Promise<void> {
     const encodedEmoji = encodeURIComponent(emoji);
     const response = await fetch(
-      `${DISCORD_API_BASE}/channels/${channelId}/messages/${messageId}/reactions/${encodedEmoji}/@me`,
+      `${this.apiBase}/channels/${channelId}/messages/${messageId}/reactions/${encodedEmoji}/@me`,
       {
         method: "PUT",
         headers: {
@@ -92,7 +95,7 @@ export class DiscordSender {
   async removeReaction(channelId: string, messageId: string, emoji: string): Promise<void> {
     const encodedEmoji = encodeURIComponent(emoji);
     const response = await fetch(
-      `${DISCORD_API_BASE}/channels/${channelId}/messages/${messageId}/reactions/${encodedEmoji}/@me`,
+      `${this.apiBase}/channels/${channelId}/messages/${messageId}/reactions/${encodedEmoji}/@me`,
       {
         method: "DELETE",
         headers: {
@@ -108,7 +111,7 @@ export class DiscordSender {
   }
 
   async sendTyping(channelId: string): Promise<void> {
-    await fetch(`${DISCORD_API_BASE}/channels/${channelId}/typing`, {
+    await fetch(`${this.apiBase}/channels/${channelId}/typing`, {
       method: "POST",
       headers: { Authorization: `Bot ${this.token}` },
     });
@@ -116,7 +119,7 @@ export class DiscordSender {
 
   async deferInteraction(interactionId: string, interactionToken: string): Promise<void> {
     const response = await fetch(
-      `${DISCORD_API_BASE}/interactions/${interactionId}/${interactionToken}/callback`,
+      `${this.apiBase}/interactions/${interactionId}/${interactionToken}/callback`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bot ${this.token}` },
@@ -136,7 +139,7 @@ export class DiscordSender {
     content: string,
   ): Promise<void> {
     const response = await fetch(
-      `${DISCORD_API_BASE}/webhooks/${applicationId}/${interactionToken}/messages/@original`,
+      `${this.apiBase}/webhooks/${applicationId}/${interactionToken}/messages/@original`,
       {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bot ${this.token}` },
@@ -164,7 +167,7 @@ export class DiscordSender {
       payload["message_reference"] = { message_id: replyToMessageId };
     }
 
-    const response = await fetch(`${DISCORD_API_BASE}/channels/${channelId}/messages`, {
+    const response = await fetch(`${this.apiBase}/channels/${channelId}/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

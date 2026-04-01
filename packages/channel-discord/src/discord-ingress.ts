@@ -1,5 +1,13 @@
-import type { CanonicalEvent, ValidationResult } from "@chat-agent-relay/contract-harness";
+import type {
+  CanonicalEvent,
+  CanonicalizationResult,
+  ChannelAdapter,
+  ChannelCapabilities,
+  ChannelSender,
+  ValidationResult,
+} from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
+import { DiscordSender } from "./discord-sender";
 import type {
   DiscordInteraction,
   DiscordMessageDeleteEvent,
@@ -21,39 +29,62 @@ export type DiscordCanonicalizationFailure = {
 
 export type DiscordCanonicalizationResult = DiscordCanonicalizationSuccess | DiscordCanonicalizationFailure;
 
-export class DiscordIngress {
+export class DiscordIngress implements ChannelAdapter {
+  readonly channelType = "discord" as const;
+
   private constructor(
     private readonly validators: ContractHarnessValidators,
+    readonly sender: DiscordSender,
     private readonly tenantId: string,
     private readonly workspaceId: string,
   ) {}
 
-  static async create(tenantId: string, workspaceId: string): Promise<DiscordIngress> {
-    const validators = await ContractHarnessValidators.create();
-    return new DiscordIngress(validators, tenantId, workspaceId);
+  static async create(
+    botToken: string,
+    tenantId: string,
+    workspaceId: string,
+    options?: { apiBase?: string },
+  ): Promise<DiscordIngress> {
+    const validators = await ContractHarnessValidators.getShared();
+    const sender = new DiscordSender({ token: botToken, apiBase: options?.apiBase });
+    return new DiscordIngress(validators, sender, tenantId, workspaceId);
   }
 
-  static describeCapabilities(): {
-    channel: string;
-    threads: boolean;
-    reactions: boolean;
-    editing: boolean;
-    maxMessageLength: number;
-  } {
+  describeCapabilities(): ChannelCapabilities {
     return {
       channel: "discord",
-      threads: true,
-      reactions: true,
-      editing: true,
-      maxMessageLength: 2000,
+      messaging: { text: true, attachments: false, reactions: true, threads: true },
+      streaming: { progressiveUpdate: true, nativeStreaming: false },
+      interactive: { buttons: false, menus: false, commands: true },
+      delivery: { retry: true, chunking: true, edit: true },
     };
   }
 
-  canonicalize(raw: unknown): DiscordCanonicalizationResult {
-    if (!isDiscordMessageEvent(raw)) {
-      return { ok: false, error: { code: "invalid_discord_event", message: "Not a valid Discord MESSAGE_CREATE event" } };
+  createSender(event: CanonicalEvent): ChannelSender {
+    const discord = event.provider_extensions?.["discord"] as Record<string, unknown> | undefined;
+    const channelId = (discord?.["channel_id"] ?? event.channel_instance_id?.replace("discord-", "")) as string;
+    const messageId = discord?.["message_id"] as string | undefined;
+    return {
+      send: (text: string) => this.sender.send(channelId, text, messageId),
+      edit: (providerMessageId: string, text: string) => this.sender.update(channelId, providerMessageId, text),
+    };
+  }
+
+  canonicalize(raw: unknown): CanonicalizationResult {
+    if (isDiscordReactionEvent(raw)) return this.canonicalizeReaction(raw);
+    if (isDiscordInteraction(raw)) return this.canonicalizeCommand(raw);
+    if (isDiscordMessageEvent(raw)) return this.canonicalizeMessageCreate(raw);
+
+    const obj = raw as Record<string, unknown>;
+    if (typeof obj?.["edited_timestamp"] === "string") return this.canonicalizeMessageUpdate(raw);
+    if (typeof obj?.["id"] === "string" && typeof obj?.["channel_id"] === "string") {
+      return this.canonicalizeMessageDelete(raw);
     }
 
+    return { ok: false, error: { code: "invalid_discord_event", message: "Unrecognized Discord event shape" } };
+  }
+
+  private canonicalizeMessageCreate(raw: DiscordMessageEvent): CanonicalizationResult {
     if (raw.author.bot === true) {
       return { ok: false, error: { code: "bot_message", message: `Ignoring bot message from author: ${raw.author.id}` } };
     }

@@ -40,7 +40,7 @@ describe("Slack ingress", () => {
   let validators: ContractHarnessValidators;
 
   beforeAll(async () => {
-    ingress = await SlackIngress.create("tenant_acme", "ws_support");
+    ingress = await SlackIngress.create("xoxb-test-token", "tenant_acme", "ws_support");
     validators = await ContractHarnessValidators.create();
   });
 
@@ -117,11 +117,11 @@ describe("Slack ingress", () => {
     expect(refs["channel_user_id"]).toBe("U9876543210");
   });
 
-  it("rejects non-message events", () => {
+  it("routes reaction events to reaction canonicalization", () => {
     const result = ingress.canonicalize({ type: "reaction_added" });
     expect(result.ok).toBe(false);
     if (result.ok) return;
-    expect(result.error.code).toBe("invalid_slack_event");
+    expect(result.error.code).toBe("invalid_reaction");
   });
 
   it("rejects messages with subtypes (bot messages, etc)", () => {

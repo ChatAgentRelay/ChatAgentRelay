@@ -1,5 +1,13 @@
-import type { CanonicalEvent, ValidationResult } from "@chat-agent-relay/contract-harness";
+import type {
+  CanonicalEvent,
+  CanonicalizationResult,
+  ChannelAdapter,
+  ChannelCapabilities,
+  ChannelSender,
+  ValidationResult,
+} from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
+import { SlackSender } from "./slack-sender";
 import type {
   SlackAppMentionEvent,
   SlackMessageChangedEvent,
@@ -22,42 +30,86 @@ export type SlackCanonicalizationFailure = {
 
 export type SlackCanonicalizationResult = SlackCanonicalizationSuccess | SlackCanonicalizationFailure;
 
-export class SlackIngress {
+export class SlackIngress implements ChannelAdapter {
+  readonly channelType = "slack" as const;
+
   private constructor(
     private readonly validators: ContractHarnessValidators,
+    readonly sender: SlackSender,
     private readonly tenantId: string,
     private readonly workspaceId: string,
   ) {}
 
-  static async create(tenantId: string, workspaceId: string): Promise<SlackIngress> {
-    const validators = await ContractHarnessValidators.create();
-    return new SlackIngress(validators, tenantId, workspaceId);
+  static async create(
+    botToken: string,
+    tenantId: string,
+    workspaceId: string,
+    options?: { apiBase?: string },
+  ): Promise<SlackIngress> {
+    const validators = await ContractHarnessValidators.getShared();
+    const sender = new SlackSender({ botToken, apiBase: options?.apiBase });
+    return new SlackIngress(validators, sender, tenantId, workspaceId);
   }
 
-  static describeCapabilities() {
+  describeCapabilities(): ChannelCapabilities {
     return {
-      channel: "slack" as const,
+      channel: "slack",
       messaging: { text: true, attachments: false, reactions: true, threads: true },
-      streaming: { progressive_update: true, native_streaming: false },
-      interactive: { buttons: false, menus: false, slash_commands: true },
+      streaming: { progressiveUpdate: true, nativeStreaming: false },
+      interactive: { buttons: false, menus: false, commands: true },
       delivery: { retry: true, chunking: true, edit: true },
     };
   }
 
-  canonicalize(raw: unknown): SlackCanonicalizationResult {
+  createSender(event: CanonicalEvent): ChannelSender {
+    const slack = event.provider_extensions?.["slack"] as Record<string, unknown> | undefined;
+    const channel =
+      (typeof slack?.["channel_id"] === "string"
+        ? slack["channel_id"]
+        : typeof slack?.["channel"] === "string"
+          ? slack["channel"]
+          : typeof event.channel_instance_id === "string"
+            ? event.channel_instance_id.replace(/^slack_/, "")
+            : "") as string;
+    const threadTs = typeof slack?.["thread_ts"] === "string" ? slack["thread_ts"] : undefined;
+    return {
+      send: (text: string) => this.sender.send(channel, text, threadTs),
+      edit: (providerMessageId: string, text: string) => this.sender.update(channel, providerMessageId, text),
+    };
+  }
+
+  canonicalize(raw: unknown): CanonicalizationResult {
+    const inner = extractSlackInnerEvent(raw);
+
+    if (!inner) {
+      if (isSlackSlashCommandPayload(raw)) return this.canonicalizeCommand(raw);
+      return { ok: false, error: { code: "invalid_slack_event", message: "Not a valid Slack event" } };
+    }
+
+    const eventType = inner["type"] as string | undefined;
+
+    if (eventType === "reaction_added" || eventType === "reaction_removed") {
+      return this.canonicalizeReaction(inner);
+    }
+
+    if (eventType === "message") {
+      const subtype = (inner as Record<string, unknown>)["subtype"] as string | undefined;
+      if (subtype === "message_changed") return this.canonicalizeMessageUpdate(inner);
+      if (subtype === "message_deleted") return this.canonicalizeMessageDelete(inner);
+      if (subtype !== undefined) {
+        return { ok: false, error: { code: "unsupported_subtype", message: `Unsupported message subtype: ${subtype}` } };
+      }
+      if ((inner as Record<string, unknown>)["bot_id"] !== undefined) {
+        return { ok: false, error: { code: "bot_message", message: "Ignoring bot message" } };
+      }
+    }
+
+    return this.canonicalizeMessage(inner);
+  }
+
+  private canonicalizeMessage(raw: unknown): CanonicalizationResult {
     if (!isSlackMessageEvent(raw) && !isSlackAppMentionEvent(raw)) {
       return { ok: false, error: { code: "invalid_slack_event", message: "Not a valid Slack message event" } };
-    }
-
-    if (raw.type === "message" && (raw as SlackMessageEvent).subtype !== undefined) {
-      return {
-        ok: false,
-        error: { code: "unsupported_subtype", message: `Unsupported message subtype: ${(raw as SlackMessageEvent).subtype}` },
-      };
-    }
-
-    if (raw.type === "message" && (raw as SlackMessageEvent).bot_id !== undefined) {
-      return { ok: false, error: { code: "bot_message", message: `Ignoring bot message from bot_id: ${(raw as SlackMessageEvent).bot_id}` } };
     }
 
     if (!raw.text || raw.text.trim().length === 0) {
@@ -316,6 +368,21 @@ export class SlackIngress {
 
     return { ok: true, event, idempotencyKey };
   }
+}
+
+function extractSlackInnerEvent(raw: unknown): unknown | undefined {
+  if (typeof raw !== "object" || raw === null) return undefined;
+  const obj = raw as Record<string, unknown>;
+
+  if (typeof obj["payload"] === "object" && obj["payload"] !== null) {
+    const payload = obj["payload"] as Record<string, unknown>;
+    if (typeof payload["event"] === "object" && payload["event"] !== null) {
+      return payload["event"];
+    }
+  }
+
+  if (typeof obj["type"] === "string") return obj;
+  return undefined;
 }
 
 function isSlackSlashCommandPayload(raw: unknown): raw is SlackSlashCommandPayload {

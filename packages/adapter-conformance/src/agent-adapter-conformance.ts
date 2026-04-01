@@ -50,7 +50,7 @@ export function testAgentAdapter(config: AgentAdapterConformanceConfig): void {
     let adapter: AgentAdapter;
 
     beforeAll(async () => {
-      validators = await ContractHarnessValidators.create();
+      validators = await ContractHarnessValidators.getShared();
       adapter = await resolveAdapter(config.adapter);
     });
 
@@ -64,6 +64,8 @@ export function testAgentAdapter(config: AgentAdapterConformanceConfig): void {
     it("describeCapabilities() returns valid capabilities object", () => {
       const caps = adapter.describeCapabilities();
       expect(typeof caps.streaming).toBe("boolean");
+      expect(typeof caps.multiTurn).toBe("boolean");
+      expect(typeof caps.resume).toBe("boolean");
       expect(typeof caps.hitl).toBe("boolean");
       expect(typeof caps.cancel).toBe("boolean");
       expect(typeof caps.artifacts).toBe("boolean");

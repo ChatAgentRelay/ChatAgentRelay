@@ -75,6 +75,9 @@ export function validateInboundInput(raw: unknown): InputValidationResult {
   if (isNonEmptyString(body["session_id"])) {
     request.session_id = body["session_id"] as string;
   }
+  if (isNonEmptyString(body["session_handle"])) {
+    request.session_handle = body["session_handle"] as string;
+  }
   if (isNonEmptyString(body["trace_id"])) {
     request.trace_id = body["trace_id"] as string;
   }

@@ -8,6 +8,24 @@ import {
   UnknownEventTypeError,
 } from "../src";
 
+function makeEvent(overrides: Record<string, unknown>) {
+  return {
+    event_id: "evt_test",
+    schema_version: "v1alpha1",
+    tenant_id: "tenant_acme",
+    workspace_id: "ws_support",
+    channel: "webchat",
+    channel_instance_id: "webchat",
+    conversation_id: "conv_1",
+    session_id: "sess_1",
+    correlation_id: "corr_1",
+    occurred_at: "2026-03-17T12:00:01Z",
+    actor_type: "system",
+    payload: {},
+    ...overrides,
+  };
+}
+
 describe("contract harness", () => {
   test("loads specialized schemas for all known event types", async () => {
     const specializedSchemas = await loadSpecializedSchemas();
@@ -96,6 +114,40 @@ describe("contract harness", () => {
     if (!validationResult.ok) {
       expect(validationResult.failure.step).toBe("specialized");
       expect(validationResult.failure.issues.some((issue) => issue.keyword === "required")).toBe(true);
+    }
+  });
+
+  test("accepts policy.decision.made payloads with stage metadata", async () => {
+    const validators = await ContractHarnessValidators.create();
+    const event = makeEvent({
+      event_type: "policy.decision.made",
+      causation_id: "evt_source",
+      payload: {
+        policy: "default_ingress",
+        decision: "allow",
+        stage: "outbound",
+      },
+    });
+
+    const validationResult = validators.validateEvent(event as never);
+    expect(validationResult.ok).toBe(true);
+  });
+
+  test("accepts event.blocked payloads with new v0.3 block stages", async () => {
+    const validators = await ContractHarnessValidators.create();
+    for (const blockStage of ["access_control", "rate_limit", "outbound_governance"]) {
+      const event = makeEvent({
+        event_type: "event.blocked",
+        causation_id: "evt_source",
+        payload: {
+          reason: "blocked",
+          block_stage: blockStage,
+          retryable: false,
+        },
+      });
+
+      const validationResult = validators.validateEvent(event as never);
+      expect(validationResult.ok).toBe(true);
     }
   });
 });

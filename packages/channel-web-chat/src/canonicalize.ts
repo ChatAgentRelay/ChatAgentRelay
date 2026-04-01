@@ -1,15 +1,39 @@
-import type { CanonicalEvent, ValidationResult } from "@chat-agent-relay/contract-harness";
+import type {
+  CanonicalEvent,
+  ChannelAdapter,
+  ChannelCapabilities,
+  ChannelSender,
+  ValidationResult,
+} from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { deriveIdempotencyKey } from "./idempotency";
 import type { CanonicalizationResult, IngressError } from "./types";
 import { validateInboundInput } from "./validate-input";
 
-export class WebChatIngress {
+export class WebChatIngress implements ChannelAdapter {
+  readonly channelType = "webchat" as const;
+
   private constructor(private readonly validators: ContractHarnessValidators) {}
 
   static async create(): Promise<WebChatIngress> {
-    const validators = await ContractHarnessValidators.create();
+    const validators = await ContractHarnessValidators.getShared();
     return new WebChatIngress(validators);
+  }
+
+  describeCapabilities(): ChannelCapabilities {
+    return {
+      channel: "webchat",
+      messaging: { text: true, attachments: false, reactions: false, threads: false },
+      streaming: { progressiveUpdate: false, nativeStreaming: true },
+      interactive: { buttons: false, menus: false, commands: true },
+      delivery: { retry: false, chunking: false, edit: false },
+    };
+  }
+
+  createSender(_event: CanonicalEvent): ChannelSender {
+    return {
+      send: async (_text: string) => ({ providerMessageId: `webchat_${Date.now()}` }),
+    };
   }
 
   canonicalize(raw: unknown): CanonicalizationResult {

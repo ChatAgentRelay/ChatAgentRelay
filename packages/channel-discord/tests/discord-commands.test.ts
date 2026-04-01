@@ -66,7 +66,7 @@ describe("Discord slash command canonicalization", () => {
   let validators: ContractHarnessValidators;
 
   beforeAll(async () => {
-    ingress = await DiscordIngress.create("tenant_acme", "ws_gaming");
+    ingress = await DiscordIngress.create("test-discord-token", "tenant_acme", "ws_gaming");
     validators = await ContractHarnessValidators.create();
   });
 

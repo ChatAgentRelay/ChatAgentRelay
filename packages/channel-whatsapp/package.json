@@ -1,0 +1,20 @@
+{
+  "name": "@chat-agent-relay/channel-whatsapp",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@chat-agent-relay/contract-harness": "workspace:*"
+  },
+  "devDependencies": {
+    "@chat-agent-relay/adapter-conformance": "workspace:*",
+    "@types/bun": "latest",
+    "typescript": "^6.0.2"
+  }
+}

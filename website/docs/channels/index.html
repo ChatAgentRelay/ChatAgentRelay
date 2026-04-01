@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Channels — Chat Agent Relay</title>
-  <meta name="description" content="Channel adapters normalize messages from Slack, Discord, and WebChat into canonical events. Compare features and choose the right adapter.">
+  <meta name="description" content="Channel adapters normalize messages from Slack, Discord, WebChat, Telegram, Lark, and DingTalk into canonical events. Compare features and choose the right adapter.">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
@@ -17,7 +17,7 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Channels — Chat Agent Relay">
-  <meta name="twitter:description" content="Slack, Discord, and WebChat adapters for Chat Agent Relay.">
+  <meta name="twitter:description" content="Slack, Discord, WebChat, Telegram, Lark, and DingTalk adapters for Chat Agent Relay.">
   <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
 
   <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/">
@@ -45,7 +45,7 @@
     "@context": "https://schema.org",
     "@type": "TechArticle",
     "headline": "Channels — Chat Agent Relay",
-    "description": "Channel adapters normalize messages from Slack, Discord, and WebChat into canonical events.",
+    "description": "Channel adapters normalize messages from Slack, Discord, WebChat, Telegram, Lark, and DingTalk into canonical events.",
     "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/"
   }
   </script>
@@ -77,14 +77,14 @@
     <a href="/ChatAgentRelay/docs/channels/slack.html" class="sidebar-link">Slack</a>
     <a href="/ChatAgentRelay/docs/channels/discord.html" class="sidebar-link">Discord</a>
     <a href="/ChatAgentRelay/docs/channels/webchat.html" class="sidebar-link">WebChat</a>
+    <a href="/ChatAgentRelay/docs/channels/telegram.html" class="sidebar-link">Telegram</a>
+    <a href="/ChatAgentRelay/docs/channels/lark.html" class="sidebar-link">Lark / 飞书</a>
+    <a href="/ChatAgentRelay/docs/channels/dingtalk.html" class="sidebar-link">DingTalk / 钉钉</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Agents</span>
     <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
     <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
-    <a href="/ChatAgentRelay/docs/agents/langgraph.html" class="sidebar-link">LangGraph</a>
-    <a href="/ChatAgentRelay/docs/agents/http.html" class="sidebar-link">HTTP</a>
-    <a href="/ChatAgentRelay/docs/agents/acp.html" class="sidebar-link">ACP</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Configuration</span>
@@ -107,10 +107,10 @@
 <!-- Content -->
 <main class="doc-content">
   <h1>Channels</h1>
-  <p class="subtitle">Channels are chat-platform adapters that normalize incoming messages into canonical events. Each channel implements the <code>ChannelIngress</code> interface and handles platform-specific transport, authentication, and message formatting.</p>
+  <p class="subtitle">Channels are chat-platform adapters that normalize incoming messages into canonical events and deliver responses back to the platform. Each channel implements the <code>ChannelAdapter</code> interface, which unifies ingress (canonicalization) and egress (sender creation) in a single boundary. All six channel types below are wired into the server runtime and can be registered with <code>car channel add</code>.</p>
 
   <h2 id="how-channels-work">How channels work</h2>
-  <p>When a user sends a message on Slack, Discord, or a web UI, the channel adapter:</p>
+  <p>When a user sends a message on Slack, Discord, Telegram, Lark, DingTalk, or a web UI, the channel adapter:</p>
   <ol>
     <li>Receives the raw platform event (webhook, socket, HTTP POST).</li>
     <li>Validates authentication and extracts the message content.</li>
@@ -134,7 +134,22 @@
     <a href="/ChatAgentRelay/docs/channels/webchat.html" class="card">
       <div class="card-icon">🌐</div>
       <div class="card-title">WebChat</div>
-      <div class="card-desc">Simple HTTP adapter for testing, internal tools, and custom web UIs. No external setup needed.</div>
+      <div class="card-desc">HTTP + SSE streaming, slash commands, HITL resume, session management. No external setup needed.</div>
+    </a>
+    <a href="/ChatAgentRelay/docs/channels/telegram.html" class="card">
+      <div class="card-icon">✈️</div>
+      <div class="card-title">Telegram</div>
+      <div class="card-desc">Bot API webhook, bot commands, progressive streaming via message editing, group and private chat.</div>
+    </a>
+    <a href="/ChatAgentRelay/docs/channels/lark.html" class="card">
+      <div class="card-icon">🐦</div>
+      <div class="card-title">Lark / 飞书</div>
+      <div class="card-desc">Covers both Lark (international) and 飞书 (China). Event subscription, auto token management, streaming.</div>
+    </a>
+    <a href="/ChatAgentRelay/docs/channels/dingtalk.html" class="card">
+      <div class="card-icon">🔔</div>
+      <div class="card-title">DingTalk / 钉钉</div>
+      <div class="card-desc">Robot webhook callbacks, session-based reply, staff identity mapping. #1 enterprise platform in China.</div>
     </a>
   </div>
 
@@ -146,6 +161,9 @@
         <th>Slack</th>
         <th>Discord</th>
         <th>WebChat</th>
+        <th>Telegram</th>
+        <th>Lark / 飞书</th>
+        <th>DingTalk / 钉钉</th>
       </tr>
     </thead>
     <tbody>
@@ -154,23 +172,44 @@
         <td>Socket Mode</td>
         <td>Gateway (WebSocket)</td>
         <td>HTTP</td>
+        <td>Webhook</td>
+        <td>Webhook / WebSocket</td>
+        <td>Webhook</td>
       </tr>
       <tr>
         <td>Streaming</td>
         <td><span class="badge badge-green">Yes</span></td>
         <td><span class="badge badge-green">Yes</span></td>
+        <td><span class="badge badge-green">SSE</span></td>
+        <td><span class="badge badge-green">Edit</span></td>
+        <td><span class="badge badge-green">Edit</span></td>
         <td>&mdash;</td>
       </tr>
       <tr>
-        <td>Threads</td>
+        <td>Sessions</td>
+        <td>Thread-based</td>
+        <td>Thread-based</td>
+        <td><span class="badge badge-green">Auto</span></td>
+        <td>Chat-based</td>
+        <td>Chat-based</td>
+        <td>Conversation-based</td>
+      </tr>
+      <tr>
+        <td>HITL</td>
         <td><span class="badge badge-green">Yes</span></td>
         <td><span class="badge badge-green">Yes</span></td>
-        <td>&mdash;</td>
+        <td><span class="badge badge-green">Yes</span></td>
+        <td><span class="badge badge-green">Yes</span></td>
+        <td><span class="badge badge-green">Yes</span></td>
+        <td><span class="badge badge-green">Yes</span></td>
       </tr>
       <tr>
         <td>Reactions</td>
         <td><span class="badge badge-green">Yes</span></td>
         <td><span class="badge badge-green">Yes</span></td>
+        <td>&mdash;</td>
+        <td>&mdash;</td>
+        <td>&mdash;</td>
         <td>&mdash;</td>
       </tr>
       <tr>
@@ -178,11 +217,17 @@
         <td>Block Kit</td>
         <td>Embeds</td>
         <td>Plain text</td>
+        <td>Markdown</td>
+        <td>Rich text / Cards</td>
+        <td>Markdown / ActionCard</td>
       </tr>
       <tr>
         <td>Slash commands</td>
         <td><span class="badge badge-green">Yes</span></td>
         <td><span class="badge badge-green">Yes</span></td>
+        <td><span class="badge badge-green">Built-in</span></td>
+        <td><span class="badge badge-green">Bot commands</span></td>
+        <td>&mdash;</td>
         <td>&mdash;</td>
       </tr>
       <tr>
@@ -190,21 +235,39 @@
         <td><span class="badge badge-green">Yes</span></td>
         <td><span class="badge badge-green">Yes</span></td>
         <td>&mdash;</td>
+        <td><span class="badge badge-green">Edit</span></td>
+        <td><span class="badge badge-green">Edit</span></td>
+        <td>&mdash;</td>
       </tr>
       <tr>
         <td>Access control</td>
         <td>Mention gating, DM/channel</td>
         <td>Guild allowlist</td>
         <td>CORS</td>
+        <td>Chat type filter</td>
+        <td>App permissions</td>
+        <td>IP allowlist / HMAC</td>
+      </tr>
+      <tr>
+        <td>Market</td>
+        <td>Global enterprise</td>
+        <td>Global community</td>
+        <td>Universal</td>
+        <td>Global (1B+ MAU)</td>
+        <td>China + international</td>
+        <td>China enterprise (#1)</td>
       </tr>
     </tbody>
   </table>
 
   <h2 id="adding-a-channel">Adding a channel</h2>
   <p>Use the <code>car</code> CLI to register a channel. Each type has its own required options:</p>
-  <pre><code>car channel add my-slack   --type=slack   --bot-token=xoxb-... --app-token=xapp-...
-car channel add my-discord --type=discord --bot-token=...
-car channel add web        --type=webchat</code></pre>
+  <pre><code>car channel add my-slack     --type=slack     --bot-token=xoxb-... --app-token=xapp-...
+car channel add my-discord   --type=discord   --bot-token=...
+car channel add web          --type=webchat
+car channel add my-telegram  --type=telegram  --bot-token=123456:ABC...
+car channel add my-lark      --type=lark      --app-id=cli_xxx --app-secret=yyy
+car channel add my-dingtalk  --type=dingtalk  --webhook-url=https://oapi.dingtalk.com/robot/send?access_token=xxx</code></pre>
   <p>Channels are hot-pluggable &mdash; changes take effect without restarting the server where supported. See the individual channel pages for full configuration details.</p>
 
   <!-- Pagination -->

@@ -23,7 +23,7 @@ describe("Slack slash command canonicalization", () => {
   let validators: ContractHarnessValidators;
 
   beforeAll(async () => {
-    ingress = await SlackIngress.create("tenant_acme", "ws_support");
+    ingress = await SlackIngress.create("xoxb-test-token", "tenant_acme", "ws_support");
     validators = await ContractHarnessValidators.create();
   });
 

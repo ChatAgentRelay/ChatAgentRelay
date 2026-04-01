@@ -45,7 +45,7 @@ describe("Discord ingress", () => {
   let validators: ContractHarnessValidators;
 
   beforeAll(async () => {
-    ingress = await DiscordIngress.create("tenant_acme", "ws_gaming");
+    ingress = await DiscordIngress.create("test-discord-token", "tenant_acme", "ws_gaming");
     validators = await ContractHarnessValidators.create();
   });
 
@@ -189,11 +189,16 @@ describe("Discord ingress", () => {
   });
 
   it("describeCapabilities returns correct metadata", () => {
-    const caps = DiscordIngress.describeCapabilities();
+    const caps = ingress.describeCapabilities();
     expect(caps.channel).toBe("discord");
-    expect(caps.threads).toBe(true);
-    expect(caps.reactions).toBe(true);
-    expect(caps.editing).toBe(true);
-    expect(caps.maxMessageLength).toBe(2000);
+    expect(caps.messaging).toEqual({
+      text: true,
+      attachments: false,
+      reactions: true,
+      threads: true,
+    });
+    expect(caps.streaming).toEqual({ progressiveUpdate: true, nativeStreaming: false });
+    expect(caps.interactive).toEqual({ buttons: false, menus: false, commands: true });
+    expect(caps.delivery).toEqual({ retry: true, chunking: true, edit: true });
   });
 });

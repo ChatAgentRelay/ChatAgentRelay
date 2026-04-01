@@ -5,6 +5,7 @@ export type { SlackSenderConfig } from "./slack-sender";
 export { SlackSender } from "./slack-sender";
 export type { SlackSocketConfig } from "./slack-socket";
 export { SlackSocketConnection } from "./slack-socket";
+export { SlackWebhookVerifier } from "./slack-verifier";
 export type {
   SlackAppMentionEvent,
   SlackConfig,

@@ -3,17 +3,20 @@ import type { RichMessage } from "./rich-message";
 import { richMessageToSlackBlocks } from "./rich-message";
 import type { SlackPostMessageResponse } from "./types";
 
-const SLACK_API_BASE = "https://slack.com/api";
+const DEFAULT_SLACK_API_BASE = "https://slack.com/api";
 
 export type SlackSenderConfig = {
   botToken: string;
+  apiBase?: string;
 };
 
 export class SlackSender {
   private readonly botToken: string;
+  private readonly apiBase: string;
 
   constructor(config: SlackSenderConfig) {
     this.botToken = config.botToken;
+    this.apiBase = config.apiBase ?? DEFAULT_SLACK_API_BASE;
   }
 
   async send(channelId: string, text: string, threadTs?: string): Promise<{ providerMessageId: string }> {
@@ -37,7 +40,7 @@ export class SlackSender {
       payload["thread_ts"] = threadTs;
     }
 
-    const response = await fetch(`${SLACK_API_BASE}/chat.postMessage`, {
+    const response = await fetch(`${this.apiBase}/chat.postMessage`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -56,7 +59,7 @@ export class SlackSender {
 
   async update(channelId: string, messageTs: string, text: string): Promise<void> {
     const payload = { channel: channelId, ts: messageTs, text };
-    const response = await fetch(`${SLACK_API_BASE}/chat.update`, {
+    const response = await fetch(`${this.apiBase}/chat.update`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -72,7 +75,7 @@ export class SlackSender {
 
   async addReaction(channelId: string, timestamp: string, emoji: string): Promise<void> {
     const payload = { channel: channelId, timestamp, name: emoji };
-    const response = await fetch(`${SLACK_API_BASE}/reactions.add`, {
+    const response = await fetch(`${this.apiBase}/reactions.add`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -88,7 +91,7 @@ export class SlackSender {
 
   async removeReaction(channelId: string, timestamp: string, emoji: string): Promise<void> {
     const payload = { channel: channelId, timestamp, name: emoji };
-    const response = await fetch(`${SLACK_API_BASE}/reactions.remove`, {
+    const response = await fetch(`${this.apiBase}/reactions.remove`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -117,7 +120,7 @@ export class SlackSender {
       payload["thread_ts"] = threadTs;
     }
 
-    const response = await fetch(`${SLACK_API_BASE}/chat.postMessage`, {
+    const response = await fetch(`${this.apiBase}/chat.postMessage`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

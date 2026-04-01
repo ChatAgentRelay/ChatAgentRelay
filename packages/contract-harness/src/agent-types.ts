@@ -4,6 +4,8 @@ import type { CanonicalEvent } from "./types";
 
 export type AgentCapabilities = {
   streaming: boolean;
+  multiTurn: boolean;
+  resume: boolean;
   hitl: boolean;
   cancel: boolean;
   artifacts: boolean;

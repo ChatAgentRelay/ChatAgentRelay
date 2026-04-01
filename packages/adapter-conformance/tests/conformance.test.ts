@@ -1,29 +1,26 @@
 import { afterAll, beforeAll } from "bun:test";
 import { A2AAgentAdapter } from "@chat-agent-relay/backend-a2a";
-import { GenericHttpBackend } from "@chat-agent-relay/backend-http";
-import { LangGraphAdapter } from "@chat-agent-relay/backend-langgraph";
-import { OpenAIBackend } from "@chat-agent-relay/backend-openai";
+import { DingTalkIngress } from "@chat-agent-relay/channel-dingtalk";
 import { DiscordIngress } from "@chat-agent-relay/channel-discord";
+import { LarkIngress } from "@chat-agent-relay/channel-lark";
 import { SlackIngress } from "@chat-agent-relay/channel-slack";
+import { TelegramIngress } from "@chat-agent-relay/channel-telegram";
 import { WebChatIngress } from "@chat-agent-relay/channel-web-chat";
 import type { AgentInvocationContext, CanonicalEvent } from "@chat-agent-relay/contract-harness";
 import type { Server } from "bun";
 import { testAgentAdapter } from "../src/agent-adapter-conformance";
-import { testChannelIngress } from "../src/test-channel-ingress";
+import { testChannelAdapter } from "../src/test-channel-ingress";
 
 type BunServer = Server<unknown>;
 
-let mockBackendServer: BunServer;
-let mockBackendPort: number;
-let mockOpenAIServer: BunServer;
-let mockOpenAIPort: number;
 let mockA2AServer: BunServer;
 let mockA2APort: number;
-let mockLangGraphServer: BunServer;
-let mockLangGraphPort: number;
-let webChatIngress: WebChatIngress;
-let slackIngress: SlackIngress;
-let discordIngress: DiscordIngress;
+let webChatAdapter: WebChatIngress;
+let slackAdapter: SlackIngress;
+let discordAdapter: DiscordIngress;
+let telegramAdapter: TelegramIngress;
+let larkAdapter: LarkIngress;
+let dingtalkAdapter: DingTalkIngress;
 
 function agentInvocationEvent(): CanonicalEvent {
   return {
@@ -54,44 +51,6 @@ function agentContext(): AgentInvocationContext {
 }
 
 beforeAll(async () => {
-  mockBackendServer = Bun.serve({
-    port: 0,
-    fetch() {
-      return Response.json({
-        request_id: "req_conformance",
-        status: "completed",
-        output: { text: "Conformance test response." },
-        backend: {
-          request_id: "backend_conf_001",
-          session_handle: "sess_conf",
-          agent_id: "conformance_agent",
-        },
-      });
-    },
-  });
-  mockBackendPort = mockBackendServer.port!;
-
-  mockOpenAIServer = Bun.serve({
-    port: 0,
-    fetch() {
-      return Response.json({
-        id: "chatcmpl-conformance",
-        object: "chat.completion",
-        created: Date.now(),
-        model: "gpt-4o-mini",
-        choices: [
-          {
-            index: 0,
-            message: { role: "assistant", content: "Conformance response from OpenAI mock." },
-            finish_reason: "stop",
-          },
-        ],
-        usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
-      });
-    },
-  });
-  mockOpenAIPort = mockOpenAIServer.port!;
-
   mockA2AServer = Bun.serve({
     port: 0,
     async fetch(req) {
@@ -150,52 +109,24 @@ beforeAll(async () => {
   });
   mockA2APort = mockA2AServer.port!;
 
-  mockLangGraphServer = Bun.serve({
-    port: 0,
-    fetch(req) {
-      const url = new URL(req.url);
-      if (req.method === "POST" && url.pathname === "/threads") {
-        return Response.json({ thread_id: "thread-xxx" });
-      }
-      if (req.method === "POST" && url.pathname.endsWith("/runs/wait")) {
-        return Response.json({
-          messages: [{ type: "ai", content: "LangGraph response" }],
-        });
-      }
-      if (req.method === "POST" && url.pathname.endsWith("/runs/stream")) {
-        const chunk = JSON.stringify([
-          { type: "AIMessageChunk", content: "LangGraph streamed response" },
-        ]);
-        const body =
-          `event: metadata\ndata: {"run_id":"run-1"}\n\n` +
-          `event: messages\ndata: ${chunk}\n\n`;
-        return new Response(body, {
-          headers: { "Content-Type": "text/event-stream" },
-        });
-      }
-      return new Response("Not found", { status: 404 });
-    },
-  });
-  mockLangGraphPort = mockLangGraphServer.port!;
-
-  webChatIngress = await WebChatIngress.create();
-  slackIngress = await SlackIngress.create("tenant_conf", "ws_conf");
-  discordIngress = await DiscordIngress.create("tenant_conf", "ws_conf");
+  webChatAdapter = await WebChatIngress.create();
+  slackAdapter = await SlackIngress.create("xoxb-conformance-test-token", "tenant_conf", "ws_conf");
+  discordAdapter = await DiscordIngress.create("conformance-discord-token", "tenant_conf", "ws_conf");
+  telegramAdapter = await TelegramIngress.create("conformance-telegram-token", "tenant_conf", "ws_conf");
+  larkAdapter = await LarkIngress.create("cli_conformance", "conformance_secret", "tenant_conf", "ws_conf");
+  dingtalkAdapter = await DingTalkIngress.create("tenant_conf", "ws_conf");
 });
 
 afterAll(() => {
-  mockBackendServer.stop(true);
-  mockOpenAIServer.stop(true);
   mockA2AServer.stop(true);
-  mockLangGraphServer.stop(true);
 });
 
-// --- Channel Ingress Conformance ---
+// --- Channel Adapter Conformance ---
 
-testChannelIngress({
-  name: "WebChatIngress",
-  get ingress() {
-    return webChatIngress;
+testChannelAdapter({
+  name: "WebChatAdapter",
+  get adapter() {
+    return webChatAdapter;
   },
   expectedChannel: "webchat",
   validInput: {
@@ -221,10 +152,10 @@ testChannelIngress({
   ],
 });
 
-testChannelIngress({
-  name: "SlackIngress",
-  get ingress() {
-    return slackIngress;
+testChannelAdapter({
+  name: "SlackAdapter",
+  get adapter() {
+    return slackAdapter;
   },
   expectedChannel: "slack",
   validInput: {
@@ -243,11 +174,6 @@ testChannelIngress({
       expectedCode: "empty_text",
     },
     {
-      label: "non-message type",
-      input: { type: "reaction_added", channel: "C1", user: "U1", text: "hi", ts: "1.0" },
-      expectedCode: "invalid_slack_event",
-    },
-    {
       label: "bot message",
       input: { type: "message", channel: "C1", user: "U1", text: "hi", ts: "1.0", bot_id: "B123" },
       expectedCode: "bot_message",
@@ -255,10 +181,10 @@ testChannelIngress({
   ],
 });
 
-testChannelIngress({
-  name: "DiscordIngress",
-  get ingress() {
-    return discordIngress;
+testChannelAdapter({
+  name: "DiscordAdapter",
+  get adapter() {
+    return discordAdapter;
   },
   expectedChannel: "discord",
   validInput: {
@@ -295,6 +221,95 @@ testChannelIngress({
   ],
 });
 
+testChannelAdapter({
+  name: "TelegramAdapter",
+  get adapter() {
+    return telegramAdapter;
+  },
+  expectedChannel: "telegram",
+  validInput: {
+    update_id: 100200300,
+    message: {
+      message_id: 42,
+      from: { id: 12345, is_bot: false, first_name: "Alice", last_name: "Wang", username: "alicew" },
+      chat: { id: -100999, type: "group", title: "Dev Chat" },
+      date: 1711670400,
+      text: "Conformance test from Telegram",
+    },
+  },
+  invalidInputs: [
+    { label: "missing message", input: { update_id: 1 }, expectedCode: "missing_field" },
+    {
+      label: "empty text",
+      input: {
+        update_id: 1,
+        message: { message_id: 1, from: { id: 1, is_bot: false, first_name: "A" }, chat: { id: 1, type: "private" }, date: 1, text: "" },
+      },
+      expectedCode: "missing_field",
+    },
+  ],
+});
+
+testChannelAdapter({
+  name: "LarkAdapter",
+  get adapter() {
+    return larkAdapter;
+  },
+  expectedChannel: "lark",
+  validInput: {
+    schema: "2.0",
+    header: {
+      event_id: "evt_lark_001",
+      event_type: "im.message.receive_v1",
+      create_time: "1711670400000",
+      token: "token_123",
+      app_id: "cli_app",
+      tenant_key: "tenant_key",
+    },
+    event: {
+      sender: { sender_id: { open_id: "ou_user1" }, sender_type: "user" },
+      message: {
+        message_id: "om_msg1",
+        chat_id: "oc_chat1",
+        chat_type: "p2p",
+        message_type: "text",
+        content: JSON.stringify({ text: "Conformance test from Lark" }),
+      },
+    },
+  },
+  invalidInputs: [
+    { label: "wrong event type", input: { schema: "2.0", header: { event_id: "e1", event_type: "im.chat.disbanded_v1", create_time: "1", token: "t", app_id: "a", tenant_key: "k" }, event: {} }, expectedCode: "unsupported_event_type" },
+    { label: "non-text message", input: { schema: "2.0", header: { event_id: "e1", event_type: "im.message.receive_v1", create_time: "1", token: "t", app_id: "a", tenant_key: "k" }, event: { sender: { sender_id: { open_id: "u1" }, sender_type: "user" }, message: { message_id: "m1", chat_id: "c1", chat_type: "p2p", message_type: "image", content: "{}" } } }, expectedCode: "unsupported_message_type" },
+  ],
+});
+
+testChannelAdapter({
+  name: "DingTalkAdapter",
+  get adapter() {
+    return dingtalkAdapter;
+  },
+  expectedChannel: "dingtalk",
+  validInput: {
+    msgtype: "text",
+    text: { content: "Conformance test from DingTalk" },
+    msgId: "msg_dt_001",
+    createAt: 1711670400000,
+    conversationType: "2",
+    conversationId: "cidXXX",
+    conversationTitle: "Dev Group",
+    senderId: "dingtalk_uid_001",
+    senderNick: "张三",
+    senderStaffId: "staff_001",
+    chatbotUserId: "bot_uid_001",
+    sessionWebhook: "https://oapi.dingtalk.com/robot/sendBySession?session=xxx",
+    sessionWebhookExpiredTime: 1711756800000,
+  },
+  invalidInputs: [
+    { label: "unsupported msgtype", input: { msgtype: "link" }, expectedCode: "unsupported_msgtype" },
+    { label: "empty content", input: { msgtype: "text", text: { content: "  " }, msgId: "m1", createAt: 1, conversationType: "1", conversationId: "c1", senderId: "s1", senderNick: "n", chatbotUserId: "b1", sessionWebhook: "https://x", sessionWebhookExpiredTime: 1 }, expectedCode: "empty_content" },
+  ],
+});
+
 // --- Agent Adapter Conformance ---
 
 testAgentAdapter({
@@ -303,47 +318,4 @@ testAgentAdapter({
   context: agentContext(),
   supportsStreaming: true,
   supportsHitl: true,
-});
-
-testAgentAdapter({
-  name: "LangGraphAdapter",
-  adapter: () => LangGraphAdapter.create({ endpoint: `http://localhost:${mockLangGraphPort}` }),
-  context: agentContext(),
-  supportsStreaming: true,
-  supportsHitl: true,
-});
-
-testAgentAdapter({
-  name: "GenericHttpBackend.asAgentAdapter()",
-  adapter: async () => {
-    const backend = await GenericHttpBackend.create({ endpoint: `http://localhost:${mockBackendPort}` });
-    return backend.asAgentAdapter();
-  },
-  context: agentContext(),
-  supportsStreaming: false,
-});
-
-testAgentAdapter({
-  name: "OpenAIBackend.asAgentAdapter()",
-  adapter: async () => {
-    const backend = await OpenAIBackend.create({
-      apiKey: "test-key",
-      baseUrl: `http://localhost:${mockOpenAIPort}`,
-    });
-    return backend.asAgentAdapter();
-  },
-  context: agentContext(),
-  supportsStreaming: true,
-});
-
-testAgentAdapter({
-  name: "ACPAgentAdapter",
-  adapter: async () => {
-    const { ACPAgentAdapter } = await import("@chat-agent-relay/backend-acp");
-    const mockPath = new URL("../../backend-acp/tests/mock-acp-agent.ts", import.meta.url).pathname;
-    return ACPAgentAdapter.create({ command: "bun", args: ["run", mockPath], timeoutMs: 10_000 });
-  },
-  context: agentContext(),
-  supportsStreaming: true,
-  supportsHitl: false,
 });

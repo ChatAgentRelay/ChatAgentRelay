@@ -11,14 +11,13 @@
   },
   "dependencies": {
     "@chat-agent-relay/contract-harness": "workspace:*",
-    "@chat-agent-relay/backend-http": "workspace:*",
-    "@chat-agent-relay/backend-openai": "workspace:*",
     "@chat-agent-relay/channel-web-chat": "workspace:*",
     "@chat-agent-relay/channel-slack": "workspace:*",
     "@chat-agent-relay/channel-discord": "workspace:*",
-    "@chat-agent-relay/backend-a2a": "workspace:*",
-    "@chat-agent-relay/backend-acp": "workspace:*",
-    "@chat-agent-relay/backend-langgraph": "workspace:*"
+    "@chat-agent-relay/channel-telegram": "workspace:*",
+    "@chat-agent-relay/channel-lark": "workspace:*",
+    "@chat-agent-relay/channel-dingtalk": "workspace:*",
+    "@chat-agent-relay/backend-a2a": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",
