@@ -100,12 +100,24 @@
     var html = escapeHtml(text);
 
     if (language === "bash") {
-      html = html.replace(/^(#.*)$/gm, '<span class="code-token-comment">$1</span>');
-      html = html.replace(/^(\$\s*)?([a-z][\w:-]*)/gim, function (match, prompt, command) {
-        return (prompt || "") + '<span class="code-token-command">' + command + '</span>';
-      });
-      html = html.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="code-token-string">$1</span>');
-      return html;
+      return text
+        .split("\n")
+        .map(function (line) {
+          if (/^#.*$/.test(line)) {
+            return '<span class="code-token-comment">' + escapeHtml(line) + '</span>';
+          }
+
+          var match = line.match(/^(\$\s*)?([a-z][\w:-]*)(.*)$/i);
+          if (!match) {
+            return escapeHtml(line).replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="code-token-string">$1</span>');
+          }
+
+          var prompt = escapeHtml(match[1] || "");
+          var command = '<span class="code-token-command">' + escapeHtml(match[2]) + '</span>';
+          var rest = escapeHtml(match[3] || "").replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="code-token-string">$1</span>');
+          return prompt + command + rest;
+        })
+        .join("\n");
     }
 
     if (language === "json") {
