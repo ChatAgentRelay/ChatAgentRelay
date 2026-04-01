@@ -98,60 +98,107 @@
 
   function highlightCode(text, language) {
     var html = escapeHtml(text);
+    var protectedTokens = [];
+
+    function protect(className, value) {
+      var token = "__CODE_TOKEN_" + protectedTokens.length + "__";
+      protectedTokens.push('<span class="' + className + '">' + value + '</span>');
+      return token;
+    }
+
+    function restore(value) {
+      return value.replace(/__CODE_TOKEN_(\d+)__/g, function (_match, index) {
+        return protectedTokens[Number(index)] || _match;
+      });
+    }
 
     if (language === "bash") {
       return text
         .split("\n")
         .map(function (line) {
           if (/^#.*$/.test(line)) {
-            return '<span class="code-token-comment">' + escapeHtml(line) + '</span>';
+            return protect("code-token-comment", escapeHtml(line));
           }
 
           var match = line.match(/^(\$\s*)?([a-z][\w:-]*)(.*)$/i);
           if (!match) {
-            return escapeHtml(line).replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="code-token-string">$1</span>');
+            return restore(escapeHtml(line).replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, function (stringMatch) {
+              return protect("code-token-string", stringMatch);
+            }));
           }
 
           var prompt = escapeHtml(match[1] || "");
-          var command = '<span class="code-token-command">' + escapeHtml(match[2]) + '</span>';
-          var rest = escapeHtml(match[3] || "").replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="code-token-string">$1</span>');
-          return prompt + command + rest;
+          var command = protect("code-token-command", escapeHtml(match[2]));
+          var rest = escapeHtml(match[3] || "").replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, function (stringMatch) {
+            return protect("code-token-string", stringMatch);
+          });
+          return restore(prompt + command + rest);
         })
         .join("\n");
     }
 
     if (language === "json") {
-      html = html.replace(/("(?:[^"\\]|\\.)*")\s*:/g, '<span class="code-token-key">$1</span>:');
-      html = html.replace(/:\s*("(?:[^"\\]|\\.)*")/g, ': <span class="code-token-string">$1</span>');
-      html = html.replace(/:\s*(-?\d+(?:\.\d+)?)/g, ': <span class="code-token-number">$1</span>');
-      html = html.replace(/:\s*(true|false|null)/g, ': <span class="code-token-keyword">$1</span>');
-      return html;
+      html = html.replace(/:\s*("(?:[^"\\]|\\.)*")/g, function (_match, value) {
+        return ': ' + protect("code-token-string", value);
+      });
+      html = html.replace(/:\s*(-?\d+(?:\.\d+)?)/g, function (_match, value) {
+        return ': ' + protect("code-token-number", value);
+      });
+      html = html.replace(/:\s*(true|false|null)/g, function (_match, value) {
+        return ': ' + protect("code-token-keyword", value);
+      });
+      html = html.replace(/("(?:[^"\\]|\\.)*")\s*:/g, function (_match, key) {
+        return protect("code-token-key", key) + ':';
+      });
+      return restore(html);
     }
 
     if (language === "yaml") {
-      html = html.replace(/^(\s*#.*)$/gm, '<span class="code-token-comment">$1</span>');
-      html = html.replace(/^(\s*)([A-Za-z0-9_.-]+:)/gm, '$1<span class="code-token-key">$2</span>');
-      html = html.replace(/:\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, ': <span class="code-token-string">$1</span>');
-      html = html.replace(/:\s*(-?\d+(?:\.\d+)?|true|false|null)/g, ': <span class="code-token-number">$1</span>');
-      return html;
+      html = html.replace(/:\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, function (_match, value) {
+        return ': ' + protect("code-token-string", value);
+      });
+      html = html.replace(/:\s*(-?\d+(?:\.\d+)?|true|false|null)/g, function (_match, value) {
+        return ': ' + protect("code-token-number", value);
+      });
+      html = html.replace(/^(\s*)([A-Za-z0-9_.-]+:)/gm, function (_match, leading, key) {
+        return leading + protect("code-token-key", key);
+      });
+      html = html.replace(/^(\s*#.*)$/gm, function (_match, comment) {
+        return protect("code-token-comment", comment);
+      });
+      return restore(html);
     }
 
     if (language === "nginx") {
-      html = html.replace(/^(\s*#.*)$/gm, '<span class="code-token-comment">$1</span>');
-      html = html.replace(/^(\s*)(upstream|server|location)\b/gm, '$1<span class="code-token-keyword">$2</span>');
-      html = html.replace(/^(\s*)([a-z_]+)\b/gm, '$1<span class="code-token-directive">$2</span>');
-      html = html.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="code-token-string">$1</span>');
-      return html;
+      html = html.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, function (stringMatch) {
+        return protect("code-token-string", stringMatch);
+      });
+      html = html.replace(/^(\s*)(upstream|server|location)\b/gm, function (_match, leading, keyword) {
+        return leading + protect("code-token-keyword", keyword);
+      });
+      html = html.replace(/^(\s*)([a-z_]+)\b/gm, function (_match, leading, directive) {
+        return leading + protect("code-token-directive", directive);
+      });
+      html = html.replace(/^(\s*#.*)$/gm, function (_match, comment) {
+        return protect("code-token-comment", comment);
+      });
+      return restore(html);
     }
 
     if (language === "typescript") {
-      html = html.replace(/\b(interface|type|const|let|import|from|export|async|await|return|if)\b/g, '<span class="code-token-keyword">$1</span>');
-      html = html.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, '<span class="code-token-string">$1</span>');
-      html = html.replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="code-token-number">$1</span>');
-      return html;
+      html = html.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g, function (stringMatch) {
+        return protect("code-token-string", stringMatch);
+      });
+      html = html.replace(/\b(\d+(?:\.\d+)?)\b/g, function (_match, value) {
+        return protect("code-token-number", value);
+      });
+      html = html.replace(/\b(interface|type|const|let|import|from|export|async|await|return|if)\b/g, function (_match, keyword) {
+        return protect("code-token-keyword", keyword);
+      });
+      return restore(html);
     }
 
-    return html;
+    return restore(html);
   }
 
   function addCopyButton(pre, text) {
