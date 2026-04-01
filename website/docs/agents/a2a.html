@@ -79,14 +79,14 @@
       <a href="/ChatAgentRelay/docs/channels/slack.html" class="sidebar-link">Slack</a>
       <a href="/ChatAgentRelay/docs/channels/discord.html" class="sidebar-link">Discord</a>
       <a href="/ChatAgentRelay/docs/channels/webchat.html" class="sidebar-link">WebChat</a>
+      <a href="/ChatAgentRelay/docs/channels/telegram.html" class="sidebar-link">Telegram</a>
+      <a href="/ChatAgentRelay/docs/channels/lark.html" class="sidebar-link">Lark / 飞书</a>
+      <a href="/ChatAgentRelay/docs/channels/dingtalk.html" class="sidebar-link">DingTalk / 钉钉</a>
     </div>
     <div class="sidebar-group">
       <span class="sidebar-group-title">Agents</span>
       <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
       <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link active">A2A Protocol</a>
-      <a href="/ChatAgentRelay/docs/agents/langgraph.html" class="sidebar-link">LangGraph</a>
-      <a href="/ChatAgentRelay/docs/agents/http.html" class="sidebar-link">HTTP</a>
-      <a href="/ChatAgentRelay/docs/agents/acp.html" class="sidebar-link">ACP</a>
     </div>
     <div class="sidebar-group">
       <span class="sidebar-group-title">Configuration</span>
@@ -153,18 +153,38 @@
       </tbody>
     </table>
 
+    <h2 id="agent-card">Agent Card Discovery</h2>
+    <p>On creation, the adapter attempts to fetch <code>/.well-known/agent.json</code> from the A2A endpoint. If found, the Agent Card&rsquo;s capability declarations (e.g. streaming support) are used to populate <code>describeCapabilities()</code>. If the card is unavailable, all capabilities default to <code>true</code>. The agent&rsquo;s name from the card is used as the <code>actor.id</code> in canonical events.</p>
+
     <h2 id="streaming">Streaming</h2>
-    <p>A2A agents can stream responses via Server-Sent Events. When the agent sends incremental updates, CAR captures each delta as a streaming event and forwards it to the delivery layer. This enables real-time typing indicators and progressive message updates in channels that support editing (Slack, Discord).</p>
-    <pre><code>// The adapter calls invokeStreaming() automatically when
-// the agent's Agent Card advertises streaming capability.
-// No additional configuration needed on the CAR side.</code></pre>
+    <p>A2A agents can stream responses via Server-Sent Events using the <code>message/stream</code> JSON-RPC method. The adapter&rsquo;s <code>stream()</code> async generator yields <code>text_delta</code>, <code>status</code>, <code>input_required</code>, and <code>artifact</code> events as they arrive. This enables real-time typing indicators and progressive message updates in channels that support editing (Slack, Discord).</p>
 
     <h2 id="hitl">Human-in-the-loop (HITL)</h2>
     <p>A2A natively supports HITL workflows. When an agent needs human input, it signals via the protocol and CAR emits an <code>agent.input.requested</code> event. The channel adapter presents this to the user and routes their response back as <code>agent.input.provided</code>.</p>
     <p>This enables confirmation prompts, clarification questions, and approval workflows without custom code.</p>
 
     <h2 id="sessions">Session management</h2>
-    <p>The A2A adapter maintains sessions per conversation. CAR maps its internal <code>conversation_id</code> to A2A session identifiers, enabling multi-turn context across messages without additional configuration.</p>
+    <p>The A2A adapter uses <code>contextId</code> for session continuity. If a <code>sessionHandle</code> is provided it&rsquo;s used as the contextId; otherwise a new UUID is generated. The contextId returned by the agent is stored as the session handle for subsequent <code>resume()</code> and <code>resumeStream()</code> calls.</p>
+
+    <h2 id="resume-stream">Resume &amp; Resume Stream</h2>
+    <p>Both <code>resume()</code> and <code>resumeStream()</code> are supported. They send <code>message/send</code> and <code>message/stream</code> respectively with the same <code>contextId</code>, allowing the agent to continue from where it left off after an <code>input-required</code> state.</p>
+
+    <h2 id="cancel">Cancel</h2>
+    <p>The adapter supports <code>cancel(sessionHandle)</code> via the A2A <code>task/cancel</code> JSON-RPC method.</p>
+
+    <h2 id="capabilities">Capabilities</h2>
+    <table>
+      <thead><tr><th>Capability</th><th>Supported</th></tr></thead>
+      <tbody>
+        <tr><td>Streaming</td><td>Yes</td></tr>
+        <tr><td>HITL</td><td>Yes</td></tr>
+        <tr><td>Sessions</td><td>Yes (contextId-based)</td></tr>
+        <tr><td>Resume</td><td>Yes</td></tr>
+        <tr><td>Resume Stream</td><td>Yes</td></tr>
+        <tr><td>Cancel</td><td>Yes</td></tr>
+        <tr><td>Artifacts</td><td>Yes</td></tr>
+      </tbody>
+    </table>
 
     <h2 id="example">Full example</h2>
     <pre><code># Register the agent
@@ -186,9 +206,9 @@ car start</code></pre>
         <span class="label">&larr; Previous</span>
         <span class="title">Agents Overview</span>
       </a>
-      <a href="/ChatAgentRelay/docs/agents/langgraph.html" class="next">
+      <a href="/ChatAgentRelay/docs/configuration/" class="next">
         <span class="label">Next &rarr;</span>
-        <span class="title">LangGraph</span>
+        <span class="title">CLI &amp; Configuration</span>
       </a>
     </div>
   </main>

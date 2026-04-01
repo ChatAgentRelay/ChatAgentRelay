@@ -281,12 +281,6 @@ Phase 1 (Minimum Kernel) is now complete. The following have been implemented an
 ### Native AgentAdapter Implementations
 
 - **A2A adapter** (`@chat-agent-relay/backend-a2a`) — native A2A protocol adapter with streaming, HITL signaling, and session management via A2A's task lifecycle.
-- **LangGraph adapter** (`@chat-agent-relay/backend-langgraph`) — LangGraph Platform adapter with streaming, thread-based sessions, and interrupt/resume for HITL.
-
-### HTTP Adapters
-
-- **GenericHttpBackend** (`@chat-agent-relay/backend-http`) — exposes `asAgentAdapter()` for pipeline integration.
-- **OpenAIBackend** (`@chat-agent-relay/backend-openai`) — exposes `asAgentAdapter()` for pipeline integration.
 
 ### HITL Signaling
 
@@ -300,17 +294,13 @@ HITL is supported via three new canonical event types:
 Session continuity is maintained via `sessionHandle`:
 - Returned in `AgentSuccess.sessionHandle` after initial invocation
 - Passed to `resume()` / `resumeStream()` for HITL continuation
-- Maps to runtime-specific identifiers (A2A task ID, LangGraph thread ID)
+- Maps to runtime-specific identifiers (e.g. A2A task ID)
 - Platform `conversation_id` and runtime `sessionHandle` remain distinct per the ownership boundary
 
 ### Server Integration
 
-Agents are registered via the `car` CLI or HTTP API (`car agent add --type=<type> ...`). Supported agent types:
-- `openai` — OpenAI Chat Completions, via `asAgentAdapter()`
-- `http` — configurable HTTP backend, via `asAgentAdapter()`
+Agents are registered via the `car` CLI or HTTP API (`car agent add --type=a2a ...`). Supported agent types:
 - `a2a` — A2A protocol endpoint, native AgentAdapter
-- `langgraph` — LangGraph Platform API, native AgentAdapter
-- `acp` — ACP subprocess, native AgentAdapter
 
 ## 11. Open Questions
 

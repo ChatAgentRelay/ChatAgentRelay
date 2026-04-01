@@ -5,8 +5,8 @@
 | **Status** | Draft |
 | **Author** | Claude Code |
 | **Audience** | Backend adapter implementers |
-| **Version** | v0.3 |
-| **Last Updated** | 2026-03-30 |
+| **Version** | v0.4 |
+| **Last Updated** | 2026-03-28 |
 | **Companion** | `backend-agent-adapter-contract.md` (high-level contract) |
 
 ## 1. Abstract
@@ -17,32 +17,30 @@ This document formalizes the TypeScript interface contracts that all Chat Agent 
 
 The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as described in RFC 2119.
 
-## 3. HTTP Backend Interface
+## 3. Protocol-Based Agent Integration
 
-`GenericHttpBackend` and `OpenAIBackend` implement a simple request/response interface for HTTP-based agent invocations. Both expose `asAgentAdapter()` to produce an `AgentAdapter` for use with the pipeline.
+CAR integrates with agent runtimes exclusively through the A2A standard protocol:
 
-The underlying invocation interface:
+- **A2A (Agent-to-Agent)** — `@chat-agent-relay/backend-a2a` — for HTTP-based agents using the A2A protocol (JSON-RPC 2.0, Agent Cards, SSE streaming). Covers CrewAI, Google ADK, AutoGen/AG2, LangGraph, Mastra, Semantic Kernel, and all A2A-compliant runtimes.
 
-```typescript
-interface BackendAdapter {
-  invoke(context: InvocationContext): Promise<InvocationResult>;
-  invokeStreaming?(context: InvocationContext): AsyncGenerator<string, InvocationResult>;
-}
-```
+The A2A adapter implements `AgentAdapter` (§10) using canonical types from `@chat-agent-relay/contract-harness`.
 
 ### 3.1 invoke() — Synchronous Invocation
 
-All backend adapters MUST implement `invoke()`.
+HTTP-oriented `AgentAdapter` implementations MUST implement `invoke()`.
 
-#### Input: InvocationContext
+#### Input: AgentInvocationContext
+
+The full type is defined in §10.4. In summary:
 
 ```typescript
-type InvocationContext = {
+type AgentInvocationContext = {
   invocationEvent: CanonicalEvent;
   messageText: string;
+  parts?: AgentPart[];
   route?: { route_id: string; reason: string };
   policy?: { policy_id: string; decision: string };
-  backendSessionHandle?: string;
+  sessionHandle?: string;
   conversationHistory?: ConversationTurn[];
 };
 
@@ -58,18 +56,20 @@ Requirements:
 - `messageText` MUST be the user's message text extracted from the originating `message.received` event.
 - `conversationHistory` MAY contain previous conversation turns for multi-turn context. Adapters SHOULD use this to provide conversation memory.
 
-#### Output: InvocationResult
+#### Output: AgentResult
 
 ```typescript
-type InvocationResult = InvocationSuccess | InvocationFailure;
+type AgentResult = AgentSuccess | AgentFailure;
 
-type InvocationSuccess = {
+type AgentSuccess = {
   ok: true;
   event: CanonicalEvent;
   requestId: string;
+  sessionHandle?: string;
+  artifacts?: AgentArtifact[];
 };
 
-type InvocationFailure = {
+type AgentFailure = {
   ok: false;
   requestId: string;
   error: {
@@ -77,9 +77,12 @@ type InvocationFailure = {
     message: string;
     retryable: boolean;
     category: string;
+    details?: Record<string, unknown>;
   };
 };
 ```
+
+(See §10.5 for normative `AgentResult` semantics.)
 
 #### Success Path
 
@@ -91,22 +94,22 @@ type InvocationFailure = {
 
 #### Failure Path
 
-- Adapters MUST NOT throw exceptions from `invoke()`. All backend failures MUST be returned as `InvocationFailure`.
+- Adapters MUST NOT throw exceptions from `invoke()`. All backend failures MUST be returned as `AgentFailure`.
 - `error.retryable` MUST be `true` for transient failures (timeouts, rate limits, 5xx errors) and `false` for permanent failures.
 - `error.category` MUST be one of: `"invalid_request"`, `"timeout"`, `"dependency_failure"`, `"backend_unavailable"`.
 
-### 3.2 invokeStreaming() — Streaming Invocation (Optional)
+### 3.2 stream() — Streaming Invocation (Optional)
 
-Adapters MAY implement `invokeStreaming()` to support progressive response delivery.
+Adapters MAY implement `stream()` (§10) to support progressive response delivery.
 
 ```typescript
-invokeStreaming?(context: InvocationContext): AsyncGenerator<string, InvocationResult>;
+stream?(context: AgentInvocationContext): AsyncGenerator<AgentEvent, AgentResult>;
 ```
 
 Requirements:
 
-- Each `yield` MUST produce a `string` containing a text delta (partial response content).
-- The `return` value MUST be an `InvocationResult` containing the complete final event.
+- Each `yield` MUST produce an `AgentEvent` (§10.3); for text deltas, adapters MUST use `{ type: "text_delta", content: string }`.
+- The generator’s **return** value MUST be an `AgentResult` containing the complete final `agent.response.completed` event.
 - The final `agent.response.completed` event MUST contain the full assembled text, not just the last delta.
 - Streaming deltas are a transport optimization. Only the final `agent.response.completed` event is appended to the canonical ledger. No intermediate delta events enter the canonical event model.
 
@@ -175,8 +178,8 @@ Adapters SHOULD use the following error codes:
 
 A conforming HTTP backend implementation MUST:
 
-- [ ] Implement `invoke()` accepting `InvocationContext` and returning `InvocationResult`
-- [ ] Never throw from `invoke()` — all errors returned as `InvocationFailure`
+- [ ] Implement `AgentAdapter` with `describeCapabilities()` and `invoke()` accepting `AgentInvocationContext` and returning `AgentResult`
+- [ ] Never throw from `invoke()` — all errors returned as `AgentFailure`
 - [ ] Produce schema-valid `agent.response.completed` events on success
 - [ ] Preserve `correlation_id` and `causation_id` from invocation event
 - [ ] Set `error.retryable` accurately on failure
@@ -185,33 +188,15 @@ A conforming HTTP backend implementation MUST:
 
 A conforming streaming adapter additionally MUST:
 
-- [ ] Yield string deltas from `invokeStreaming()`
-- [ ] Return a final `InvocationResult` with complete assembled text
+- [ ] Yield `AgentEvent` values from `stream()` (e.g. `text_delta` for partial content)
+- [ ] Return a final `AgentResult` with complete assembled text
 - [ ] Not produce canonical delta events (deltas are transport-only)
 
 ## 9. Existing Implementations
 
 | Adapter | Package | Status | Backend |
 |---|---|---|---|
-| `GenericHttpBackend` | `backend-http` | Active | Configurable HTTP endpoint |
-| `OpenAIBackend` | `backend-openai` | **Deprecated** | OpenAI Chat Completions API |
-| `A2AAgentAdapter` | `backend-a2a` | Active | A2A protocol agents |
-| `LangGraphAdapter` | `backend-langgraph` | Active | LangGraph Platform |
-| `ACPAgentAdapter` | `backend-acp` | Active | ACP (stdio subprocess) |
-
-### 9.1 GenericHttpBackend Configuration
-
-`GenericHttpBackend` supports connecting to any HTTP agent without requiring the agent to speak CAR's native request/response format:
-
-| Config Field | Type | Default | Purpose |
-|---|---|---|---|
-| `endpoint` | `string` | (required) | Agent HTTP endpoint URL |
-| `timeoutMs` | `number` | `30000` | Request timeout in milliseconds |
-| `headers` | `Record<string, string>` | `{}` | Custom request headers (e.g. `Authorization`) |
-| `buildRequestBody` | `(messageText, history?) => unknown` | CAR native format | Custom request body builder function |
-| `responseTextField` | `string` | `"output.text"` | Dot-path to extract response text (e.g. `"answer"`, `"result.data.text"`) |
-
-When `buildRequestBody` and `responseTextField` are omitted, the adapter uses CAR's native request/response format for backward compatibility.
+| `A2AAgentAdapter` | `backend-a2a` | Active | A2A protocol (HTTP-based agents) |
 
 ## 10. AgentAdapter Interface (v2)
 
@@ -225,7 +210,11 @@ The `AgentAdapter` interface is the primary agent-side boundary. It is aligned w
 - Structured artifacts (files, data)
 - Session management across multiple interactions
 
-HTTP backends (`GenericHttpBackend`, `OpenAIBackend`) expose `asAgentAdapter()` to produce an `AgentAdapter` with `{ streaming, hitl: false, cancel: false, artifacts: false }`.
+A2AAgentAdapter is the built-in AgentAdapter implementation; capabilities vary by the remote agent's declared features.
+
+Capability semantics:
+- `multiTurn` — when `true`, the pipeline provides conversation history from the ledger. Agents that do not maintain their own context SHOULD declare this.
+- `resume` — when `true`, the agent supports `resume()` and `resumeStream()` for continuing execution after human input. MUST be `true` when `hitl` is `true`.
 
 ### 10.2 Interface Definition
 
@@ -241,6 +230,8 @@ interface AgentAdapter {
 
 type AgentCapabilities = {
   streaming: boolean;
+  multiTurn: boolean;
+  resume: boolean;
   hitl: boolean;
   cancel: boolean;
   artifacts: boolean;
@@ -355,11 +346,7 @@ type AgentPart = TextPart | FilePart | DataPart;
 
 Parts are used in `AgentInvocationContext.parts`, `AgentResumeInput.parts`, and `AgentArtifact.parts`.
 
-### 10.8 ACP (Agent Client Protocol) adapter
-
-`ACPAgentAdapter` (`packages/backend-acp`) implements `AgentAdapter` for coding agents that speak the **Agent Client Protocol** over **stdin/stdout**: CAR spawns a subprocess (configurable command and working directory), exchanges JSON-RPC messages on the process pipes, and maps ACP session lifecycle, streaming text, permission requests, and HITL-style prompts into `AgentEvent` streams and canonical events. **Permission handling** is configurable (for example auto-approve vs. denying tool calls vs. surfacing prompts through the relay) so deployments can match their security posture.
-
-### 10.9 AgentAdapter Conformance Checklist
+### 10.8 AgentAdapter Conformance Checklist
 
 A conforming `AgentAdapter` implementation MUST:
 
@@ -392,7 +379,7 @@ Requirements:
 - Each registered adapter MUST be addressable by a stable **name** aligned with route configuration.
 - Adding, updating, disabling, or removing an agent SHOULD NOT require a full process restart when the deployment supports hot reload (channels likewise use a **ChannelRegistry**).
 - The pipeline MUST receive a **`resolveAgent(agentName)`** (or equivalent) callback rather than assuming a single global backend instance.
-- HTTP and OpenAI backends are exposed to the pipeline via their `asAgentAdapter()` method.
+- All agents connect via the A2A standard protocol; framework-specific adapters are not provided.
 
 This section does not change the `AgentAdapter` contract itself — it describes how the runtime **selects** which conforming adapter executes for a given conversation turn.
 

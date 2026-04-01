@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Agents — Chat Agent Relay</title>
-  <meta name="description" content="Overview of agent adapters in Chat Agent Relay: A2A Protocol, LangGraph, HTTP, and ACP. Connect any AI agent runtime through a unified AgentAdapter interface.">
+  <meta name="description" content="Overview of agent adapters in Chat Agent Relay. Connect any AI agent runtime through the A2A protocol — the universal standard for agent interoperability.">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
   <meta property="og:title" content="Agents — Chat Agent Relay">
-  <meta property="og:description" content="Connect any AI agent runtime through a unified AgentAdapter interface. Supports A2A, LangGraph, HTTP, and ACP adapters.">
+  <meta property="og:description" content="Overview of agent adapters in Chat Agent Relay. Connect any AI agent runtime through the A2A protocol.">
   <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/agents/">
   <meta property="og:site_name" content="Chat Agent Relay">
   <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
@@ -17,7 +17,7 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Agents — Chat Agent Relay">
-  <meta name="twitter:description" content="Connect any AI agent runtime through a unified AgentAdapter interface. Supports A2A, LangGraph, HTTP, and ACP adapters.">
+  <meta name="twitter:description" content="Overview of agent adapters in Chat Agent Relay. Connect any AI agent runtime through the A2A protocol.">
   <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
 
   <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/agents/">
@@ -46,7 +46,7 @@
     "@context": "https://schema.org",
     "@type": "TechArticle",
     "headline": "Agents — Chat Agent Relay",
-    "description": "Overview of agent adapters in Chat Agent Relay: A2A Protocol, LangGraph, HTTP, and ACP. Connect any AI agent runtime through a unified AgentAdapter interface.",
+    "description": "Overview of agent adapters in Chat Agent Relay. Connect any AI agent runtime through the A2A protocol.",
     "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/agents/"
   }
   </script>
@@ -79,14 +79,14 @@
       <a href="/ChatAgentRelay/docs/channels/slack.html" class="sidebar-link">Slack</a>
       <a href="/ChatAgentRelay/docs/channels/discord.html" class="sidebar-link">Discord</a>
       <a href="/ChatAgentRelay/docs/channels/webchat.html" class="sidebar-link">WebChat</a>
+      <a href="/ChatAgentRelay/docs/channels/telegram.html" class="sidebar-link">Telegram</a>
+      <a href="/ChatAgentRelay/docs/channels/lark.html" class="sidebar-link">Lark / 飞书</a>
+      <a href="/ChatAgentRelay/docs/channels/dingtalk.html" class="sidebar-link">DingTalk / 钉钉</a>
     </div>
     <div class="sidebar-group">
       <span class="sidebar-group-title">Agents</span>
       <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link active">Overview</a>
       <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
-      <a href="/ChatAgentRelay/docs/agents/langgraph.html" class="sidebar-link">LangGraph</a>
-      <a href="/ChatAgentRelay/docs/agents/http.html" class="sidebar-link">HTTP</a>
-      <a href="/ChatAgentRelay/docs/agents/acp.html" class="sidebar-link">ACP</a>
     </div>
     <div class="sidebar-group">
       <span class="sidebar-group-title">Configuration</span>
@@ -109,96 +109,78 @@
   <!-- Content -->
   <main class="doc-content">
     <h1>Agents</h1>
-    <p class="subtitle">Agents are external AI runtimes that Chat Agent Relay connects to through the <code>AgentAdapter</code> interface. CAR handles ingress, governance, routing, and delivery &mdash; the agent just processes the prompt and returns a response.</p>
+    <p class="subtitle">Agents are external AI runtimes that Chat Agent Relay connects to through the <code>AgentAdapter</code> interface via the <strong>A2A (Agent-to-Agent) protocol</strong> &mdash; the universal standard for agent interoperability. CAR handles ingress, governance, routing, and delivery; the agent just processes the prompt and returns a response.</p>
 
     <h2 id="how-it-works">How it works</h2>
     <p>When a message arrives from a chat channel, the pipeline evaluates policy rules, selects an agent via route rules, and invokes it through the appropriate adapter. The adapter translates between CAR&rsquo;s canonical event model and the agent&rsquo;s native protocol.</p>
-    <p>Every adapter implements the same <code>AgentAdapter</code> interface, which means the pipeline, ledger, and delivery layer work identically regardless of which agent backend you choose. Swap agents without changing anything else.</p>
+    <p>CAR uses a single protocol &mdash; <strong>A2A</strong> &mdash; to talk to all agents. Every agent implements the same <code>AgentAdapter</code> interface, which means the pipeline, ledger, and delivery layer work identically regardless of which agent you connect. Swap agents without changing anything else.</p>
 
-    <h2 id="adapters">Available adapters</h2>
-    <p>Pick the adapter that matches your agent&rsquo;s protocol:</p>
+    <h2 id="adapters">The A2A adapter</h2>
+    <p>CAR connects to agents via the <strong>A2A (Agent-to-Agent)</strong> protocol &mdash; an open standard by Google adopted by 150+ organizations. Any agent runtime that speaks A2A works out of the box.</p>
 
     <div class="card-grid">
       <a href="/ChatAgentRelay/docs/agents/a2a.html" class="card">
         <div class="card-icon">&#x1F310;</div>
         <div class="card-title">A2A Protocol</div>
-        <div class="card-desc">Google&rsquo;s Agent-to-Agent standard. Best for: agents already exposing A2A endpoints.</div>
-      </a>
-      <a href="/ChatAgentRelay/docs/agents/langgraph.html" class="card">
-        <div class="card-icon">&#x1F9E9;</div>
-        <div class="card-title">LangGraph</div>
-        <div class="card-desc">LangGraph Platform API. Best for: LangGraph / LangChain users.</div>
-      </a>
-      <a href="/ChatAgentRelay/docs/agents/http.html" class="card">
-        <div class="card-icon">&#x1F517;</div>
-        <div class="card-title">HTTP</div>
-        <div class="card-desc">Any HTTP endpoint. Best for: custom agents, workflow platforms (n8n, Dify), prototyping.</div>
-      </a>
-      <a href="/ChatAgentRelay/docs/agents/acp.html" class="card">
-        <div class="card-icon">&#x1F4BB;</div>
-        <div class="card-title">ACP</div>
-        <div class="card-desc">Agent Client Protocol. Best for: coding agents (Claude Code, Gemini CLI).</div>
+        <div class="card-desc">HTTP-based agent protocol. Works with CrewAI, Google ADK, AutoGen, Mastra, LangGraph, and any A2A-compliant runtime.</div>
       </a>
     </div>
 
-    <h2 id="comparison">Feature comparison</h2>
+    <h2 id="capabilities">A2A capabilities</h2>
     <table>
       <thead>
         <tr>
           <th>Feature</th>
-          <th>A2A</th>
-          <th>LangGraph</th>
-          <th>HTTP</th>
-          <th>ACP</th>
+          <th>Supported</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td>Streaming</td>
           <td class="check">&check;</td>
-          <td class="check">&check;</td>
-          <td class="cross">&cross;</td>
-          <td class="cross">&cross;</td>
         </tr>
         <tr>
           <td>HITL</td>
           <td class="check">&check;</td>
-          <td class="check">&check;</td>
-          <td class="cross">&cross;</td>
-          <td class="cross">&cross;</td>
         </tr>
         <tr>
           <td>Session Management</td>
           <td class="check">&check;</td>
+        </tr>
+        <tr>
+          <td>Resume</td>
           <td class="check">&check;</td>
-          <td class="cross">&cross;</td>
-          <td class="cross">&cross;</td>
+        </tr>
+        <tr>
+          <td>Resume Stream</td>
+          <td class="check">&check;</td>
+        </tr>
+        <tr>
+          <td>Cancel</td>
+          <td class="check">&check;</td>
         </tr>
         <tr>
           <td>Artifacts</td>
           <td class="check">&check;</td>
-          <td class="cross">&cross;</td>
-          <td class="cross">&cross;</td>
-          <td class="cross">&cross;</td>
         </tr>
       </tbody>
     </table>
 
     <h2 id="agent-adapter">The AgentAdapter interface</h2>
-    <p>All native adapters implement <code>AgentAdapter</code>, which is aligned with the A2A protocol&rsquo;s message semantics. The interface supports:</p>
+    <p>All adapters implement <code>AgentAdapter</code>, which is aligned with A2A protocol semantics:</p>
     <ul>
-      <li><strong>invoke</strong> &mdash; send a message and receive a complete response.</li>
-      <li><strong>invokeStreaming</strong> &mdash; receive response deltas as they arrive (SSE / streaming).</li>
-      <li><strong>HITL signals</strong> &mdash; <code>agent.input.requested</code> and <code>agent.input.provided</code> events for human-in-the-loop workflows.</li>
+      <li><strong>invoke()</strong> &mdash; send a message and receive a complete response.</li>
+      <li><strong>stream()</strong> &mdash; async generator yielding <code>text_delta</code>, <code>status</code>, <code>input_required</code>, and <code>artifact</code> events as they arrive.</li>
+      <li><strong>resume()</strong> &mdash; continue a session after HITL or follow-up input.</li>
+      <li><strong>resumeStream()</strong> &mdash; streaming variant of resume; yields deltas while continuing a session.</li>
+      <li><strong>cancel()</strong> &mdash; abort an in-progress invocation.</li>
+      <li><strong>describeCapabilities()</strong> &mdash; declare what the adapter supports (streaming, HITL, cancel, artifacts).</li>
     </ul>
-    <p>Legacy <code>BackendAdapter</code> implementations (HTTP, OpenAI) are wrapped via <code>legacyBridge()</code> so they work seamlessly in the same pipeline.</p>
+    <p>All methods except <code>invoke()</code> and <code>describeCapabilities()</code> are optional. The pipeline uses <code>describeCapabilities()</code> to determine which features to activate.</p>
 
     <h2 id="registering">Registering an agent</h2>
-    <p>Use the <code>car</code> CLI to register agents. Each agent gets a unique name and type:</p>
-    <pre><code>car agent add my-agent --type=a2a --endpoint=http://localhost:9000
-car agent add my-lg    --type=langgraph --endpoint=http://localhost:8123
-car agent add my-http  --type=http --endpoint=http://localhost:5000/chat
-car agent add claude   --type=acp --command=claude</code></pre>
+    <p>Use the <code>car</code> CLI to register agents. Each agent gets a unique name and an A2A endpoint:</p>
+    <pre><code>car agent add my-agent --endpoint=http://localhost:9000</code></pre>
     <p>Then create a route rule so the pipeline knows which agent handles which messages:</p>
     <pre><code>car route add --default --agent=my-agent</code></pre>
 
