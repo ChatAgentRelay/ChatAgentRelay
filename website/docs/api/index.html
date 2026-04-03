@@ -4,19 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>HTTP API — Chat Agent Relay</title>
-  <meta name="description" content="Chat Agent Relay HTTP API reference: health checks, event queries, audit, agent/channel/route CRUD, and config management endpoints with curl examples.">
+  <meta name="description" content="The HTTP API for Chat Agent Relay provides operational and query access around the relay runtime: management surfaces for channels, agents, and routes; read-only ledger queries for replay and audit.">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
   <meta property="og:title" content="HTTP API — Chat Agent Relay">
-  <meta property="og:description" content="Full HTTP API reference: health, events, audit, agents, channels, routes, and config endpoints with request/response examples.">
+  <meta property="og:description" content="The HTTP API for Chat Agent Relay provides operational and query access around the relay runtime: management surfaces for channels, agents, and routes; read-only ledger queries for replay and audit.">
   <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/api/">
   <meta property="og:site_name" content="Chat Agent Relay">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="HTTP API — Chat Agent Relay">
-  <meta name="twitter:description" content="Complete REST API reference for Chat Agent Relay: events, audit, CRUD for agents, channels, routes, and config.">
+  <meta name="twitter:description" content="The HTTP API for Chat Agent Relay provides operational and query access around the relay runtime: management surfaces for channels, agents, and routes; read-only ledger queries for replay and audit.">
 
   <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
   <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
@@ -46,7 +46,7 @@
     "@context": "https://schema.org",
     "@type": "TechArticle",
     "headline": "HTTP API — Chat Agent Relay",
-    "description": "Full HTTP API reference for Chat Agent Relay: health, events, audit, agents, channels, routes, and config endpoints.",
+    "description": "The HTTP API for Chat Agent Relay provides operational and query access around the relay runtime: management surfaces for channels, agents, and routes; read-only ledger queries for replay and audit.",
     "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/api/"
   }
   </script>
@@ -70,7 +70,7 @@
 <aside class="doc-sidebar">
   <div class="sidebar-group">
     <span class="sidebar-group-title">Getting Started</span>
-    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Quick Start</a>
+    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Overview</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Channels</span>
@@ -85,13 +85,13 @@
   <div class="sidebar-group">
     <span class="sidebar-group-title">Agents</span>
     <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
-    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Configuration</span>
     <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
-    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Multi-Agent Routing</a>
-    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage Backends</a>
+    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Routing</a>
+    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Concepts</span>
@@ -108,7 +108,17 @@
 <!-- Content -->
 <main class="doc-content">
   <h1>HTTP API</h1>
-  <p class="subtitle">Full REST API reference for managing and querying Chat Agent Relay. All endpoints are available when the server is running (default <code>http://localhost:3000</code>).</p>
+  <p class="subtitle">The HTTP API provides operational and query access around the relay runtime: management surfaces for channels, agents, and routes; read-only ledger queries for replay and audit. All endpoints are available when the server is running (default <code>http://localhost:3000</code>).</p>
+
+  <h2 id="what-the-api-is-for">What the API is for</h2>
+  <ul>
+    <li><strong>Runtime management</strong> — register and manage channel adapters, agents, and route rules that wire the relay runtime</li>
+    <li><strong>Ledger queries</strong> — read-only access to the append-only event ledger for replay, audit, and correlation lookup</li>
+    <li><strong>Health and status</strong> — liveness check and ledger health</li>
+  </ul>
+  <p>
+    The API surfaces are reference and operational tooling around the relay path. They do not change the architectural role of CAR: channel boundaries, canonical message path, A2A agent boundary, delivery, replay, and audit remain the core model.
+  </p>
 
   <!-- ── Health ───────────────────────────────────────────── -->
   <h2 id="health">Health</h2>
