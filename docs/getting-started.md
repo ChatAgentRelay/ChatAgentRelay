@@ -1,6 +1,6 @@
 # Getting Started with Chat Agent Relay
 
-This guide walks you through running Chat Agent Relay (CAR) with Slack and an agent backend, then shows how to connect your own agent and chat platform.
+This guide walks you through running Chat Agent Relay (CAR) with Slack and an A2A agent endpoint, then shows how to connect your own agent and chat platform.
 
 ## Prerequisites
 
@@ -25,7 +25,7 @@ bun test --recursive
 
 ## 2. Environment (minimal)
 
-CAR keeps **channels, agents, routes, and settings** in a pluggable config store (SQLite by default) — not in environment variables. The `ConfigStore` interface can be swapped for PostgreSQL or other backends.
+CAR keeps **channels, agents, routes, and settings** in a SQLite config store by default — not in environment variables.
 
 | Variable | Required | Default | Purpose |
 |----------|----------|---------|---------|
