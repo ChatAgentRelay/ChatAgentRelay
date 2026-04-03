@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Storage Backends — Chat Agent Relay</title>
-  <meta name="description" content="Pluggable storage backends for Chat Agent Relay: ConfigStore and LedgerStore interfaces. Default SQLite with WAL mode, custom backend implementation guide.">
+  <title>Storage — Chat Agent Relay</title>
+  <meta name="description" content="Storage in Chat Agent Relay preserves runtime configuration and the append-only event ledger for the canonical relay path. SQLite is the default built-in implementation.">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
-  <meta property="og:title" content="Storage Backends — Chat Agent Relay">
-  <meta property="og:description" content="ConfigStore and LedgerStore interfaces: pluggable storage with SQLite default. Implement PostgreSQL or any custom backend.">
+  <meta property="og:title" content="Storage — Chat Agent Relay">
+  <meta property="og:description" content="Storage in Chat Agent Relay preserves runtime configuration and the append-only event ledger for the canonical relay path. SQLite is the default built-in implementation.">
   <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/configuration/storage.html">
   <meta property="og:site_name" content="Chat Agent Relay">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Storage Backends — Chat Agent Relay">
-  <meta name="twitter:description" content="Pluggable ConfigStore and LedgerStore interfaces with SQLite default and custom backend support.">
+  <meta name="twitter:title" content="Storage — Chat Agent Relay">
+  <meta name="twitter:description" content="Storage in Chat Agent Relay preserves runtime configuration and the append-only event ledger for the canonical relay path. SQLite is the default built-in implementation.">
 
   <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
   <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
@@ -45,8 +45,8 @@
   {
     "@context": "https://schema.org",
     "@type": "TechArticle",
-    "headline": "Storage Backends — Chat Agent Relay",
-    "description": "Pluggable storage backends for Chat Agent Relay: ConfigStore and LedgerStore interfaces with SQLite default.",
+    "headline": "Storage — Chat Agent Relay",
+    "description": "Storage in Chat Agent Relay preserves runtime configuration and the append-only event ledger for the canonical relay path. SQLite is the default built-in implementation.",
     "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/configuration/storage.html"
   }
   </script>
@@ -70,7 +70,7 @@
 <aside class="doc-sidebar">
   <div class="sidebar-group">
     <span class="sidebar-group-title">Getting Started</span>
-    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Quick Start</a>
+    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Overview</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Channels</span>
@@ -85,13 +85,13 @@
   <div class="sidebar-group">
     <span class="sidebar-group-title">Agents</span>
     <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
-    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Configuration</span>
     <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
-    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Multi-Agent Routing</a>
-    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link active">Storage Backends</a>
+    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Routing</a>
+    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link active">Storage</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Concepts</span>
@@ -107,42 +107,31 @@
 
 <!-- Content -->
 <main class="doc-content">
-  <h1>Storage Backends</h1>
-  <p class="subtitle">Interface-driven storage for configuration and events. SQLite built-in, anything else pluggable.</p>
+  <h1>Storage</h1>
+  <p class="subtitle">Storage in Chat Agent Relay preserves runtime configuration and the append-only event ledger for the canonical relay path. SQLite is the default built-in implementation.</p>
 
-  <h2 id="configstore">ConfigStore Interface</h2>
+  <h2 id="storage-role">What storage means in CAR</h2>
   <p>
-    The <code>ConfigStore</code> interface defines how Chat Agent Relay persists channels, agents, routes, and key-value settings. Any class implementing this interface can serve as the configuration backend.
+    Chat Agent Relay is a relay layer between chat platforms and agent runtimes. To keep that path consistent across restarts, CAR relies on two persistence concerns: one holds the runtime configuration that registers channel adapters, agents, and routing, and one holds the append-only event ledger that makes replay and audit possible.
+  </p>
+  <p>
+    Neither storage surface is the product headline. Both exist to support the governed canonical message path and operational continuity of the relay.
   </p>
 
+  <h2 id="two-storage-concerns">Two storage concerns</h2>
   <table>
     <thead>
-      <tr><th>Method</th><th>Description</th></tr>
+      <tr><th>Concern</th><th>Purpose</th></tr>
     </thead>
     <tbody>
-      <tr><td><code>getChannels()</code></td><td>List all registered channels</td></tr>
-      <tr><td><code>getChannel(name)</code></td><td>Get a single channel by name</td></tr>
-      <tr><td><code>addChannel(config)</code></td><td>Register a new channel</td></tr>
-      <tr><td><code>updateChannel(name, config)</code></td><td>Update an existing channel</td></tr>
-      <tr><td><code>removeChannel(name)</code></td><td>Remove a channel</td></tr>
-      <tr><td><code>getAgents()</code></td><td>List all registered agents</td></tr>
-      <tr><td><code>getAgent(name)</code></td><td>Get a single agent by name</td></tr>
-      <tr><td><code>addAgent(config)</code></td><td>Register a new agent</td></tr>
-      <tr><td><code>updateAgent(name, config)</code></td><td>Update an existing agent</td></tr>
-      <tr><td><code>removeAgent(name)</code></td><td>Remove an agent</td></tr>
-      <tr><td><code>getRoutes()</code></td><td>List all routing rules</td></tr>
-      <tr><td><code>addRoute(rule)</code></td><td>Add a routing rule</td></tr>
-      <tr><td><code>removeRoute(id)</code></td><td>Remove a routing rule</td></tr>
-      <tr><td><code>getConfig(key)</code></td><td>Get a config value</td></tr>
-      <tr><td><code>setConfig(key, value)</code></td><td>Set a config value</td></tr>
-      <tr><td><code>listConfig()</code></td><td>List all config key-value pairs</td></tr>
-      <tr><td><code>deleteConfig(key)</code></td><td>Delete a config entry</td></tr>
+      <tr><td>Configuration storage</td><td>Channels, agents, routes, and settings that wire the relay runtime</td></tr>
+      <tr><td>Ledger storage</td><td>Replayable append-only event history for audit and replay</td></tr>
     </tbody>
   </table>
 
-  <h2 id="sqlite">Default: SqliteConfigStore</h2>
+  <h2 id="default-runtime">Default runtime storage</h2>
   <p>
-    The built-in <code>SqliteConfigStore</code> requires zero configuration. It uses SQLite in <strong>WAL mode</strong> for concurrent read performance and stores the database at the path specified by <code>CAR_DB_PATH</code> (default: <code>./car.db</code>).
+    The default built-in implementation uses <strong>SQLite</strong> for both concerns. The database file path is set with <code>CAR_DB_PATH</code> (default: <code>./car.db</code>). SQLite runs in <strong>WAL mode</strong> for concurrent read performance.
   </p>
   <pre><code># Use the default path
 car start
@@ -152,64 +141,29 @@ CAR_DB_PATH=/var/lib/car/config.db car start</code></pre>
 
   <div class="callout callout-info">
     <strong>Encryption at rest</strong>
-    Sensitive fields (tokens, API keys) are encrypted with AES-256-GCM when <code>CAR_ENCRYPTION_KEY</code> is set, regardless of storage backend. The encryption happens at the <code>ConfigStore</code> layer, so custom implementations inherit this behavior automatically.
+    Sensitive config values are encrypted when <code>CAR_ENCRYPTION_KEY</code> is set.
   </div>
 
-  <h2 id="ledgerstore">LedgerStore Interface</h2>
+  <h2 id="config-store">Configuration storage layer</h2>
   <p>
-    The <code>LedgerStore</code> interface defines how the append-only event ledger is persisted. Like <code>ConfigStore</code>, it is interface-driven and swappable.
-  </p>
-  <table>
-    <thead>
-      <tr><th>Method</th><th>Description</th></tr>
-    </thead>
-    <tbody>
-      <tr><td><code>append(event)</code></td><td>Append an event to the ledger</td></tr>
-      <tr><td><code>getById(eventId)</code></td><td>Retrieve a single event by ID</td></tr>
-      <tr><td><code>getByConversationId(id)</code></td><td>Get all events for a conversation</td></tr>
-      <tr><td><code>getByCorrelationId(id)</code></td><td>Get all events sharing a correlation ID</td></tr>
-    </tbody>
-  </table>
-  <p>
-    The default implementation uses SQLite (same database or a separate file). An in-memory implementation is also available for testing.
+    The <code>ConfigStore</code> abstraction persists channels, agents, route rules, and key-value settings the runtime needs to operate the relay. <code>SqliteConfigStore</code> is the default implementation. Method-level API detail belongs in reference documentation; here the important point is that configuration storage is the durable backing for the registered runtime state described on the <a href="/ChatAgentRelay/docs/configuration/">CLI &amp; Config</a> page.
   </p>
 
-  <h2 id="custom">Implementing a Custom Backend</h2>
+  <h2 id="ledger-store">Ledger storage layer</h2>
   <p>
-    To use PostgreSQL, DynamoDB, or any other storage system, implement the <code>ConfigStore</code> and/or <code>LedgerStore</code> interfaces:
+    The <code>LedgerStore</code> abstraction backs the append-only event ledger. Events are written once and are not mutated in place, which preserves a trustworthy history for replay and audit. The default implementation also uses SQLite (same database file or a separate file as configured for your deployment). An in-memory implementation exists for testing.
   </p>
-  <pre><code>import type { ConfigStore } from '@chat-agent-relay/config-store';
 
-export class PostgresConfigStore implements ConfigStore {
-  constructor(private pool: Pool) {}
-
-  async getChannels() {
-    const result = await this.pool.query('SELECT * FROM channels');
-    return result.rows;
-  }
-
-  async addChannel(config) {
-    await this.pool.query(
-      'INSERT INTO channels (name, type, config) VALUES ($1, $2, $3)',
-      [config.name, config.type, JSON.stringify(config)]
-    );
-  }
-
-  // ... implement remaining methods
-}</code></pre>
+  <h2 id="customization">Implementation customization</h2>
   <p>
-    Pass your custom store when constructing the pipeline or server:
+    Both <code>ConfigStore</code> and <code>LedgerStore</code> are interface-driven. Custom implementations can replace either by implementing the interface and wiring them in during server initialization—for example, a team-standard database such as PostgreSQL or a managed cloud store. That flexibility is secondary to CAR’s role as a relay: the default SQLite path is sufficient for most deployments, and swapping storage does not redefine CAR as a storage or extensibility product.
   </p>
-  <pre><code>import { PostgresConfigStore } from './pg-store';
-
-const configStore = new PostgresConfigStore(pool);
-// Pass configStore to server initialization</code></pre>
 
   <!-- Pagination -->
   <div class="doc-pagination">
     <a href="/ChatAgentRelay/docs/configuration/routing.html" class="prev">
       <span class="label">Previous</span>
-      <span class="title">&larr; Multi-Agent Routing</span>
+      <span class="title">&larr; Routing</span>
     </a>
     <a href="/ChatAgentRelay/docs/concepts/" class="next">
       <span class="label">Next</span>
