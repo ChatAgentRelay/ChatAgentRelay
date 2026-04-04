@@ -1,37 +1,97 @@
-# RFC: Chat Agent Relay Backend Adapter Interface Specification
+# RFC: Chat Agent Relay Agent-Side Adapter Interface Specification
 
 | | |
 |---|---|
 | **Status** | Draft |
 | **Author** | Claude Code |
-| **Audience** | Backend adapter implementers |
-| **Version** | v0.4 |
-| **Last Updated** | 2026-03-28 |
+| **Audience** | Agent-side adapter implementers |
+| **Version** | v0.5 |
+| **Last Updated** | 2026-04-02 |
 | **Companion** | `backend-agent-adapter-contract.md` (high-level contract) |
 
 ## 1. Abstract
 
-This document formalizes the TypeScript interface contracts that all Chat Agent Relay (CAR) backend adapters MUST implement. It covers the **AgentAdapter** interface and the HTTP backend configuration. It complements the high-level backend agent adapter contract RFC with precise type-level requirements.
+This document defines the interface-level contract for agent-side adapters in Chat Agent Relay (CAR).
+
+CAR is a standard relay layer between chat platforms and agents. On the agent side, CAR uses **A2A** as the standard protocol boundary. This RFC defines the precise adapter-facing types and result-shape requirements used at that boundary.
+
+This document explicitly separates:
+- **Core** — normative interface semantics required for conformance
+- **Extension** — optional but aligned interface capabilities
+- **Future Considerations** — non-normative directions that are not current conformance requirements
 
 ## 2. Normative Language
 
 The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as described in RFC 2119.
 
-## 3. Protocol-Based Agent Integration
+## 3. Purpose
 
-CAR integrates with agent runtimes exclusively through the A2A standard protocol:
+This RFC defines the stable type-level contract for CAR's agent-side invocation boundary.
 
-- **A2A (Agent-to-Agent)** — `@chat-agent-relay/backend-a2a` — for HTTP-based agents using the A2A protocol (JSON-RPC 2.0, Agent Cards, SSE streaming). Covers CrewAI, Google ADK, AutoGen/AG2, LangGraph, Mastra, Semantic Kernel, and all A2A-compliant runtimes.
+## 4. Product Boundary
 
-The A2A adapter implements `AgentAdapter` (§10) using canonical types from `@chat-agent-relay/contract-harness`.
+For this RFC, the agent-side interface specification is responsible for:
+- defining the adapter-facing invocation contract
+- defining the result contract returned to CAR core
+- defining the capability contract used by the relay path
+- defining the structured event shapes used for optional streaming and resumable interaction
 
-### 3.1 invoke() — Synchronous Invocation
+For this RFC, the agent-side interface specification is not:
+- a general-purpose abstraction for arbitrary non-agent backends
+- a framework-private runtime object model
+- an agent-internal execution-governance contract
+- a replacement for CAR's canonical event or middleware RFCs
 
-HTTP-oriented `AgentAdapter` implementations MUST implement `invoke()`.
+## 5. Layering Model
 
-#### Input: AgentInvocationContext
+### 5.1 Core
 
-The full type is defined in §10.4. In summary:
+Core semantics define the minimum agent-side interface that a conforming CAR implementation MUST preserve.
+
+### 5.2 Extension
+
+Extension semantics define optional capabilities that fit CAR's relay model without redefining it.
+
+### 5.3 Future Considerations
+
+Future considerations preserve direction for later exploration, but MUST NOT be interpreted as current interface requirements.
+
+## 6. Core Interface Statement
+
+A conforming CAR implementation MUST expose an `AgentAdapter` interface as the primary agent-side boundary.
+
+The standard protocol realized by that boundary is **A2A**. This RFC defines the CAR-side interface and mapping requirements, not the full A2A protocol itself.
+
+## 7. Core AgentAdapter Interface
+
+```typescript
+interface AgentAdapter {
+  describeCapabilities(): AgentCapabilities;
+  invoke(context: AgentInvocationContext): Promise<AgentResult>;
+  stream?(context: AgentInvocationContext): AsyncGenerator<AgentEvent, AgentResult>;
+  resume?(sessionHandle: string, input: AgentResumeInput): Promise<AgentResult>;
+  resumeStream?(sessionHandle: string, input: AgentResumeInput): AsyncGenerator<AgentEvent, AgentResult>;
+  cancel?(sessionHandle: string): Promise<void>;
+}
+
+type AgentCapabilities = {
+  streaming: boolean;
+  multiTurn: boolean;
+  resume: boolean;
+  hitl: boolean;
+  cancel: boolean;
+  artifacts: boolean;
+};
+```
+
+Core requirements:
+- All implementations MUST implement `describeCapabilities()` and `invoke()`.
+- `stream()`, `resume()`, `resumeStream()`, and `cancel()` are OPTIONAL.
+- Implementations MUST return structured results rather than exposing runtime-private exceptions or objects across the boundary.
+
+## 8. Core Invocation Contract
+
+### 8.1 AgentInvocationContext
 
 ```typescript
 type AgentInvocationContext = {
@@ -50,13 +110,13 @@ type ConversationTurn = {
 };
 ```
 
-Requirements:
-
+Core requirements:
 - `invocationEvent` MUST be a valid `agent.invocation.requested` canonical event.
-- `messageText` MUST be the user's message text extracted from the originating `message.received` event.
-- `conversationHistory` MAY contain previous conversation turns for multi-turn context. Adapters SHOULD use this to provide conversation memory.
+- `messageText` MUST be grounded in the originating canonical message path.
+- `sessionHandle`, when present, MUST remain distinct from CAR's canonical identifiers.
+- `conversationHistory` MAY be provided when relay-level multi-turn context is available.
 
-#### Output: AgentResult
+### 8.2 AgentResult
 
 ```typescript
 type AgentResult = AgentSuccess | AgentFailure;
@@ -82,171 +142,86 @@ type AgentFailure = {
 };
 ```
 
-(See §10.5 for normative `AgentResult` semantics.)
+Core requirements:
+- `invoke()` MUST resolve to `AgentResult`.
+- Adapters MUST return `AgentFailure` on failure rather than throwing framework-specific exceptions across the boundary.
+- `requestId` MUST identify the adapter request for explainability.
+- `sessionHandle` MAY be returned to preserve runtime-specific continuity.
 
-#### Success Path
+## 9. Core Success Semantics
 
-- `event` MUST be a fully-formed `agent.response.completed` canonical event that passes both envelope and specialized schema validation.
-- `event.correlation_id` MUST match `invocationEvent.correlation_id`.
-- `event.causation_id` MUST be `invocationEvent.event_id`.
-- `event.payload` MUST contain `{ text: string }` with the agent's response.
-- `requestId` MUST be a unique identifier for the backend request.
+On success, the adapter MUST return an `AgentSuccess` whose `event` is a schema-valid `agent.response.completed` canonical event.
 
-#### Failure Path
+Required event constraints:
+- `event.event_type` MUST be `"agent.response.completed"`
+- `event.correlation_id` MUST match `invocationEvent.correlation_id`
+- `event.causation_id` MUST be `invocationEvent.event_id`
+- `event.tenant_id` MUST match `invocationEvent.tenant_id`
+- `event.workspace_id` MUST match `invocationEvent.workspace_id`
+- `event.conversation_id` MUST match `invocationEvent.conversation_id`
+- `event.session_id` MUST match `invocationEvent.session_id`
+- `event.payload` MUST carry the canonical response content
 
-- Adapters MUST NOT throw exceptions from `invoke()`. All backend failures MUST be returned as `AgentFailure`.
-- `error.retryable` MUST be `true` for transient failures (timeouts, rate limits, 5xx errors) and `false` for permanent failures.
-- `error.category` MUST be one of: `"invalid_request"`, `"timeout"`, `"dependency_failure"`, `"backend_unavailable"`.
+When channel context is present on the invocation event, the success event SHOULD preserve the relay-relevant channel fields needed by downstream delivery and audit.
 
-### 3.2 stream() — Streaming Invocation (Optional)
+## 10. Core Failure Semantics
 
-Adapters MAY implement `stream()` (§10) to support progressive response delivery.
+On failure, adapters MUST return `AgentFailure`.
+
+Core requirements:
+- `error.code` MUST provide a stable machine-readable identifier
+- `error.message` MUST provide a human-readable explanation
+- `error.retryable` MUST distinguish transient from non-transient failure
+- `error.category` MUST classify the failure in a stable way
+
+Recommended categories:
+- `"invalid_request"`
+- `"timeout"`
+- `"dependency_failure"`
+- `"backend_unavailable"`
+
+Illustrative error codes include:
+- `agent_timeout`
+- `agent_unavailable`
+- `invalid_response`
+- `empty_response`
+- `contract_violation`
+
+The exact error code vocabulary MAY evolve by implementation as long as category and retryability remain structured and stable.
+
+## 11. Core Capability Semantics
+
+`describeCapabilities()` MUST return accurate capability declarations for the relay path.
+
+Core capability meanings:
+- `streaming` — the adapter supports progressive output through `stream()`
+- `multiTurn` — the adapter can use relay-provided conversation history
+- `resume` — the adapter supports resumed execution after additional input
+- `hitl` — the adapter can request human input during execution
+- `cancel` — the adapter supports cancellation for an active runtime session
+- `artifacts` — the adapter can return structured artifacts in addition to text
+
+Rule:
+- `hitl` MUST NOT be `true` unless resumable interaction semantics are supported by the adapter/runtime combination.
+
+## 12. Extension Semantics
+
+The following capabilities are aligned with CAR but are not required for all conforming implementations.
+
+### 12.1 Streaming
+
+Adapters MAY implement:
 
 ```typescript
 stream?(context: AgentInvocationContext): AsyncGenerator<AgentEvent, AgentResult>;
 ```
 
 Requirements:
+- Each yielded value MUST be an `AgentEvent`
+- The generator return value MUST be a final `AgentResult`
+- Streaming deltas are transport-side interaction semantics and MUST NOT replace the final canonical completion event
 
-- Each `yield` MUST produce an `AgentEvent` (§10.3); for text deltas, adapters MUST use `{ type: "text_delta", content: string }`.
-- The generator’s **return** value MUST be an `AgentResult` containing the complete final `agent.response.completed` event.
-- The final `agent.response.completed` event MUST contain the full assembled text, not just the last delta.
-- Streaming deltas are a transport optimization. Only the final `agent.response.completed` event is appended to the canonical ledger. No intermediate delta events enter the canonical event model.
-
-## 4. Required Event Fields
-
-The produced `agent.response.completed` event MUST include:
-
-| Field | Requirement |
-|---|---|
-| `event_id` | MUST be globally unique |
-| `schema_version` | MUST be `"v1alpha1"` |
-| `event_type` | MUST be `"agent.response.completed"` |
-| `tenant_id` | MUST match `invocationEvent.tenant_id` |
-| `workspace_id` | MUST match `invocationEvent.workspace_id` |
-| `channel` | MUST match `invocationEvent.channel` |
-| `conversation_id` | MUST match `invocationEvent.conversation_id` |
-| `session_id` | MUST match `invocationEvent.session_id` |
-| `correlation_id` | MUST match `invocationEvent.correlation_id` |
-| `causation_id` | MUST be `invocationEvent.event_id` |
-| `actor_type` | MUST be `"agent"` |
-| `payload` | MUST contain `{ text: string }` |
-
-## 5. Provider Extensions
-
-Adapters SHOULD preserve backend-specific metadata in `provider_extensions`, namespaced by backend type:
-
-```json
-{
-  "provider_extensions": {
-    "openai": {
-      "request_id": "req_abc",
-      "model": "gpt-4o-mini",
-      "openai_id": "chatcmpl-xyz",
-      "finish_reason": "stop",
-      "prompt_tokens": 20,
-      "completion_tokens": 8,
-      "total_tokens": 28
-    }
-  }
-}
-```
-
-## 6. Conversation History
-
-When `conversationHistory` is provided:
-
-- Adapters SHOULD prepend the history to the current message before invoking the backend.
-- History entries are ordered chronologically (oldest first).
-- Each turn has a `role` (`"user"` or `"assistant"`) and `content` (text).
-- The current user message (`messageText`) MUST be appended after the history — it MUST NOT be included in `conversationHistory` itself.
-
-## 7. Error Taxonomy
-
-Adapters SHOULD use the following error codes:
-
-| Code | Category | Retryable | Meaning |
-|---|---|---|---|
-| `backend_timeout` | `timeout` | Yes | Backend did not respond in time |
-| `backend_unavailable` | `backend_unavailable` | Yes | Could not reach backend |
-| `openai_http_error` | varies | varies | Backend returned non-2xx HTTP status |
-| `invalid_response` | `dependency_failure` | No | Response was not valid JSON |
-| `empty_response` | `dependency_failure` | No | Response contained no content |
-| `contract_violation` | `invalid_request` | No | Mapped event failed schema validation |
-
-## 8. HTTP Backend Conformance Checklist
-
-A conforming HTTP backend implementation MUST:
-
-- [ ] Implement `AgentAdapter` with `describeCapabilities()` and `invoke()` accepting `AgentInvocationContext` and returning `AgentResult`
-- [ ] Never throw from `invoke()` — all errors returned as `AgentFailure`
-- [ ] Produce schema-valid `agent.response.completed` events on success
-- [ ] Preserve `correlation_id` and `causation_id` from invocation event
-- [ ] Set `error.retryable` accurately on failure
-- [ ] Include a unique `requestId` in all results
-- [ ] Preserve backend metadata in `provider_extensions`
-
-A conforming streaming adapter additionally MUST:
-
-- [ ] Yield `AgentEvent` values from `stream()` (e.g. `text_delta` for partial content)
-- [ ] Return a final `AgentResult` with complete assembled text
-- [ ] Not produce canonical delta events (deltas are transport-only)
-
-## 9. Existing Implementations
-
-| Adapter | Package | Status | Backend |
-|---|---|---|---|
-| `A2AAgentAdapter` | `backend-a2a` | Active | A2A protocol (HTTP-based agents) |
-
-## 10. AgentAdapter Interface (v2)
-
-The `AgentAdapter` interface is the primary agent-side boundary. It is aligned with the [A2A (Agent-to-Agent) protocol](https://google.github.io/A2A/) and supports structured events, human-in-the-loop (HITL) signaling, artifacts, and session management.
-
-### 10.1 Design Rationale
-
-`AgentAdapter` supports the full lifecycle of modern agent runtimes:
-- Task lifecycle status (submitted → working → completed)
-- Human input mid-execution (HITL)
-- Structured artifacts (files, data)
-- Session management across multiple interactions
-
-A2AAgentAdapter is the built-in AgentAdapter implementation; capabilities vary by the remote agent's declared features.
-
-Capability semantics:
-- `multiTurn` — when `true`, the pipeline provides conversation history from the ledger. Agents that do not maintain their own context SHOULD declare this.
-- `resume` — when `true`, the agent supports `resume()` and `resumeStream()` for continuing execution after human input. MUST be `true` when `hitl` is `true`.
-
-### 10.2 Interface Definition
-
-```typescript
-interface AgentAdapter {
-  describeCapabilities(): AgentCapabilities;
-  invoke(context: AgentInvocationContext): Promise<AgentResult>;
-  stream?(context: AgentInvocationContext): AsyncGenerator<AgentEvent, AgentResult>;
-  resume?(sessionHandle: string, input: AgentResumeInput): Promise<AgentResult>;
-  resumeStream?(sessionHandle: string, input: AgentResumeInput): AsyncGenerator<AgentEvent, AgentResult>;
-  cancel?(sessionHandle: string): Promise<void>;
-}
-
-type AgentCapabilities = {
-  streaming: boolean;
-  multiTurn: boolean;
-  resume: boolean;
-  hitl: boolean;
-  cancel: boolean;
-  artifacts: boolean;
-};
-```
-
-Requirements:
-
-- All implementations MUST implement `describeCapabilities()` and `invoke()`.
-- `stream()`, `resume()`, `resumeStream()`, and `cancel()` are OPTIONAL.
-- Implementations MUST NOT throw from `invoke()` or `stream()` — all failures MUST be returned as `AgentFailure`.
-
-### 10.3 AgentEvent Types
-
-`AgentAdapter.stream()` yields structured `AgentEvent` values:
+### 12.2 AgentEvent Types
 
 ```typescript
 type AgentEvent =
@@ -273,69 +248,31 @@ type AgentTaskStatus =
   | "cancelled";
 ```
 
-Status events SHOULD be emitted at lifecycle transitions. `text_delta` events carry progressive response content. `input_required` signals HITL (see section 10.6). `artifact` events carry structured output.
+These events extend the relay path with richer runtime interaction while remaining outside the minimum core success contract.
 
-### 10.4 AgentInvocationContext
+### 12.3 Resumable Interaction and HITL
 
-```typescript
-type AgentInvocationContext = {
-  invocationEvent: CanonicalEvent;
-  messageText: string;
-  parts?: AgentPart[];
-  route?: { route_id: string; reason: string };
-  policy?: { policy_id: string; decision: string };
-  sessionHandle?: string;
-  conversationHistory?: ConversationTurn[];
-};
-```
-
-Key fields:
-- `parts` supports multi-modal input (text, file, data) aligned with A2A's Part model.
-- `sessionHandle` provides session continuity across turns.
-
-### 10.5 AgentResult
+Adapters MAY implement:
 
 ```typescript
-type AgentResult = AgentSuccess | AgentFailure;
-
-type AgentSuccess = {
-  ok: true;
-  event: CanonicalEvent;
-  requestId: string;
-  sessionHandle?: string;
-  artifacts?: AgentArtifact[];
-};
-
-type AgentFailure = {
-  ok: false;
-  requestId: string;
-  error: {
-    code: string;
-    message: string;
-    retryable: boolean;
-    category: string;
-    details?: Record<string, unknown>;
-  };
-};
+resume?(sessionHandle: string, input: AgentResumeInput): Promise<AgentResult>;
+resumeStream?(sessionHandle: string, input: AgentResumeInput): AsyncGenerator<AgentEvent, AgentResult>;
 ```
 
-`sessionHandle` is returned on success to allow session continuity across turns. `artifacts` carries structured output from the agent (files, data).
+When the adapter/runtime requires human input mid-execution, the relay path MAY map that requirement into canonical events such as:
+- `agent.input.requested`
+- `agent.input.provided`
+- `agent.status.changed`
 
-### 10.6 HITL Flow (Human-in-the-Loop)
+### 12.4 Cancellation
 
-When an agent requires human input mid-execution:
+Adapters MAY implement:
 
-1. The agent adapter yields `{ type: "input_required", prompt: "..." }` during streaming (or returns status `"input-required"` in sync mode).
-2. The pipeline emits an `agent.input.requested` canonical event and surfaces the prompt to the user via the chat channel.
-3. The user replies. The pipeline emits an `agent.input.provided` canonical event.
-4. The pipeline calls `resume(sessionHandle, input)` or `resumeStream(sessionHandle, input)` to continue agent execution.
+```typescript
+cancel?(sessionHandle: string): Promise<void>;
+```
 
-Canonical events involved:
-- `agent.status.changed` — records task lifecycle transitions
-- `agent.input.requested` — agent asks for human input
-- `agent.input.provided` — human provides the requested input
-
-### 10.7 Content Parts (A2A Part Model)
+### 12.5 Artifacts and Content Parts
 
 ```typescript
 type TextPart = { kind: "text"; text: string };
@@ -344,50 +281,102 @@ type DataPart = { kind: "data"; data: Record<string, unknown> };
 type AgentPart = TextPart | FilePart | DataPart;
 ```
 
-Parts are used in `AgentInvocationContext.parts`, `AgentResumeInput.parts`, and `AgentArtifact.parts`.
+`parts` MAY be used for richer A2A-aligned content input and artifact output where supported.
 
-### 10.8 AgentAdapter Conformance Checklist
+### 12.6 Provider Extensions
 
-A conforming `AgentAdapter` implementation MUST:
+Adapters MAY preserve runtime-specific metadata in `provider_extensions`, namespaced by protocol or implementation key.
 
-- [ ] Implement `describeCapabilities()` returning accurate `AgentCapabilities`
-- [ ] Implement `invoke()` accepting `AgentInvocationContext` and returning `AgentResult`
-- [ ] Never throw from `invoke()` — all errors returned as `AgentFailure`
-- [ ] Produce schema-valid `agent.response.completed` events on success
-- [ ] Preserve `correlation_id` and `causation_id` from invocation event
-- [ ] Set `error.retryable` accurately on failure
-- [ ] Include a unique `requestId` in all results
+Illustrative example:
 
-A conforming streaming adapter additionally MUST:
+```json
+{
+  "provider_extensions": {
+    "a2a": {
+      "request_id": "req_abc",
+      "task_id": "task_123",
+      "finish_reason": "completed"
+    }
+  }
+}
+```
 
-- [ ] Yield `AgentEvent` values from `stream()` (not raw strings)
-- [ ] Return a final `AgentResult` with complete assembled text
-- [ ] Emit `{ type: "status", status: "working" }` at stream start
+Rules:
+- provider extensions MUST remain optional to the core contract
+- provider extensions MUST NOT become the core source of truth for relay semantics
+- framework-specific metadata MAY be included only as structured extension data
 
-A conforming HITL adapter additionally MUST:
+## 13. Existing Implementation
 
-- [ ] Yield `{ type: "input_required", prompt }` when human input is needed
-- [ ] Implement `resume()` to continue execution after input is provided
-- [ ] Return a `sessionHandle` in `AgentSuccess` for session continuity
+| Adapter | Package | Status | Protocol |
+|---|---|---|---|
+| `A2AAgentAdapter` | `backend-a2a` | Active | A2A |
 
-## 11. Dynamic agent registration and AgentRegistry
+The built-in implementation is A2A-centered. This RFC does not require CAR core to standardize unrelated agent-side protocol families.
 
-Implementations MAY register **multiple** `AgentAdapter` instances at runtime (for example after loading rows from a config store). The server-side **`AgentRegistry`** holds named agent instances; **`routeFn`** (together with stored route rules) selects which registered agent receives each `agent.invocation.requested` flow.
+## 14. Runtime Registration Context
+
+Implementations MAY register multiple `AgentAdapter` instances at runtime. Route decisions then select which named adapter receives a given `agent.invocation.requested` flow.
 
 Requirements:
+- each registered adapter MUST be addressable by a stable name aligned with route configuration
+- runtime selection MUST preserve the same `AgentAdapter` contract regardless of which registered agent is chosen
+- multiple registered adapters do not change the agent-side standard boundary, which remains A2A-centered
 
-- Each registered adapter MUST be addressable by a stable **name** aligned with route configuration.
-- Adding, updating, disabling, or removing an agent SHOULD NOT require a full process restart when the deployment supports hot reload (channels likewise use a **ChannelRegistry**).
-- The pipeline MUST receive a **`resolveAgent(agentName)`** (or equivalent) callback rather than assuming a single global backend instance.
-- All agents connect via the A2A standard protocol; framework-specific adapters are not provided.
+This section describes runtime selection context, not a change to the interface contract itself.
 
-This section does not change the `AgentAdapter` contract itself — it describes how the runtime **selects** which conforming adapter executes for a given conversation turn.
+## 15. Future Considerations
 
-## 12. ConfigStore interface
+The following directions are intentionally non-normative in this RFC.
 
-Configuration persistence follows an interface-driven pattern parallel to the event ledger's `LedgerStore`:
+### 15.1 Rich Runtime Lifecycle Modeling
 
-- **`ConfigStore`** defines the CRUD contract for channels, agents, routes, and settings.
-- **`SqliteConfigStore`** is the built-in default implementation using `bun:sqlite`.
-- Implementers MAY provide alternative backends (PostgreSQL, MySQL, etc.) by implementing the `ConfigStore` interface.
-- Sensitive configuration fields (tokens, API keys) SHOULD be encrypted at rest; the default implementation uses AES-256-GCM via the `EncryptionEngine` utility.
+Examples:
+- detailed workflow graph state models
+- richer private checkpoint structures
+- framework-specific internal state families
+
+These are outside the current relay-centered interface core.
+
+### 15.2 Agent-Internal Governance Semantics
+
+Examples:
+- tool approval systems inside the runtime
+- delegated authorization graphs internal to the agent
+- internal execution policy models
+
+These are not part of the CAR agent-side interface contract.
+
+### 15.3 Broad Multi-Protocol Abstraction
+
+Examples:
+- treating CAR's agent-side boundary as a generic abstraction over many unrelated non-A2A protocols
+- expanding protocol-specific adapter families into the defining center of CAR's architecture
+
+Current CAR direction is to keep the standard agent-side boundary centered on A2A.
+
+## 16. Conformance
+
+A conforming CAR agent-side adapter interface implementation MUST:
+- implement `describeCapabilities()` and `invoke()`
+- accept `AgentInvocationContext` grounded in canonical CAR invocation semantics
+- return `AgentResult` as canonical success or structured failure
+- preserve correlation and causation semantics on success
+- preserve structured failure semantics on error
+- keep runtime-private state and framework-private objects outside the public relay contract
+
+A conforming implementation is NOT required to implement every extension or future consideration in this RFC.
+
+## 17. Security Considerations
+
+Implementations SHOULD:
+- minimize exposure of runtime-private state through the interface boundary
+- keep runtime-specific metadata in structured optional extension fields
+- preserve the distinction between CAR canonical identity and runtime session handles
+- avoid turning the interface contract into an implicit runtime-governance layer
+
+## 18. Open Questions
+
+- Which extension capabilities should eventually move into dedicated RFCs?
+- How strongly should provider-extension metadata be standardized for explainability?
+- Which resumable interaction semantics should remain here versus move to a dedicated companion RFC?

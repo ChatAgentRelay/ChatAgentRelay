@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Telegram — Chat Agent Relay</title>
-  <meta name="description" content="Connect Telegram to your AI agents via Chat Agent Relay. Webhook-based Bot API, streaming via progressive updates, slash commands, and message editing.">
+  <meta name="description" content="Telegram is a channel adapter in Chat Agent Relay. It handles Telegram-specific ingress and delivery behavior at the chat-platform boundary, including Bot API webhooks, commands, message editing, and chat-type-specific behavior.">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
   <meta property="og:title" content="Telegram — Chat Agent Relay">
-  <meta property="og:description" content="Integrate Telegram bots with your AI agents using Chat Agent Relay's Webhook adapter.">
+  <meta property="og:description" content="Overview of the Telegram channel adapter in Chat Agent Relay.">
   <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/telegram.html">
   <meta property="og:site_name" content="Chat Agent Relay">
   <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
@@ -17,7 +17,7 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Telegram — Chat Agent Relay">
-  <meta name="twitter:description" content="Telegram Bot API adapter with streaming, commands, and message editing.">
+  <meta name="twitter:description" content="Overview of the Telegram channel adapter in Chat Agent Relay.">
   <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
 
   <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/telegram.html">
@@ -43,7 +43,7 @@
     "@context": "https://schema.org",
     "@type": "TechArticle",
     "headline": "Telegram — Chat Agent Relay",
-    "description": "Connect Telegram to your AI agents via Chat Agent Relay. Webhook Bot API, streaming, commands, editing.",
+    "description": "Telegram is a channel adapter in Chat Agent Relay. It handles Telegram-specific ingress and delivery behavior at the chat-platform boundary, including Bot API webhooks, commands, message editing, and chat-type-specific behavior.",
     "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/telegram.html"
   }
   </script>
@@ -67,7 +67,7 @@
 <aside class="doc-sidebar">
   <div class="sidebar-group">
     <span class="sidebar-group-title">Getting Started</span>
-    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Quick Start</a>
+    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Overview</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Channels</span>
@@ -82,13 +82,13 @@
   <div class="sidebar-group">
     <span class="sidebar-group-title">Agents</span>
     <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
-    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Configuration</span>
     <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
-    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Multi-Agent Routing</a>
-    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage Backends</a>
+    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Routing</a>
+    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Concepts</span>
@@ -105,44 +105,56 @@
 <!-- Content -->
 <main class="doc-content">
   <h1>Telegram</h1>
-  <p class="subtitle">Connect Telegram bots to your AI agents using the Telegram Bot API. Supports webhook-based message ingestion, progressive streaming via message editing, bot commands, and group/private chat handling.</p>
+  <p class="subtitle">Telegram is a channel adapter in Chat Agent Relay. It handles Telegram-specific ingress and delivery behavior at the chat-platform boundary, including Bot API webhooks, bot commands, message editing for streaming-capable paths, and chat-type-specific behavior.</p>
+
+  <h2 id="telegram-boundary">Telegram boundary</h2>
+  <p>
+    The Telegram adapter receives provider-native Bot API updates, interprets them according to Telegram's platform rules, canonicalizes them into CAR events, and translates outbound canonical intent back into Telegram-native send or edit behavior.
+  </p>
+  <p>
+    Once the update has crossed that boundary, CAR continues on the same governed message path used for every other channel.
+  </p>
 
   <h2 id="prerequisites">Prerequisites</h2>
   <p>Create a Telegram bot via <a href="https://t.me/BotFather" target="_blank">@BotFather</a>:</p>
   <ol>
-    <li><strong>Create a new bot</strong> &mdash; send <code>/newbot</code> to @BotFather, choose a name and username.</li>
-    <li><strong>Copy the bot token</strong> &mdash; BotFather will provide a token like <code>123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11</code>.</li>
-    <li><strong>Set webhook URL</strong> &mdash; point the webhook to your CAR server endpoint (CAR handles this automatically on startup).</li>
-    <li><strong>(Optional) Set commands</strong> &mdash; use <code>/setcommands</code> in BotFather to register slash commands for autocomplete.</li>
+    <li><strong>Create a new bot</strong> and keep the returned bot token private.</li>
+    <li><strong>Configure the webhook target</strong> for the deployment where CAR will receive Telegram updates.</li>
+    <li><strong>Optionally set bot commands</strong> if you want command autocomplete and Telegram-native command discovery.</li>
   </ol>
 
-  <h2 id="add-to-car">Add to CAR</h2>
+  <h2 id="registering">Registering Telegram</h2>
   <p>Register the Telegram channel with the <code>car</code> CLI:</p>
   <pre><code>car channel add my-telegram \
   --type=telegram \
   --bot-token=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11</code></pre>
 
   <div class="callout callout-tip">
-    <strong>Tokens are encrypted at rest</strong>
-    Bot tokens are stored with AES-256-GCM encryption when <code>CAR_ENCRYPTION_KEY</code> is set.
+    <strong>Encrypted secrets</strong>
+    When <code>CAR_ENCRYPTION_KEY</code> is set, Telegram bot tokens are stored encrypted in the config database.
   </div>
 
-  <h2 id="features">Features</h2>
+  <h2 id="telegram-specific-behavior">Telegram-specific behavior</h2>
+  <table>
+    <thead>
+      <tr><th>Concern</th><th>Telegram behavior at the boundary</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Ingress transport</td><td>The adapter receives Telegram updates from the Bot API webhook surface</td></tr>
+      <tr><td>Conversation shape</td><td>Private chats, groups, supergroups, and channels influence how conversation continuity and actor context are mapped into the canonical path</td></tr>
+      <tr><td>Commands</td><td>Telegram bot commands can be canonicalized as command events when the incoming message includes command semantics</td></tr>
+      <tr><td>Streaming presentation</td><td>When the agent side supports streaming, Telegram can progressively update a message through Telegram-native edit behavior</td></tr>
+      <tr><td>Provider metadata</td><td>Telegram-specific fields such as update IDs, chat IDs, and chat types can be preserved in structured provider extensions</td></tr>
+    </tbody>
+  </table>
 
-  <h3 id="streaming">Streaming (progressive update)</h3>
-  <p>When the connected agent supports streaming, CAR sends an initial placeholder message and then progressively edits it using the Telegram <code>editMessageText</code> API as new tokens arrive. Users see the response build up in real time.</p>
-
-  <h3 id="commands">Bot commands</h3>
-  <p>Messages starting with <code>/</code> and containing a <code>bot_command</code> entity are canonicalized as <code>command.received</code> events. The command name and arguments are extracted automatically:</p>
-  <pre><code>/summarize last meeting notes
-→ command_name: "summarize"
-→ text: "last meeting notes"</code></pre>
-
-  <h3 id="chat-types">Group and private chats</h3>
-  <p>The adapter handles both group chats and private (DM) conversations. In groups, the bot typically responds to @mentions or commands. The <code>chat_type</code> (private, group, supergroup, channel) is preserved in <code>provider_extensions</code>.</p>
-
-  <h3 id="message-editing">Message editing</h3>
-  <p>The sender supports both <code>sendMessage</code> for new replies and <code>editMessageText</code> for updating existing messages. This enables streaming and correction workflows.</p>
+  <h2 id="chat-behavior">Chat behavior</h2>
+  <p>The Telegram adapter supports several Telegram conversation surfaces.</p>
+  <ul>
+    <li><strong>Private chats</strong> — direct bot conversations.</li>
+    <li><strong>Groups and supergroups</strong> — shared chat surfaces with Telegram-specific mention and command behavior.</li>
+    <li><strong>Channel-specific metadata</strong> — Telegram-native chat type and message identity can remain available as provider extension data.</li>
+  </ul>
 
   <h2 id="configuration">Configuration options</h2>
   <table>
@@ -159,27 +171,21 @@
         <td><code>botToken</code></td>
         <td><code>--bot-token</code></td>
         <td>Yes</td>
-        <td>Bot API token from @BotFather</td>
+        <td>Telegram Bot API token used for receiving updates and delivering replies</td>
       </tr>
     </tbody>
   </table>
 
   <h2 id="provider-extensions">Provider extensions</h2>
-  <p>The following Telegram-specific data is preserved in <code>provider_extensions.telegram</code>:</p>
-  <table>
-    <thead>
-      <tr><th>Field</th><th>Type</th><th>Description</th></tr>
-    </thead>
-    <tbody>
-      <tr><td><code>update_id</code></td><td>number</td><td>Telegram update sequence number</td></tr>
-      <tr><td><code>message_id</code></td><td>number</td><td>Message ID within the chat</td></tr>
-      <tr><td><code>chat_id</code></td><td>number</td><td>Chat identifier</td></tr>
-      <tr><td><code>chat_type</code></td><td>string</td><td>One of: private, group, supergroup, channel</td></tr>
-    </tbody>
-  </table>
+  <p>Telegram-specific metadata can be preserved in <code>provider_extensions.telegram</code>, including fields such as update ID, message ID, chat ID, and chat type.</p>
 
   <h2 id="idempotency">Idempotency</h2>
-  <p>The idempotency key is <code>tg-{update_id}</code>, ensuring duplicate webhook deliveries from Telegram are correctly deduplicated.</p>
+  <p>The adapter can use Telegram update identity to deduplicate repeated webhook deliveries at the provider boundary.</p>
+
+  <div class="callout callout-info">
+    <strong>Boundary discipline</strong>
+    The Telegram adapter is responsible for Telegram-specific transport and delivery behavior. Governance, routing, A2A invocation, replay, and auditability remain CAR core responsibilities on the canonical message path.
+  </div>
 
   <!-- Pagination -->
   <div class="doc-pagination">

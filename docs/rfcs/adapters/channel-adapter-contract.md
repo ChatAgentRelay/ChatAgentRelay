@@ -5,170 +5,197 @@
 | **Status** | Draft |
 | **Author** | Claude Code |
 | **Audience** | Channel adapter implementers |
-| **Version** | v0.1 |
-| **Last Updated** | 2026-03-17 |
+| **Version** | v0.2 |
+| **Last Updated** | 2026-04-02 |
 
 ## 1. Abstract
 
 This RFC defines the contract between provider-native chat transports and the Chat Agent Relay (CAR) canonical event model.
 
+CAR is a standard relay layer between chat platforms and agents. On the channel side, channel adapters provide the provider-facing boundary that receives provider-native traffic, verifies and normalizes it into canonical events, and translates canonical outbound intent back into provider-native delivery actions.
+
+This document explicitly separates:
+- **Core** — normative channel-side semantics required for CAR's relay identity
+- **Extension** — optional but aligned channel-side capabilities
+- **Future Considerations** — non-normative directions that are not current conformance requirements
+
 ## 2. Purpose
 
-This RFC defines how chat platform adapters bind provider-native ingress / egress to the canonical event schema.
+This RFC defines the stable boundary between chat-platform-specific transport behavior and CAR's canonical message path.
 
 ## 3. Normative Language
 
 The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as described in RFC 2119.
 
-## 4. Minimum Kernel Scope
+## 4. Product Boundary
 
-The minimum CAR kernel requires only a thin but strict adapter contract:
-- one inbound path
-- one outbound path
-- capability declaration
-- idempotent ingress
-- auditable failure mapping
+For this RFC, the channel adapter contract is responsible for:
+- receiving provider-native inbound traffic
+- verifying source authenticity where applicable
+- normalizing provider-native payloads into canonical CAR events
+- translating canonical outbound intent into provider-native delivery actions
+- preserving provider-native detail only through structured extension data
 
-Adapters MAY support richer features later, but MUST preserve canonical semantics from day one.
+For this RFC, the channel adapter contract is not:
+- a routing or policy decision system
+- the owner of CAR's canonical conversation identity
+- a queue-management, operator-inbox, or workflow product layer
+- the source of truth for replay, audit, or message-path governance
 
-## 5. Responsibilities
+## 5. Layering Model
 
-The channel adapter is responsible for:
-- receiving inbound webhook / polling / socket events
-- verifying signatures, tokens, or origin
-- idempotent deduplication
-- converting provider-native payloads to canonical events
-- sending outbound messages / updates / deletes (if the provider supports them)
-- reporting delivery status / failure reasons
-- maintaining provider-native extensions in `provider_extensions`
+### 5.1 Core
 
-The adapter is **not** responsible for:
-- route decision
-- policy decision
-- tenant-level business governance
-- ultimate ownership of canonical conversation identity
+Core semantics define the minimum stable channel-side contract that a conforming CAR implementation MUST preserve.
 
-## Lifecycle
+### 5.2 Extension
 
-Required lifecycle operations:
-- `register(config)`
-- `describeCapabilities()`
-- `healthCheck()`
-- `pause()`
-- `resume()`
-- `drain()`
-- `shutdown()`
+Extension semantics add useful but optional channel-side capabilities that fit CAR without redefining it.
 
-## Capability Model
+### 5.3 Future Considerations
 
-The platform SHOULD explicitly distinguish:
-- **channel type**: e.g. `slack`, `whatsapp`, `webchat`
-- **provider**: e.g. official API, BSP, third-party SDK, bridge service
-- **channel instance**: a set of credentials + config + provider binding under a tenant
+Future considerations preserve architectural direction, but MUST NOT be interpreted as current conformance requirements.
 
-`describeCapabilities()` should declare support for:
-- `text`
-- `attachments`
-- `reactions`
-- `typing`
-- `threading`
-- `receipts`
-- `templates`
-- `streaming`
-- `message_update`
-- `message_delete`
-- `rich_text`
-- `buttons`
-- `cards`
-- `quick_replies`
-- `audio`
-- `video`
-- `location`
+## 6. Core Contract Statement
 
-Each capability should include:
-- `supported: boolean`
-- optional constraints
-- optional provider notes
-- optional `max_length`
-- optional `supported_media_types`
-- optional fallback behavior
+A conforming CAR implementation MUST preserve a strict but narrow channel-side boundary:
 
-## Ingress Contract
+`provider-native ingress -> verification -> canonicalization -> CAR middleware -> canonical outbound intent -> provider-native delivery`
 
-### Inputs
-Supported ingress modes:
+The channel adapter contract exists to preserve relay semantics across provider-specific chat transports, not to redefine CAR as a broader channel operations platform.
+
+## 7. Core Responsibilities
+
+### 7.1 Channel Adapter Owns
+
+The channel adapter owns:
+- receiving inbound webhook, polling, or socket traffic from the provider
+- verifying origin authenticity where the provider requires it
+- mapping inbound provider payloads into canonical events
+- translating outbound canonical send intent into provider-native requests
+- preserving provider-native metadata in structured extension form when needed
+
+### 7.2 CAR Core Owns
+
+CAR core owns:
+- canonical event semantics
+- governance on the message path
+- route decisions
+- agent invocation
+- delivery orchestration behavior above the provider boundary
+- append-only recording, replay, and audit
+
+### 7.3 The Provider Owns
+
+The provider owns:
+- provider-native transport semantics
+- provider-native identifiers and callback formats
+- provider-specific feature limits and delivery behavior
+
+The provider MUST NOT become CAR's source of truth for canonical audit or replay.
+
+## 8. Core Operations
+
+### 8.1 describeCapabilities()
+
+A channel adapter MUST declare the capabilities it supports for the relay path.
+
+Core capability concerns include:
+- inbound support
+- outbound send support
+- text support
+- attachment support where applicable
+- update support where applicable
+- delete support where applicable
+- threading support where applicable
+- streaming update support where applicable
+
+Capability declarations MAY include provider-specific limits or notes, but those details MUST remain subordinate to the canonical relay contract.
+
+### 8.2 Inbound Handling
+
+A channel adapter MUST support at least one provider-native ingress mode appropriate for the provider.
+
+Examples include:
 - webhook
 - polling
-- websocket / socket
+- socket or gateway delivery
 
-### Required ingress behavior
-1. verify source authenticity
-2. derive provider idempotency key if available
-3. classify payload type
-4. normalize to one or more canonical events
-5. attach provider-native metadata in `provider_extensions`
-6. emit normalized events into middleware pipeline
+Core inbound rules:
+1. verify source authenticity where applicable
+2. classify the provider-native payload sufficiently to continue the relay path
+3. normalize the payload into one or more canonical events
+4. preserve relevant provider-native detail only through structured extensions
+5. emit the normalized events into CAR middleware
 
-### Idempotency
-Adapter must:
-- detect duplicate delivery when provider identifiers allow it
-- surface a stable dedupe key
-- avoid generating multiple canonical events for the same provider delivery unless the provider semantics require it
+### 8.3 Outbound Handling
 
-## Egress Contract
+A channel adapter MUST support translation of canonical outbound send intent into provider-native delivery requests.
 
-Required egress operations:
-- `sendMessage(request)`
-- `updateMessage(request)` if supported
-- `deleteMessage(request)` if supported
+Core outbound rules:
+- accept canonical outbound intent from CAR
+- translate that intent into provider-native actions
+- return or preserve normalized delivery outcome information needed by CAR
+- avoid making provider-native response shapes the canonical internal contract
 
-Egress must:
-- accept canonical payloads
-- translate into provider-native requests
-- return normalized result metadata
-- emit delivery state transitions as canonical events when callbacks or responses are available
+### 8.4 Failure Mapping
 
-## Capability Fallback and Transcoding
+When verification fails, inbound payloads are invalid, or provider delivery fails, the adapter MUST preserve structured failure information rather than silently dropping or obscuring the outcome.
 
-When the target channel does not support a capability in the canonical payload, the adapter or delivery layer MUST perform explicit fallback / transcoding.
+Failure information SHOULD preserve:
+- machine-readable code
+- human-readable message
+- retryability where relevant
+- provider error details where relevant
 
-Recommended defaults:
-- rich text -> plain text
-- media -> caption / filename text fallback
-- template -> channel-supported fallback body
-- edit/delete -> explanatory text fallback when native support absent
-- unsupported interactive elements -> degrade to plain text choices
+## 9. Core Inbound Rules
+
+### 9.1 Source Verification
+
+Adapters SHOULD verify source authenticity whenever the provider supports signatures, tokens, or equivalent trust signals.
+
+Unauthenticated or invalid provider traffic MUST NOT silently enter the canonical message path.
+
+### 9.2 Canonicalization
+
+Adapters MUST convert provider-native input into canonical CAR events.
 
 Rules:
-- fallback strategy must be deterministic and auditable
-- fallback outcome should be derivable from capability metadata
-- fallback failures should emit `error.occurred` or `event.blocked`, not silent drops
+- canonical events MUST remain the downstream contract for middleware
+- provider-native detail MUST remain optional structured extension data
+- canonicalization MUST preserve enough information for routing, delivery, replay, and audit within CAR's relay scope
 
-## Error Taxonomy
+### 9.3 Idempotency and Duplicate Delivery
 
-Every adapter error should classify:
-- `retryable`
-- `non_retryable`
-- `auth_failure`
-- `quota_exceeded`
-- `rate_limited`
-- `invalid_payload`
-- `provider_unavailable`
+When provider identifiers or delivery semantics permit it, adapters SHOULD derive stable dedupe information for duplicate ingress handling.
 
-Errors should include:
-- code
-- message
-- provider code if present
-- retry hint if present
+Duplicate suppression is important, but it does not replace the canonical event ledger as CAR's durable message-path record.
 
-## Provider Extensions
+## 10. Core Outbound Rules
+
+### 10.1 Canonical Send Boundary
+
+Channel adapters MUST treat canonical outbound send intent as the outbound boundary from CAR core.
+
+### 10.2 Delivery Outcomes
+
+When provider responses or callbacks make delivery outcomes available, adapters SHOULD map those outcomes back into CAR semantics without redefining the canonical event model around provider-native states.
+
+### 10.3 Update and Delete
+
+If a provider supports message update or delete behavior, an adapter MAY expose those capabilities as part of its declared support.
+
+These are not required for all conforming implementations.
+
+## 11. Core Provider Extensions Rule
 
 Rules for `provider_extensions`:
-- provider-native fields must be namespaced
-- canonical core must not depend on their presence
-- extensions may be consumed by channel-specific delivery logic or specialized policies
+- provider-native fields MUST be namespaced
+- provider-native fields MUST remain optional to CAR core semantics
+- canonical relay behavior MUST NOT depend on extension data as the core source of truth
 
-Example:
+Illustrative example:
+
 ```json
 {
   "provider_extensions": {
@@ -180,110 +207,125 @@ Example:
 }
 ```
 
-## Multi-Instance Isolation
+## 12. Extension Semantics
 
-Adapter instances must support:
-- tenant-scoped configuration
-- isolated credentials per `channel_instance_id`
-- isolated quotas / rate limits per instance
-- clear naming and configuration conventions
+The following capabilities are aligned with CAR but are not required for all conforming implementations.
 
-Recommended instance naming:
-`<channel>_<tenant-or-workspace>_<environment>`
+### 12.1 Richer Capability Modeling
+
+Adapters MAY expose richer capability detail such as:
+- reactions
+- receipts
+- rich text
+- buttons or cards
+- templates
+- quick replies
+- audio, video, or location support
+- max-length or media-type constraints
+
+### 12.2 Fallback and Transcoding
+
+Adapters or delivery layers MAY support deterministic fallback or transcoding when a provider cannot natively express a canonical outbound form.
 
 Examples:
-- `slack_acme_prod`
-- `whatsapp_support_eu`
+- rich text to plain text
+- interactive elements to plain-text choices
+- media to text fallback descriptors
 
-## Retry / Dead-Letter / Poison Message
+These capabilities are useful, but they are not the conformance center of the channel adapter contract.
 
-Adapters should:
-- mark retryable provider failures explicitly
-- surface non-retryable payload errors explicitly
-- support middleware-managed retry orchestration
-- avoid infinite local retry loops
-- preserve enough metadata for dead-letter analysis
+### 12.3 Delivery Status and Callback Mapping
 
-Poison message handling should result in:
-- `error.occurred`
-- optional `message.delivery.updated` with `dead_lettered`
+Adapters MAY support richer delivery status mapping when providers expose callback or receipt semantics.
 
-## Contract Testing Requirements
+### 12.4 Multi-Instance Isolation Details
 
-Each adapter must provide:
-- fixture payloads for supported inbound event classes
-- expected golden canonical events
+Implementations MAY support richer instance-level isolation concerns such as:
+- isolated credentials per `channel_instance_id`
+- isolated quotas or rate limits per instance
+- stronger operational naming or configuration conventions
+
+### 12.5 Adapter Lifecycle Controls
+
+Implementations MAY provide operational lifecycle methods such as:
+- health checks
+- pause or resume behavior
+- drain behavior
+- shutdown or disconnect hooks
+
+These may be valuable operationally, but they are not the normative center of the channel adapter contract.
+
+### 12.6 Contract Testing Guidance
+
+Adapters SHOULD be exercised with contract tests covering:
+- representative inbound payloads
+- expected canonical event outputs
 - outbound translation examples
-- auth failure tests
-- duplicate delivery tests
-- provider outage tests
-- unsupported capability tests
+- verification failure paths
+- duplicate ingress scenarios
+- provider outage scenarios
 
-## Ownership Boundary
+## 13. Future Considerations
 
-- **adapter** is responsible for `translate`
-- **middleware core** is responsible for `decide / enforce / record`
-- **delivery orchestration** is responsible for retry / dead-letter policy
+The following directions are intentionally non-normative in this RFC.
 
-## 6. Versioning and Phases
+### 13.1 Broad Channel Operations Layers
 
-### Phase 0 / Prototype
-- one web chat adapter
-- one webhook-first adapter shape
-- text-only delivery path
+Examples:
+- queue-management semantics
+- operator routing surfaces
+- channel-operations control planes
 
-### Phase 1 / Minimum Kernel
-- Slack-class transport
-- capability declaration
-- deterministic fallback / transcoding
-- delivery state mapping
-- duplicate webhook handling
+These are outside the current relay-centered contract.
 
-### Phase 2 / Enterprise
-- richer content types
-- stronger delivery callbacks
-- per-instance policy and quota hooks
-- secure raw payload references and trace retention
+### 13.2 Dead-Letter and Poison-Message Productization
 
-### Phase 3 / Rich / Realtime
-- streaming-rich transports
-- media-heavy channels
-- optional voice / realtime extensions
+Examples:
+- first-class dead-letter operating models
+- poison-message workflow systems
+- queue-style remediation products
 
-## 7. Initial v1 Guidance
+These may complement delivery operations later, but they are not part of the current core channel adapter contract.
 
-v1 channel work should include:
-- at least one real adapter path
-- at least one concrete ingress shape
-- at least one concrete outbound delivery path
+### 13.3 Rich Realtime and Media-Heavy Protocol Families
 
-Which channel/provider to choose and whether to implement multiple adapters concurrently SHOULD be decided by a separate implementation decision, not prescribed by this RFC.
+Examples:
+- voice-first or realtime transports
+- deeply media-native interaction models
+- large provider-specific feature taxonomies becoming central to CAR identity
 
-The v1 adapter goal is not to cover all provider features, but to validate:
-- canonical ingress/egress shape
-- idempotency
-- capability declaration
-- delivery state mapping
+These are possible future directions, but they do not define current conformance.
 
-## 8. Conformance
+## 14. Ownership Boundary
 
-A conforming channel adapter MUST:
-- declare capabilities
-- normalize inbound provider events into canonical events
-- preserve provider-native metadata via namespaced extensions or secure references
-- implement auditable failure mapping
-- avoid silent fallback failures
+- **channel adapter** is responsible for provider translation at the chat boundary
+- **middleware core** is responsible for govern / route / invoke / record on the message path
+- **delivery orchestration** is responsible for delivery behavior above the provider boundary
+- **canonical audit and replay truth** remains with CAR's append-only ledger, not provider-native transport state
 
-## 9. Security Considerations
+## 15. Conformance
 
-Adapters SHOULD:
-- verify source authenticity whenever provider support exists
-- isolate tenant credentials by channel instance
-- minimize raw payload retention in canonical records
-- surface provider auth failures distinctly from payload failures
+A conforming CAR channel adapter MUST:
+- declare its supported relay-relevant capabilities
+- verify source authenticity where applicable
+- normalize provider-native input into canonical CAR events
+- translate canonical outbound intent into provider-native delivery behavior
+- preserve structured failure information for invalid, blocked, or failed channel-side operations
+- keep provider-native metadata optional and namespaced rather than making it the canonical contract
 
-## 10. Open Questions
+A conforming implementation is NOT required to implement every extension or future consideration in this RFC.
 
-- Which fallback / transcoding rules should become normative versus implementation-defined?
-- Should delivery callback mapping be standardized more strongly across webhook-driven providers?
-- When should protocol traces be adapter-owned versus emitted by a shared delivery subsystem?
+## 16. Security Considerations
+
+Implementations SHOULD:
+- treat inbound provider traffic as untrusted until verified
+- isolate provider credentials appropriately per channel instance
+- minimize raw provider-native payload exposure in canonical records
+- preserve a clear distinction between provider-native detail and canonical relay semantics
+- surface authentication failures distinctly from payload or delivery failures where possible
+
+## 17. Open Questions
+
+- Which fallback or transcoding rules should eventually be standardized more strongly?
+- Which delivery callback mappings should remain implementation-specific versus shared across adapters?
+- Which lifecycle or isolation concerns deserve a separate operational RFC rather than expansion of this contract?

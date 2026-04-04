@@ -4,18 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Lark / 飞书 — Chat Agent Relay</title>
-  <meta name="description" content="Connect Lark (Feishu) to your AI agents via Chat Agent Relay. Event subscription, streaming via message editing, token management, and group/DM support.">
+  <meta name="description" content="Lark is a channel adapter in Chat Agent Relay. It handles Lark- and Feishu-specific ingress and delivery behavior at the chat-platform boundary, including event subscriptions, token-managed delivery, message editing, and chat-type-specific behavior.">
 
   <meta property="og:type" content="article">
   <meta property="og:title" content="Lark / 飞书 — Chat Agent Relay">
-  <meta property="og:description" content="Integrate Lark (Feishu) bots with your AI agents using Chat Agent Relay.">
+  <meta property="og:description" content="Overview of the Lark / 飞书 channel adapter in Chat Agent Relay.">
   <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/lark.html">
   <meta property="og:site_name" content="Chat Agent Relay">
   <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Lark / 飞书 — Chat Agent Relay">
-  <meta name="twitter:description" content="Lark / Feishu bot adapter with streaming, token management, and multi-chat support.">
+  <meta name="twitter:description" content="Overview of the Lark / 飞书 channel adapter in Chat Agent Relay.">
   <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
 
   <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/lark.html">
@@ -41,7 +41,7 @@
     "@context": "https://schema.org",
     "@type": "TechArticle",
     "headline": "Lark / 飞书 — Chat Agent Relay",
-    "description": "Connect Lark (Feishu) to your AI agents via Chat Agent Relay.",
+    "description": "Lark is a channel adapter in Chat Agent Relay. It handles Lark- and Feishu-specific ingress and delivery behavior at the chat-platform boundary, including event subscriptions, token-managed delivery, message editing, and chat-type-specific behavior.",
     "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/lark.html"
   }
   </script>
@@ -63,7 +63,7 @@
 <aside class="doc-sidebar">
   <div class="sidebar-group">
     <span class="sidebar-group-title">Getting Started</span>
-    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Quick Start</a>
+    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Overview</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Channels</span>
@@ -78,13 +78,13 @@
   <div class="sidebar-group">
     <span class="sidebar-group-title">Agents</span>
     <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
-    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Configuration</span>
     <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
-    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Multi-Agent Routing</a>
-    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage Backends</a>
+    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Routing</a>
+    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Concepts</span>
@@ -100,52 +100,59 @@
 
 <main class="doc-content">
   <h1>Lark / 飞书</h1>
-  <p class="subtitle">Connect Lark (飞书) bots to your AI agents. One adapter covers both the international Lark platform and the Chinese 飞书 platform. Supports event subscription, streaming via message editing, automatic token management, and group/DM conversations.</p>
+  <p class="subtitle">Lark is a channel adapter in Chat Agent Relay. It handles Lark- and Feishu-specific ingress and delivery behavior at the chat-platform boundary, including event subscriptions, token-managed delivery, message editing for streaming-capable paths, and chat-type-specific behavior.</p>
+
+  <h2 id="lark-boundary">Lark / 飞书 boundary</h2>
+  <p>
+    The Lark adapter receives provider-native events from Lark or 飞书, interprets them according to platform rules, canonicalizes them into CAR events, and translates outbound canonical intent back into Lark-native delivery behavior.
+  </p>
+  <p>
+    The same architectural boundary applies whether the deployment targets the international Lark platform or the Chinese 飞书 platform.
+  </p>
 
   <h2 id="prerequisites">Prerequisites</h2>
-  <p>Create a Lark/Feishu application:</p>
+  <p>Create a Lark or 飞书 application:</p>
   <ol>
-    <li><strong>Create an app</strong> at <a href="https://open.larksuite.com/app" target="_blank">Lark Developer Console</a> (international) or <a href="https://open.feishu.cn/app" target="_blank">飞书开放平台</a> (China).</li>
-    <li><strong>Enable bot capabilities</strong> under Features &rarr; Bot.</li>
-    <li><strong>Add permissions</strong>:
-      <ul>
-        <li><code>im:message</code> &mdash; send and receive messages</li>
-        <li><code>im:message.group_at_msg</code> &mdash; receive @mentions in groups</li>
-        <li><code>im:resource</code> &mdash; access files and images</li>
-        <li><code>contact:user.id:readonly</code> &mdash; user identification</li>
-      </ul>
-    </li>
-    <li><strong>Subscribe to events</strong> &mdash; add <code>im.message.receive_v1</code> event, choose WebSocket or webhook mode.</li>
-    <li><strong>Publish the app</strong> and copy the <strong>App ID</strong> and <strong>App Secret</strong>.</li>
+    <li><strong>Create an app</strong> in the appropriate developer console.</li>
+    <li><strong>Enable bot capabilities</strong> for the app.</li>
+    <li><strong>Add permissions</strong> required for your deployment, such as messaging and user-identification scopes.</li>
+    <li><strong>Subscribe to message events</strong> using the platform's event-subscription model.</li>
+    <li><strong>Publish the app</strong> and copy the app ID and app secret.</li>
   </ol>
 
-  <h2 id="add-to-car">Add to CAR</h2>
+  <h2 id="registering">Registering Lark / 飞书</h2>
+  <p>Register the channel with the <code>car</code> CLI:</p>
   <pre><code>car channel add my-lark \
   --type=lark \
   --app-id=cli_xxx \
   --app-secret=yyy</code></pre>
 
   <div class="callout callout-tip">
-    <strong>One adapter, two platforms</strong>
-    The same <code>channel-lark</code> adapter works with both Lark (international) and 飞书 (China). The API endpoints are the same; only the developer console URL differs.
+    <strong>Platform coverage</strong>
+    The current adapter covers the Lark / 飞书 provider boundary with one integration shape. The architectural point is the boundary contract, not a separate CAR product surface for each regional variant.
   </div>
 
-  <h2 id="features">Features</h2>
+  <h2 id="lark-specific-behavior">Lark / 飞书-specific behavior</h2>
+  <table>
+    <thead>
+      <tr><th>Concern</th><th>Lark / 飞书 behavior at the boundary</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Ingress transport</td><td>The adapter receives subscribed platform events and converts them into canonical CAR events</td></tr>
+      <tr><td>Token-managed delivery</td><td>The adapter obtains and refreshes platform access tokens needed for outbound API calls</td></tr>
+      <tr><td>Conversation shape</td><td>P2P and group chat surfaces influence how conversation continuity and actor context are mapped into the canonical path</td></tr>
+      <tr><td>Streaming presentation</td><td>When the agent side supports streaming, the adapter can progressively update a message using platform-native edit behavior</td></tr>
+      <tr><td>Mentions and metadata</td><td>Platform-specific mention details, tenant context, and message identifiers can be preserved as structured provider extension data</td></tr>
+    </tbody>
+  </table>
 
-  <h3 id="token-management">Automatic token management</h3>
-  <p>The sender automatically obtains and caches a <code>tenant_access_token</code> using the app credentials. Tokens are refreshed transparently before expiry &mdash; no manual token management needed.</p>
-
-  <h3 id="streaming">Streaming (progressive update)</h3>
-  <p>When the connected agent supports streaming, CAR sends an initial message and progressively edits it via the <code>PATCH /im/v1/messages/{message_id}</code> API as tokens arrive.</p>
-
-  <h3 id="chat-types">Group and DM support</h3>
-  <p>The adapter handles both P2P (direct message) and group conversations. The <code>chat_type</code> (p2p/group) is preserved in <code>provider_extensions</code>.</p>
-
-  <h3 id="mentions">@Mentions</h3>
-  <p>When users @mention the bot in a group, the mention metadata (user IDs and names) is preserved in <code>provider_extensions.lark.mentions</code>.</p>
-
-  <h3 id="event-dedup">Event deduplication</h3>
-  <p>The idempotency key is <code>lark-{event_id}</code> from the event header, ensuring duplicate event deliveries are handled correctly.</p>
+  <h2 id="chat-behavior">Chat behavior</h2>
+  <p>The adapter supports the main Lark / 飞书 conversation surfaces that matter at the provider boundary.</p>
+  <ul>
+    <li><strong>P2P chats</strong> — direct conversations between a user and the bot.</li>
+    <li><strong>Group chats</strong> — shared chat surfaces where mentions and group message context matter.</li>
+    <li><strong>Provider extensions</strong> — tenant, chat, message, and mention data can remain available without becoming CAR's source of truth.</li>
+  </ul>
 
   <h2 id="configuration">Configuration options</h2>
   <table>
@@ -153,27 +160,22 @@
       <tr><th>Option</th><th>CLI flag</th><th>Required</th><th>Description</th></tr>
     </thead>
     <tbody>
-      <tr><td><code>appId</code></td><td><code>--app-id</code></td><td>Yes</td><td>Lark App ID (<code>cli_xxx</code>)</td></tr>
-      <tr><td><code>appSecret</code></td><td><code>--app-secret</code></td><td>Yes</td><td>Lark App Secret</td></tr>
-      <tr><td><code>verificationToken</code></td><td><code>--verification-token</code></td><td>No</td><td>Event verification token for webhook mode</td></tr>
+      <tr><td><code>appId</code></td><td><code>--app-id</code></td><td>Yes</td><td>Lark / 飞书 app identifier</td></tr>
+      <tr><td><code>appSecret</code></td><td><code>--app-secret</code></td><td>Yes</td><td>Secret used for platform-side authentication and token acquisition</td></tr>
+      <tr><td><code>verificationToken</code></td><td><code>--verification-token</code></td><td>No</td><td>Verification token used when the deployment relies on webhook-style verification</td></tr>
     </tbody>
   </table>
 
   <h2 id="provider-extensions">Provider extensions</h2>
-  <table>
-    <thead>
-      <tr><th>Field</th><th>Type</th><th>Description</th></tr>
-    </thead>
-    <tbody>
-      <tr><td><code>event_id</code></td><td>string</td><td>Lark event unique ID</td></tr>
-      <tr><td><code>message_id</code></td><td>string</td><td>Message ID (<code>om_xxx</code>)</td></tr>
-      <tr><td><code>chat_id</code></td><td>string</td><td>Chat ID (<code>oc_xxx</code>)</td></tr>
-      <tr><td><code>chat_type</code></td><td>string</td><td>p2p or group</td></tr>
-      <tr><td><code>tenant_key</code></td><td>string</td><td>Tenant identifier</td></tr>
-      <tr><td><code>app_id</code></td><td>string</td><td>App that received the event</td></tr>
-      <tr><td><code>mentions</code></td><td>array</td><td>@mention details (when present)</td></tr>
-    </tbody>
-  </table>
+  <p>Lark / 飞书-specific metadata can be preserved in structured provider extensions, including event identity, chat identity, tenant information, and mention details.</p>
+
+  <h2 id="idempotency">Idempotency</h2>
+  <p>The adapter can use provider event identity to deduplicate repeated deliveries at the boundary.</p>
+
+  <div class="callout callout-info">
+    <strong>Boundary discipline</strong>
+    The Lark adapter is responsible for Lark / 飞书-specific transport and delivery behavior. Governance, routing, A2A invocation, replay, and auditability remain CAR core responsibilities on the canonical message path.
+  </div>
 
   <div class="doc-pagination">
     <a href="/ChatAgentRelay/docs/channels/telegram.html">

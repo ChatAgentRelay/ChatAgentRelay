@@ -5,356 +5,343 @@
 | **Status** | Draft |
 | **Author** | Claude Code |
 | **Audience** | Architects and implementers |
-| **Version** | v0.2 |
-| **Last Updated** | 2026-03-28 |
+| **Version** | v0.3 |
+| **Last Updated** | 2026-04-02 |
 
 ## 1. Abstract
 
-This RFC defines the reference architecture for Chat Agent Relay (CAR), including the minimum kernel, versioned delivery roadmap, trust boundaries, and subsystem responsibilities.
+This RFC defines the reference architecture for Chat Agent Relay (CAR). CAR is a standard relay layer between chat platforms and agents. It standardizes the message path through canonical events, governance, routing, agent invocation, delivery, and an append-only audit ledger.
+
+On the agent side, CAR uses the A2A protocol as the standard integration boundary.
+
+This document intentionally separates the architecture into three layers:
+- **Core** — normative architecture that defines CAR's identity and conformance center
+- **Extension** — architecture that is aligned with CAR but optional or not required for every conforming implementation
+- **Future Considerations** — long-range product and ecosystem directions that are not current normative requirements
 
 ## 2. Purpose
 
-This RFC defines the recommended reference architecture for CAR.
+This RFC defines the recommended long-range architecture map for CAR while making the normative center explicit.
 
-## 3. Recommended Architecture
+## 3. Product Boundary
 
-`Channel Adapter -> Canonical Event Schema -> Middleware/Governance Pipeline -> Routing Layer -> Backend Agent Adapter -> Delivery Layer -> Event Ledger / Audit / Replay / Observability`
+CAR is:
+- a standard relay layer between chat platforms and agents
+- a canonical-event-centered message pipeline
+- a governance, routing, delivery, and audit layer on the message path
+- a self-hosted system with replayable, append-only system history
 
-This is the sole recommended reference architecture for this project.
+CAR is not:
+- an agent runtime or orchestration framework
+- an agent-internal governance or tool-execution control plane
+- an inbox, CRM, or SaaS workspace product
 
-## 4. Minimum Kernel and Versioned Roadmap
+## 4. Layering Model
 
-### Minimum Kernel
-The minimum kernel for CAR SHOULD converge on six required components:
-1. one channel adapter
-2. one canonical event ledger
-3. one middleware / policy stage
-4. one route decision stage
-5. one backend agent adapter
-6. one outbound delivery path
+### 4.1 Core
+
+Core architecture defines what a conforming CAR system fundamentally is. When this document uses normative language about CAR identity, it applies to this layer.
+
+### 4.2 Extension
+
+Extension architecture covers optional capabilities that fit the CAR model without redefining it. These may be standardized, but they are not required for every CAR implementation.
+
+### 4.3 Future Considerations
+
+Future considerations preserve useful long-range architecture direction. They are intentionally non-normative and MUST NOT be treated as required for conformance.
+
+## 5. Core Architecture
+
+### 5.1 Core Architecture Statement
+
+The core CAR architecture is:
+
+`Channel Adapter -> Canonical Event Model -> Message-Path Governance -> Routing -> Agent Invocation via A2A -> Delivery -> Append-Only Ledger / Replay / Audit`
 
 A system that cannot complete this loop is not yet CAR.
 
-### Versioned Roadmap
-- **v0 / Protocol Prototype**：stub-to-stub end-to-end
-- **v1 / Minimum Kernel**：one real channel + one real backend + replayable governance loop
-- **v2 / Enterprise Middleware**：multi-tenant control plane, audit, queue/handoff projections, resilience controls
-- **v3 / Product Surface Expansion**：broader channels, richer operator surfaces, optional realtime/media families
+### 5.2 Core Responsibilities
 
-## 5. Logical Components
+A conforming CAR core MUST preserve these responsibilities:
+- receive inbound traffic from chat platforms through channel adapters
+- canonicalize inbound traffic into the CAR event model
+- execute governance on the message path
+- produce route decisions
+- invoke agents through the agent-side integration boundary
+- translate and perform outbound delivery
+- append auditable events to a replayable ledger
 
-### 1. Control Plane
+### 5.3 Core Logical Components
+
+#### 1. Channel Boundary
 Responsibilities:
-- tenant / workspace / channel / credential management
-- policy / route / quota configuration
-- adapter / backend registration
-- audit access control
+- ingress and egress integration with chat platforms
+- source verification where applicable
+- canonicalization into CAR events
+- adaptation to channel-specific delivery capabilities
 
-### 2. Gateway / Data Plane
+#### 2. Canonical Event Model
 Responsibilities:
-- ingress / egress adapters
-- canonicalization
-- middleware execution
-- routing invocation
-- delivery orchestration
+- define the common event envelope and event families
+- preserve correlation and causation across the message path
+- keep provider-native details in structured extensions rather than the core model
 
-### 3. Agent Adapter Layer
+#### 3. Message-Path Governance
 Responsibilities:
-- HTTP / streaming / MCP / A2A / framework runtime adapters
-- runtime session mapping
-- tool / handoff / error event mapping
+- evaluate policy on inbound messages before routing
+- evaluate policy on outbound messages before delivery
+- keep governance decisions explainable from recorded events
 
-### 4. Event Ledger
+#### 4. Routing Layer
 Responsibilities:
-- append-only event store
-- replay / audit / history
-- conversation state reconstruction inputs
-- blocked / denied / retry / dead-letter path retention
+- select the appropriate agent for a message
+- preserve auditable route decisions as part of the event chain
 
-Storage strategy:
-- use a durable append-capable primary store that can support the event ledger, replay, and audit requirements
-- evaluate specific database and queue choices separately based on correctness, operational fit, and throughput needs
-
-Companion stores:
-- secure trace store for sensitive raw payload / protocol trace retention
-- projections for queue / assignment / latest delivery / latest handoff state
-
-### 5. Identity & Handoff Services
+#### 5. Agent Integration Boundary
 Responsibilities:
+- invoke agents through a stable protocol boundary
+- map agent results back into canonical events
+- preserve session and capability semantics relevant to the relay path
+
+**Agent-side standard:** CAR uses **A2A** as the standard agent-side protocol boundary.
+
+#### 6. Delivery Layer
+Responsibilities:
+- translate canonical outbound intent into channel actions
+- handle retry and terminal delivery outcomes
+- record delivery-related events for replay and audit
+
+#### 7. Append-Only Ledger
+Responsibilities:
+- retain the immutable event history of the message path
+- support replay, audit, and decision explanation
+- remain the source of truth for reconstructing what happened
+
+### 5.4 Core Runtime View
+
+```mermaid
+flowchart LR
+    subgraph Channels["Chat Platforms"]
+      CP["Slack / Teams / Discord / Telegram / WebChat / ..."]
+    end
+
+    subgraph CAR["CAR Core"]
+      CA["Channel Adapter"]
+      CE["Canonical Event Model"]
+      GOV["Message-Path Governance"]
+      RT["Routing"]
+      A2A["Agent Invocation via A2A"]
+      DL["Delivery"]
+      EL[("Append-Only Ledger")]
+    end
+
+    subgraph Agents["Agents"]
+      AG["A2A-Compatible Agents"]
+    end
+
+    CP --> CA --> CE --> GOV --> RT --> A2A --> DL
+    A2A --> AG
+    CE -.-> EL
+    GOV -.-> EL
+    RT -.-> EL
+    A2A -.-> EL
+    DL -.-> EL
+```
+
+### 5.5 Core Versioned Maturity
+
+The reference architecture evolves in maturity without changing the identity of the core system:
+- **v0 / Protocol Prototype** — prove the canonical relay loop end to end
+- **v1 / Minimum Relay Kernel** — one real channel path, one real agent path, replayable governance loop
+- **v2 / Enterprise Hardening** — stronger governance, security, tenancy, and operational depth around the same core relay model
+- **v3 / Product Surface Expansion** — broader supporting capabilities built around the same core relay model
+
+Versions describe maturity stages of one relay architecture, not different products.
+
+## 6. Extension Architecture
+
+Extension architecture is aligned with CAR but not required to define CAR's core identity.
+
+### 6.1 Identity Extensions
+Potential extension responsibilities:
 - external identity mapping
-- queue / assignment / operator ownership projection
-- handoff lifecycle projection
+- cross-channel identity association where policy allows
+- explicit identity-resolution outcomes recorded as events
 
-### 6. Observability
-Responsibilities:
-- structured logs
-- traces
-- metrics
-- event timeline views
-- protocol trace capture and correlation
+Identity capabilities are useful, but CAR does not require cross-channel identity stitching to remain CAR.
 
-## 6. Architecture Evolution Diagrams
+### 6.2 Handoff Extensions
+Potential extension responsibilities:
+- optional handoff-request events
+- optional human-assisted continuation of a conversation
+- event-modeled transitions when automation yields to another execution path
 
-### v0 -> v3 Evolution
-```mermaid
-flowchart LR
-    subgraph V0["v0 / Protocol Prototype"]
-        V0A[One Stub Channel Adapter]
-        V0B[Canonical Event Schema]
-        V0C[One Policy + Route Path]
-        V0D[One Stub Backend Adapter]
-        V0E[One Outbound Path]
-        V0F[Example Ledger]
-        V0A --> V0B --> V0C --> V0D --> V0E --> V0F
-    end
+Handoff support MAY exist, but inbox-style queue management is not part of CAR's core identity.
 
-    subgraph V1["v1 / Minimum Kernel"]
-        V1A[Real Channel Adapter]
-        V1B[Canonical Event Ledger]
-        V1C[Middleware Governance]
-        V1D[Rules Router]
-        V1E[Real Backend Adapter]
-        V1F[Delivery + Retry]
-        V1G[Replay + Audit Basics]
-        V1A --> V1B --> V1C --> V1D --> V1E --> V1F --> V1G
-    end
+### 6.3 Richer Channel and Delivery Capabilities
+Potential extension responsibilities:
+- richer message abstractions
+- richer streaming models
+- enhanced channel-native interaction primitives
+- richer delivery state projections
 
-    subgraph V2["v2 / Enterprise Middleware"]
-        V2A[Multi-tenant Control Plane]
-        V2B[Governance + Redaction]
-        V2C[Queue Assignment Projections]
-        V2D[Resilience Controls]
-        V2E[Secure Trace Store]
-        V2A --> V2B --> V2C --> V2D --> V2E
-    end
+### 6.4 Enhanced Operational Controls
+Potential extension responsibilities:
+- stronger tenancy controls
+- richer policy families
+- more advanced rate limiting and resilience controls
+- richer operational management surfaces
 
-    subgraph V3["v3 / Product Surface Expansion"]
-        V3A[More Channels]
-        V3B[More Backend Families]
-        V3C[Richer Operator Surfaces]
-        V3D[Realtime Voice Media Extensions]
-        V3A --> V3B --> V3C --> V3D
-    end
-```
+### 6.5 Observability Extensions
+Potential extension responsibilities:
+- protocol trace references
+- richer metrics and tracing systems
+- deeper operational observability beyond the core audit ledger
 
-### Runtime View (as implemented)
-```mermaid
-flowchart LR
-    subgraph Ingress["Channel Side"]
-      CR["Channel Registry\n(factory-based)"]
-      CA["Channel Adapter\n(canonicalize + sender)"]
-    end
+These support operations, but they do not replace the append-only event ledger as the core accountability mechanism.
 
-    subgraph Core["Pipeline Core"]
-      GOV["Policy Engine"]
-      RT["Route Engine"]
-      INV["Agent Invocation\n(capability-driven)"]
-      DL["Delivery\n(ChannelSender + retry)"]
-    end
+## 7. Future Considerations
 
-    subgraph Backend["Agent Side"]
-      AR["Agent Registry\n(factory-based)"]
-      AA["Agent Adapter\n(invoke / stream / resume)"]
-    end
+The following themes are intentionally non-normative in this RFC. They preserve architectural direction but MUST NOT be read as current conformance requirements.
 
-    subgraph Storage["Storage"]
-      EL[("Event Ledger\n(append-only)")]
-      CS[("Config Store\n(SQLite + AES)")]
-    end
+### 7.1 Operator and Inbox Product Surfaces
+Possible future directions:
+- queue projections
+- assignment projections
+- richer operator workflow surfaces
+- inbox-like operating experiences layered on top of CAR events
 
-    CR --> CA --> GOV --> RT --> INV --> DL
-    INV --> AR --> AA
-    DL --> CA
-    GOV & RT & INV & DL -.->|append| EL
-    CS -.->|config| CR & AR
-```
+These are downstream product surfaces, not the normative definition of CAR itself.
 
-### Registry Factory Pattern (v1 implementation)
+### 7.2 Expanded Control Plane Surfaces
+Possible future directions:
+- more elaborate administrative UX
+- richer multi-tenant control-plane products
+- policy management products layered above the relay core
 
-Registries do not contain adapter-specific code. Built-in types are wired via factory files:
+### 7.3 Companion Trace Stores
+Possible future directions:
+- secure raw-payload trace stores
+- protocol-trace buffering systems
+- forensic stores correlated with the canonical ledger
 
-```mermaid
-flowchart TD
-  M["main.ts"] -->|registerFactory| CR["ChannelRegistry"]
-  M -->|registerFactory| AR["AgentRegistry"]
+These may be valuable, but the canonical event ledger remains the architectural center of gravity.
 
-  CR -->|"slack"| SF["createSlackFactory()"]
-  CR -->|"discord"| DF["createDiscordFactory()"]
-  CR -->|"webchat"| WF["createWebChatFactory()"]
+### 7.4 Broader Ecosystem Expansion
+Possible future directions:
+- broader ecosystem tooling around CAR
+- richer non-core integration patterns
+- additional platform experiences around the relay layer
 
-  AR -->|"a2a"| A2AF["createA2AFactory()"]
-  AR -->|"langgraph"| LGF["createLangGraphFactory()"]
-  AR -->|"acp"| ACPF["createACPFactory()"]
-  AR -->|"http"| HTF["createHttpFactory()"]
-```
+Such expansion MUST NOT blur the core boundary that CAR is a standard relay layer between chat platforms and agents.
 
-Third-party adapters register via the same `registerFactory()` API without modifying registry core code. Lifecycle cleanup uses `isDisconnectable()` / `isShutdownable()` type guards from `contract-harness`.
+## 8. Trust Boundaries
 
-## 7. Phase-by-Phase Delivery Guidance
+### Boundary A: Chat Platform -> Channel Adapter
+- treat provider traffic as untrusted input
+- verify source authenticity where applicable
+- normalize provider-native payloads before they enter the CAR core
 
-### v0 / Protocol Prototype
-- deliver specs
-- deliver one stub adapter pair
-- validate canonical event sufficiency
+### Boundary B: Channel Adapter -> Core Message Path
+- only canonical events and structured delivery abstractions cross inward
+- provider-native details remain under structured extensions
 
-### v1 / Minimum Kernel
-- real inbound transport
-- real outbound delivery
-- one backend runtime adapter
-- replay + audit basics
+### Boundary C: Core Message Path -> Agent Boundary
+- the core invokes agents through the A2A protocol boundary
+- runtime-private agent internals do not become CAR core semantics
 
-### v2 / Enterprise Middleware
-- stronger tenancy
-- retention / redaction
-- queue / assignment projections
-- policy and resilience hardening
+### Boundary D: Ledger -> Projections and External Surfaces
+- downstream views consume derived data or replay output
+- the append-only ledger remains the durable source of truth
 
-### v3 / Expanded Surface
-- additional channels
-- richer admin/operator surfaces
-- optional realtime, voice, and advanced protocol trace families
+## 9. Ownership Model
 
-## 8. Versioning Rationale
+- **Channel adapters** translate provider-native chat traffic into and out of the CAR message path
+- **CAR core** decides, enforces, routes, delivers, and records
+- **Agent integrations** invoke agents through the A2A boundary and map results back into canonical events
+- **Downstream surfaces** such as admin tools, dashboards, or operator experiences consume the relay system but do not define its core truth
 
-The phased roadmap exists to control scope and validate the architecture incrementally, not to redefine the core protocol at each version.
+## 10. Sequence Walkthroughs
 
-A stable CAR core should remain forward-compatible across phases in its essential semantics:
-- canonical event envelope
-- routing / governance / delivery ownership boundaries
-- append-only ledger and replay model
-- channel adapter and backend adapter core contracts
+### 10.1 Standard Relay Path
+1. A channel adapter receives inbound traffic
+2. The adapter canonicalizes it into a CAR event
+3. Governance evaluates inbound policy
+4. Routing selects an agent
+5. CAR invokes the agent through A2A
+6. The result is mapped into canonical events
+7. Delivery sends the response to the chat platform
+8. The ledger records the chain for replay and audit
 
-The phased roadmap is still necessary because:
-- the minimum kernel must be proven before broader product surface is standardized
-- enterprise concerns such as redaction, queue projections, and resilience controls should be layered onto a validated event model rather than guessed up front
-- optional channel and runtime families should extend capability and event coverage without forcing premature complexity into v1
+### 10.2 Governance Reject Path
+1. A channel adapter emits an inbound canonical event
+2. Governance evaluates policy
+3. CAR records the governance decision
+4. CAR records the blocked outcome when appropriate
+5. No agent invocation occurs
 
-In short, versions describe **maturity stages of one architecture**, not mutually incompatible architectures.
+### 10.3 Delivery Failure Path
+1. CAR produces outbound delivery intent from the agent result
+2. Delivery attempts channel transmission
+3. Retry policy handles retryable failures
+4. Terminal failure is recorded in auditable form
 
-## 9. Trust Boundaries
+### 10.4 Streaming or Resumable Relay Path
+1. CAR invokes an agent through the agent-side boundary
+2. The agent emits streaming or resumable output when supported
+3. CAR maps that behavior into canonical and delivery semantics
+4. The ledger preserves the auditable record of the path
 
-### Boundary A: Channel Provider -> Adapter
-- verify signature / source
-- isolate raw payloads
+## 11. Recommended Implementation Priorities
 
-### Boundary B: Adapter -> Middleware Core
-- only canonical events cross inward
-- provider-native details stay under `provider_extensions`
+### Core-first priorities
+Implementations SHOULD prioritize:
+- one real channel path
+- one real A2A agent path
+- canonical event recording
+- inbound and outbound governance checkpoints
+- routing
+- delivery with replayable outcomes
+- audit and replay basics
 
-### Boundary C: Middleware Core -> Backend Adapter
-- only canonical events and structured invocation context cross outward
-- framework-private objects never cross back in
+### Extension-next priorities
+Implementations MAY then add:
+- identity extensions
+- optional handoff events
+- richer streaming and channel capabilities
+- stronger tenancy and operational controls
 
-### Boundary D: Event Ledger -> Projections / UI
-- UI consumes projections
-- ledger remains source of truth
+### Future-facing priorities
+Implementations MAY explore product surfaces beyond the relay core, but these SHOULD remain explicitly layered above the normative architecture.
 
-## Ownership Model
+## 12. Conformance
 
-- **Channel adapters**: translate provider-native ingress / egress
-- **Middleware core**: decide / enforce / record
-- **Backend adapters**: invoke runtime and map runtime outputs
-- **Operator inbox / queue UI**: consume projections, not own truth
+A conforming CAR architecture MUST:
+- preserve the relay identity between chat platforms and agents
+- use canonical events as the center of the message path
+- execute governance, routing, agent invocation, delivery, and recording as first-class responsibilities
+- treat the append-only ledger as the source of replay and audit truth
+- use A2A as the standard agent-side protocol boundary
 
-Important distinction:
-- transport-side abstractions are **channel adapters**
-- runtime-side abstractions are **backend agent adapters**
-- backend runtimes should not be collapsed into the same top-level abstraction as transport channels in the core protocol
+A conforming CAR architecture is NOT required to provide every extension or future consideration described in this RFC.
 
-## Sequence Walkthroughs
+## 13. Security Considerations
 
-### 1. Inbound -> Route -> Agent -> Outbound
-1. Slack adapter receives webhook
-2. Adapter verifies signature and deduplicates
-3. Adapter emits `message.received`
-4. Middleware enriches tenant / identity / trace context
-5. Policy middleware emits `policy.decision.made`
-6. Router emits `route.decision.made`
-7. Backend adapter receives `agent.invocation.requested`
-8. Backend emits `agent.response.completed`
-9. Delivery layer emits `message.send.requested` and `message.sent`
-10. Ledger, audit, trace persist the chain
+Implementations SHOULD:
+- verify and isolate untrusted provider traffic at the channel boundary
+- preserve tenant and policy boundaries consistently on the message path
+- keep governance decisions explainable from durable records
+- avoid turning downstream product surfaces into hidden sources of truth
+- preserve the distinction between CAR's relay responsibilities and agent-internal execution responsibilities
 
-### 2. Policy Reject
-1. Adapter emits `message.received`
-2. Governance middleware evaluates policy
-3. Middleware emits `policy.decision.made` with `deny`
-4. Optional outbound explanation is emitted
-5. No backend invocation occurs
+## 14. Open Questions
 
-### 3. Streaming Response
-1. Backend adapter receives invocation
-2. Backend emits `agent.response.delta` repeatedly
-3. Delivery layer translates partial output if channel supports streaming
-4. Backend emits `agent.response.completed`
-5. Delivery finalization updates status
+- Which extension topics should eventually graduate into their own dedicated RFCs?
+- Which observability extensions need stronger standardization versus remaining implementation guidance?
+- Where should future product-surface ideas be separated into non-core RFC tracks so the core relay architecture remains clear?
 
-### 4. Human Handoff
-1. Backend emits `handoff.requested`
-2. Middleware routes to queue projection
-3. Projection marks active queue / assignment state
-4. Operator replies through operator UI
-5. Outbound adapter sends reply
-6. Later `handoff.completed` can return conversation to automation
+## 15. Final Decision
 
-### 5. Duplicate Webhook + Retry / Dead-Letter
-1. Adapter receives duplicate provider event
-2. Ingress idempotency rejects duplicate canonical append
-3. Middleware records auditable blocked / dedupe outcome
-4. If outbound delivery fails retryably, middleware retries
-5. If retries exhausted, emit `error.occurred` and terminal delivery state
+The implementation path for this project SHOULD converge on one architecture:
 
-## Build-vs-Adopt
-
-- **Gateway / control plane**: build in-house; reference OpenClaw
-- **Canonical protocol / event schema**: build in-house; reference Bot Framework + Rasa
-- **Channel adapter SDK / contract**: build in-house; reference Bot Framework + opsdroid + Omni
-- **Backend agent adapter contract**: build in-house; reference Agent Kernel
-- **Event ledger / replay / audit**: in-house logic; underlying storage is selected separately — this RFC does not prescribe a specific database
-- **Enterprise operations / inbox / handoff experience**: draw on Chatwoot / Chaskiq; do not copy their product model wholesale
-- **Reuse of a complete off-the-shelf foundation**: not currently recommended; selecting a single project as the base foundation is premature
-
-## Recommended v1 Scope
-
-### Channels
-- at least one real inbound/outbound channel path
-- channel selection should be decided in a separate implementation decision, not fixed by this RFC
-
-### Backends
-- at least one real backend adapter path
-- backend adapter shape should be decided in a separate implementation decision, not fixed by this RFC
-
-### Infra
-- no storage engine is mandated by this RFC
-- no mandatory broker in v1
-
-### Governance
-- basic tenant policy
-- audit log
-- handoff projection
-- redaction labels
-- retry / dead-letter handling
-
-## 10. Conformance
-
-A conforming CAR architecture MUST include the minimum kernel loop and preserve the ownership boundaries described in this RFC.
-
-## 11. Security Considerations
-
-The architecture SHOULD:
-- isolate provider-native raw payload handling from the canonical ledger where sensitivity requires it
-- preserve tenant isolation at control-plane and data-plane boundaries
-- treat backend execution privileges as explicit policy, not ambient trust
-- keep projections disposable and reconstructable from durable facts
-
-## 12. Open Questions
-
-- At what point should execution isolation become a first-class architectural component rather than an implementation policy?
-- Should a separate observability RFC define protocol trace lifecycle and retention more formally?
-- Which v2 enterprise features must be normative before CAR can claim production-ready status?
-
-## 13. Final Decision
-
-The implementation path for this project SHOULD converge to:
-
-**Combine architectural patterns from multiple projects and build the middleware layer in-house.**
+**CAR is a standard relay layer between chat platforms and agents, centered on canonical events, message-path governance, A2A agent invocation, delivery, and append-only auditability.**

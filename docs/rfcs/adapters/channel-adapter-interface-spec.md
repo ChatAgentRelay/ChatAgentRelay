@@ -5,19 +5,58 @@
 | **Status** | Draft |
 | **Author** | Claude Code |
 | **Audience** | Channel adapter implementers |
-| **Version** | v0.4 |
-| **Last Updated** | 2026-03-31 |
+| **Version** | v0.5 |
+| **Last Updated** | 2026-04-02 |
 | **Companion** | `channel-adapter-contract.md` (high-level contract) |
 
 ## 1. Abstract
 
-This document formalizes the TypeScript interface contracts that all Chat Agent Relay (CAR) channel adapters MUST implement. It complements the high-level channel adapter contract RFC with precise type-level requirements.
+This document defines the interface-level contract that Chat Agent Relay (CAR) channel adapters MUST implement.
+
+CAR is a standard relay layer between chat platforms and agents. On the channel side, adapters provide the provider-facing boundary for canonicalization of inbound traffic and translation of canonical outbound intent into provider-native delivery behavior.
+
+This document explicitly separates:
+- **Core** — normative interface semantics required for conformance
+- **Extension** — optional but aligned interface capabilities
+- **Future Considerations** — non-normative directions that are not current conformance requirements
 
 ## 2. Normative Language
 
 The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as described in RFC 2119.
 
-## 3. ChannelAdapter Interface
+## 3. Purpose
+
+This RFC defines the stable type-level contract for CAR's channel-side boundary.
+
+## 4. Product Boundary
+
+For this RFC, the channel adapter interface specification is responsible for:
+- defining the adapter-facing canonicalization contract
+- defining the sender contract for outbound delivery
+- defining the capability contract used by the relay path
+- defining structured success and failure shapes at the interface boundary
+
+For this RFC, the channel adapter interface specification is not:
+- a routing or policy decision model
+- a queue or operator workflow model
+- a complete provider operations lifecycle system
+- a replacement for CAR's canonical event or middleware RFCs
+
+## 5. Layering Model
+
+### 5.1 Core
+
+Core semantics define the minimum channel-side interface that a conforming CAR implementation MUST preserve.
+
+### 5.2 Extension
+
+Extension semantics define optional capabilities that fit CAR's relay model without redefining it.
+
+### 5.3 Future Considerations
+
+Future considerations preserve direction for later exploration, but MUST NOT be interpreted as current interface requirements.
+
+## 6. Core ChannelAdapter Interface
 
 A conforming channel adapter MUST implement the following interface:
 
@@ -30,15 +69,24 @@ interface ChannelAdapter {
 }
 ```
 
-The `ChannelAdapter` interface unifies ingress (canonicalization of inbound messages) and egress (sender creation for outbound delivery) in a single boundary. This replaces the previous `ChannelIngress` (ingress-only) and separate `SendFn` / `ChannelUpdater` patterns.
+This interface unifies:
+- inbound canonicalization of provider-native traffic
+- outbound sender creation for provider-native delivery
 
-### 3.1 channelType
+## 7. Core Interface Semantics
 
-- `channelType` MUST be a read-only string property identifying the channel platform (e.g., `"slack"`, `"discord"`, `"webchat"`).
-- The value MUST be stable across the adapter's lifetime.
-- It MUST match the `channel` field in canonical events produced by this adapter.
+### 7.1 channelType
 
-### 3.2 describeCapabilities()
+- `channelType` MUST be a stable read-only string identifying the channel platform
+- it MUST match the `channel` field in canonical events produced by the adapter
+
+Illustrative values include:
+- `"slack"`
+- `"discord"`
+- `"webchat"`
+- `"telegram"`
+
+### 7.2 describeCapabilities()
 
 ```typescript
 type ChannelCapabilities = {
@@ -50,18 +98,20 @@ type ChannelCapabilities = {
 };
 ```
 
-- `describeCapabilities()` MUST return a `ChannelCapabilities` object describing what the channel supports.
-- `channel` MUST equal the adapter's `channelType`.
-- Each boolean field MUST accurately reflect the channel's capabilities.
-- The pipeline and server use this information to determine available features (e.g., whether to attempt streaming via progressive updates, whether editing is available).
+Core requirements:
+- `describeCapabilities()` MUST return a `ChannelCapabilities` object
+- `channel` MUST equal the adapter's `channelType`
+- capability fields MUST accurately reflect relay-relevant behavior supported by the provider path
 
-### 3.3 canonicalize(raw)
+The exact capability shape MAY evolve, but a conforming implementation MUST preserve truthful channel capability declaration at the interface boundary.
 
-#### Input Contract
+### 7.3 canonicalize(raw)
 
-- `raw` MUST accept `unknown` — adapters MUST NOT require callers to pre-validate input.
-- Adapters MUST perform their own type narrowing and validation internally.
-- Adapters MUST NOT throw exceptions from `canonicalize()`; all failures MUST be returned as error results.
+#### Input contract
+
+- `raw` MUST accept `unknown`
+- adapters MUST perform their own type narrowing and validation internally
+- adapters MUST return structured failure results rather than throwing framework-specific exceptions across the boundary
 
 #### CanonicalizationResult
 
@@ -71,22 +121,21 @@ type CanonicalizationResult =
   | { ok: false; error: { code: string; message: string } };
 ```
 
-##### Success Path
+#### Success path
 
 When canonicalization succeeds:
+- `event` MUST be a schema-valid canonical event
+- `event.event_type` MUST be `"message.received"`
+- `idempotencyKey` MUST be deterministic and stable for the provider delivery represented
 
-- `event` MUST be a fully-formed `CanonicalEvent` that passes both envelope and specialized schema validation.
-- `event.event_type` MUST be `"message.received"`.
-- `idempotencyKey` MUST be a deterministic, stable key derived from provider-specific identifiers. The same provider delivery MUST always produce the same key.
-
-##### Failure Path
+#### Failure path
 
 When canonicalization fails:
+- `error.code` MUST be machine-readable
+- `error.message` SHOULD be human-readable
+- failures SHOULD preserve enough structure for explainability and logging
 
-- `error.code` MUST be a machine-readable identifier (e.g., `"unsupported_subtype"`, `"empty_text"`, `"invalid_input"`).
-- `error.message` SHOULD be a human-readable description suitable for logging.
-
-### 3.4 createSender(event)
+### 7.4 createSender(event)
 
 ```typescript
 interface ChannelSender {
@@ -95,90 +144,132 @@ interface ChannelSender {
 }
 ```
 
-- `createSender()` MUST accept a `CanonicalEvent` and return a `ChannelSender` scoped to the delivery target derived from the event's `provider_extensions`.
-- Adapters MUST NOT require callers to manually extract channel IDs, thread IDs, or other platform-specific routing information — the sender derives these from the event.
-- `send()` MUST deliver the text to the target channel and return the provider's message identifier.
-- `send()` MUST throw an `Error` on delivery failure. The error message SHOULD describe the failure.
-- `providerMessageId` MUST be the provider-assigned identifier for the sent message (e.g., Slack `ts`).
-- `edit()` is OPTIONAL. Adapters SHOULD implement `edit()` if the underlying provider supports message editing (used for streaming progressive updates).
-- `edit()` MUST NOT be present if the provider does not support message editing.
-- When `edit()` is present, it MUST update the identified message with the new text.
+Core requirements:
+- `createSender()` MUST accept a canonical event and return a `ChannelSender` scoped to the delivery target implied by that event
+- adapters MUST derive provider-specific routing context themselves rather than requiring callers to manually extract provider-native identifiers
+- `send()` MUST attempt delivery and return the provider-assigned message identifier on success
+- if message editing is supported, `edit()` MAY be present
 
-### 3.5 Required Event Fields
+The interface boundary defines the sender contract; it does not require every provider to support every outbound operation.
 
-The produced `CanonicalEvent` MUST include:
+## 8. Core Canonical Event Requirements
+
+On successful canonicalization, the produced `CanonicalEvent` MUST include support for the required relay-relevant fields.
+
+Required concerns include:
+- stable event identity
+- `schema_version`
+- `event_type = "message.received"`
+- tenant and workspace scope
+- channel and channel instance context where applicable
+- conversation and session continuity
+- correlation identity
+- occurrence time
+- actor context for the inbound user message
+- canonical payload content
+
+Illustrative required fields:
 
 | Field | Requirement |
 |---|---|
-| `event_id` | MUST be globally unique (UUID recommended) |
+| `event_id` | MUST be globally unique |
 | `schema_version` | MUST be `"v1alpha1"` |
 | `event_type` | MUST be `"message.received"` |
-| `tenant_id` | MUST be set from adapter configuration |
-| `workspace_id` | MUST be set from adapter configuration |
-| `channel` | MUST identify the channel type (e.g., `"slack"`, `"webchat"`) |
-| `channel_instance_id` | SHOULD identify the specific channel instance |
-| `conversation_id` | MUST be derived from provider context (e.g., thread_ts for Slack) |
-| `session_id` | MUST be set; MAY be derived or generated |
-| `correlation_id` | MUST be set; generated fresh for new conversations |
-| `occurred_at` | MUST be ISO 8601 timestamp |
-| `actor_type` | MUST be `"end_user"` for user messages |
-| `payload` | MUST contain at least `{ text: string }` |
+| `tenant_id` | MUST be set from channel-side context |
+| `workspace_id` | MUST be set from channel-side context |
+| `channel` | MUST identify the channel type |
+| `conversation_id` | MUST preserve conversation continuity relevant to the relay path |
+| `session_id` | MUST be set |
+| `correlation_id` | MUST be set |
+| `occurred_at` | MUST be an ISO 8601 timestamp |
+| `actor_type` | MUST reflect the inbound actor |
+| `payload` | MUST contain the canonical inbound content |
 
-### 3.6 Provider Extensions
+## 9. Core Provider Extensions Rule
 
-Adapters SHOULD preserve provider-native metadata in `provider_extensions`, namespaced by channel type:
+Adapters SHOULD preserve provider-native metadata in `provider_extensions`, namespaced by channel type.
+
+Illustrative example:
 
 ```json
 {
   "provider_extensions": {
-    "slack": { "channel_id": "C123", "ts": "1710.11", "team_id": "T123" }
+    "slack": {
+      "channel_id": "C123",
+      "ts": "1710.11",
+      "team_id": "T123"
+    }
   }
 }
 ```
 
-The `createSender()` method uses these extensions to derive the delivery target, so adapters MUST include sufficient information for outbound delivery in `provider_extensions`.
+Rules:
+- the adapter MUST preserve enough provider-native metadata to support outbound delivery where needed
+- provider extensions MUST remain optional to canonical core semantics
+- provider extensions MUST NOT become the core source of truth for relay behavior
 
-## 4. Bot Self-Message Filtering
+## 10. Core Inbound Rules
 
-Adapters MUST reject messages originating from the bot itself to prevent feedback loops. This SHOULD be implemented at the canonicalization layer by checking provider-specific bot identifiers (e.g., `bot_id` for Slack).
+### 10.1 Bot Self-Message Filtering
 
-## 5. Idempotency
+Adapters SHOULD reject messages originating from the bot itself when the provider exposes sufficient identity information to detect that case.
 
-- The `idempotencyKey` returned on successful canonicalization MUST be stable across retries.
-- It MUST be derived from provider-specific fields that uniquely identify a single delivery.
-- For Slack: `{tenant_id}:{channel}:{ts}`.
-- For WebChat: `{tenant_id}:{channel_instance_id}:{client_message_id}`.
+This helps prevent feedback loops at the channel boundary.
 
-## 6. Error Taxonomy
+### 10.2 Idempotency
 
-Adapters SHOULD use the following error codes:
+The `idempotencyKey` returned on successful canonicalization MUST be stable across retries or duplicate provider delivery of the same message.
 
-| Code | Meaning |
-|---|---|
-| `invalid_input` | Input is null, not an object, or missing required fields |
-| `empty_text` | Message text is empty or whitespace-only |
-| `unsupported_subtype` | Message has a subtype the adapter does not handle |
-| `bot_message` | Message originates from a bot |
-| `unsupported_type` | Event type is not `message` |
+The exact derivation is implementation-specific, but it SHOULD be based on provider-native identifiers that uniquely identify a delivery.
 
-## 7. Conformance Checklist
+### 10.3 Error Taxonomy
 
-A conforming `ChannelAdapter` implementation MUST:
+Illustrative error codes include:
+- `invalid_input`
+- `empty_text`
+- `unsupported_subtype`
+- `bot_message`
+- `unsupported_type`
 
-- [ ] Expose a stable `channelType` string property
-- [ ] Return accurate `ChannelCapabilities` from `describeCapabilities()`
-- [ ] Accept `unknown` input to `canonicalize()` without throwing
-- [ ] Return `CanonicalizationResult` (never throw)
-- [ ] Produce schema-valid `message.received` events on success
-- [ ] Return stable `idempotencyKey` on success
-- [ ] Reject empty/invalid input with structured error codes
-- [ ] Filter bot self-messages
-- [ ] Preserve provider metadata in `provider_extensions`
-- [ ] Set all required canonical event fields
-- [ ] Return a `ChannelSender` from `createSender(event)` that can deliver messages
-- [ ] Include `edit()` on the sender only if the platform supports message editing
+The exact vocabulary MAY vary by implementation as long as failures remain structured and explainable.
 
-## 8. Existing Implementations
+## 11. Extension Semantics
+
+The following capabilities are aligned with CAR but are not required for all conforming implementations.
+
+### 11.1 Richer Capability Shapes
+
+Implementations MAY expose richer capability declarations covering:
+- richer interaction support
+- command support
+- menus and buttons
+- native streaming signals
+- chunking or edit support details
+
+### 11.2 Progressive Update Support
+
+If the provider supports message editing or progressive updates, adapters MAY expose sender editing behavior to support streaming-oriented delivery.
+
+### 11.3 Optional Lifecycle Contracts
+
+Implementations MAY also implement optional teardown or connection lifecycle contracts such as:
+- `Shutdownable`
+- `Disconnectable`
+
+These may be useful operationally, but they are not required to define the channel-side relay boundary.
+
+### 11.4 Contract Testing Guidance
+
+Adapters SHOULD be covered by contract tests that exercise:
+- representative inbound payloads
+- expected canonical event outputs
+- structured failure paths
+- duplicate ingress scenarios
+- sender delivery behavior
+
+### 11.5 Existing Implementations
+
+Illustrative built-in implementations include:
 
 | Adapter | Package | Channel |
 |---|---|---|
@@ -189,15 +280,61 @@ A conforming `ChannelAdapter` implementation MUST:
 | `LarkAdapter` | `@chat-agent-relay/channel-lark` | `lark` |
 | `DingTalkAdapter` | `@chat-agent-relay/channel-dingtalk` | `dingtalk` |
 
-## 9. Optional lifecycle contracts (`contract-harness`)
+## 12. Future Considerations
 
-The `@chat-agent-relay/contract-harness` package defines optional teardown interfaces for long-lived adapter instances:
+The following directions are intentionally non-normative in this RFC.
 
-- **`Shutdownable`** — `shutdown(): Promise<void>`
-- **`Disconnectable`** — `disconnect(): void`
+### 12.1 Broader Operational Lifecycle Systems
 
-Type guards `isShutdownable()` and `isDisconnectable()` allow callers to detect support without narrowing manually. Channel or agent implementations MAY implement these when they hold connections, timers, or subprocesses that need cooperative cleanup. The server runtime uses these guards when stopping registered channels and agents.
+Examples:
+- pause or drain control planes
+- health administration surfaces
+- larger registry-management models becoming part of adapter conformance
 
-## 10. Server factory registration (informative)
+These are outside the current relay-centered interface core.
 
-In the reference server, channel and agent construction is not hardcoded inside `ChannelRegistry` / `AgentRegistry` via per-type `switch` statements. Instead, each registry exposes `registerFactory(type, factory)`, and built-in types are wired in `channel-factories.ts` and `agent-factories.ts`. Third-party or forked deployments SHOULD register additional `type` strings through the same factory API so registry core code stays free of adapter-specific imports.
+### 12.2 Queue and Operator Surface Concerns
+
+Examples:
+- operator work queues
+- assignment models
+- inbox workflow semantics
+
+These are not part of the channel adapter interface contract.
+
+### 12.3 Broad Provider-Specific Expansion
+
+Examples:
+- turning provider-specific feature taxonomies into the primary architectural center
+- making adapter conformance depend on a large matrix of non-core provider features
+
+Current CAR direction is to keep the channel-side boundary narrow and relay-centered.
+
+## 13. Conformance
+
+A conforming `ChannelAdapter` implementation MUST:
+- expose a stable `channelType`
+- return accurate capability declarations from `describeCapabilities()`
+- accept `unknown` input to `canonicalize()`
+- return structured canonicalization success or failure results
+- produce schema-valid `message.received` events on success
+- return stable idempotency information on successful canonicalization
+- preserve provider-native detail through namespaced optional extensions
+- return a sender that can translate canonical outbound intent into provider-native delivery behavior
+
+A conforming implementation is NOT required to implement every extension or future consideration in this RFC.
+
+## 14. Security Considerations
+
+Implementations SHOULD:
+- treat provider-native input as untrusted until verified
+- minimize raw provider payload exposure in canonical records
+- preserve a clear boundary between provider-native detail and canonical relay semantics
+- reject or structure invalid inbound inputs rather than allowing ambiguous failure behavior
+- isolate provider credentials appropriately in deployment-specific configuration
+
+## 15. Open Questions
+
+- Which capability fields should remain implementation-specific versus standardized more strongly?
+- Which sender behaviors should be standardized more strongly across adapters?
+- Which optional lifecycle contracts deserve a separate operational RFC rather than expansion of this interface specification?

@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Discord — Chat Agent Relay</title>
-  <meta name="description" content="Connect Discord to your AI agents via Chat Agent Relay. Gateway connection, streaming, embeds, slash commands, and guild allowlist.">
+  <meta name="description" content="Discord is a channel adapter in Chat Agent Relay. It handles Discord-specific ingress and delivery behavior at the chat-platform boundary, including Gateway connectivity, threads, reactions, slash commands, embeds, and message updates.">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
   <meta property="og:title" content="Discord — Chat Agent Relay">
-  <meta property="og:description" content="Integrate Discord bots with your AI agents using Chat Agent Relay's Gateway adapter.">
+  <meta property="og:description" content="Overview of the Discord channel adapter in Chat Agent Relay.">
   <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/discord.html">
   <meta property="og:site_name" content="Chat Agent Relay">
   <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
@@ -17,7 +17,7 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Discord — Chat Agent Relay">
-  <meta name="twitter:description" content="Discord Gateway adapter with streaming, embeds, slash commands, and guild allowlist.">
+  <meta name="twitter:description" content="Overview of the Discord channel adapter in Chat Agent Relay.">
   <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
 
   <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/discord.html">
@@ -45,7 +45,7 @@
     "@context": "https://schema.org",
     "@type": "TechArticle",
     "headline": "Discord — Chat Agent Relay",
-    "description": "Connect Discord to your AI agents via Chat Agent Relay. Gateway connection, streaming, embeds, slash commands, and guild allowlist.",
+    "description": "Discord is a channel adapter in Chat Agent Relay. It handles Discord-specific ingress and delivery behavior at the chat-platform boundary, including Gateway connectivity, threads, reactions, slash commands, embeds, and message updates.",
     "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/discord.html"
   }
   </script>
@@ -69,7 +69,7 @@
 <aside class="doc-sidebar">
   <div class="sidebar-group">
     <span class="sidebar-group-title">Getting Started</span>
-    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Quick Start</a>
+    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Overview</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Channels</span>
@@ -84,13 +84,13 @@
   <div class="sidebar-group">
     <span class="sidebar-group-title">Agents</span>
     <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
-    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Configuration</span>
     <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
-    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Multi-Agent Routing</a>
-    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage Backends</a>
+    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Routing</a>
+    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Concepts</span>
@@ -107,56 +107,58 @@
 <!-- Content -->
 <main class="doc-content">
   <h1>Discord</h1>
-  <p class="subtitle">Connect Discord servers to your AI agents using the Gateway WebSocket connection. Supports streaming, embeds, slash commands, and guild-level access control.</p>
+  <p class="subtitle">Discord is a channel adapter in Chat Agent Relay. It handles Discord-specific ingress and delivery behavior at the chat-platform boundary, including Gateway connectivity, threaded conversations, reactions, slash commands, embeds, and message updates for streaming-capable paths.</p>
+
+  <h2 id="discord-boundary">Discord boundary</h2>
+  <p>
+    The Discord adapter receives provider-native Discord events, interprets them according to Discord's platform rules, canonicalizes them into CAR events, and translates outbound canonical intent back into Discord-native send or update behavior.
+  </p>
+  <p>
+    Once the event has crossed that boundary, CAR continues on the same governed message path used for every other channel.
+  </p>
 
   <h2 id="prerequisites">Prerequisites</h2>
   <p>Create a Discord bot at the <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a>:</p>
   <ol>
-    <li><strong>Create an application</strong> and add a Bot under the Bot tab.</li>
-    <li><strong>Enable the MESSAGE_CONTENT intent</strong> &mdash; under Bot &rarr; Privileged Gateway Intents, toggle <em>Message Content Intent</em>. This is required for the bot to read message text in guild channels.</li>
-    <li><strong>Copy the bot token</strong> &mdash; under Bot, click &ldquo;Reset Token&rdquo; and save it securely.</li>
-    <li><strong>Invite the bot</strong> &mdash; under OAuth2 &rarr; URL Generator, select the <code>bot</code> scope with these permissions:
-      <ul>
-        <li>Send Messages</li>
-        <li>Send Messages in Threads</li>
-        <li>Read Message History</li>
-        <li>Add Reactions</li>
-        <li>Use Slash Commands</li>
-        <li>Embed Links</li>
-      </ul>
-      Use the generated URL to add the bot to your server.
-    </li>
+    <li><strong>Create an application</strong> and add a bot under the Bot tab.</li>
+    <li><strong>Enable the message content intent</strong> if your deployment needs to read guild-channel message text.</li>
+    <li><strong>Copy the bot token</strong> and keep it private.</li>
+    <li><strong>Invite the bot</strong> with the permissions needed for your deployment, such as sending messages, reading history, using slash commands, adding reactions, and embedding links where applicable.</li>
   </ol>
 
-  <h2 id="add-to-car">Add to CAR</h2>
+  <h2 id="registering">Registering Discord</h2>
   <p>Register the Discord channel with the <code>car</code> CLI:</p>
   <pre><code>car channel add my-discord \
   --type=discord \
   --bot-token=your-discord-bot-token</code></pre>
 
   <div class="callout callout-tip">
-    <strong>Tokens are encrypted at rest</strong>
-    When <code>CAR_ENCRYPTION_KEY</code> is set, the bot token is stored with AES-256-GCM encryption in the SQLite config database.
+    <strong>Encrypted secrets</strong>
+    When <code>CAR_ENCRYPTION_KEY</code> is set, the Discord bot token is stored encrypted in the config database.
   </div>
 
-  <h2 id="features">Features</h2>
-  <h3 id="gateway">Gateway connection</h3>
-  <p>The Discord adapter connects via the Gateway WebSocket API, maintaining a persistent connection with automatic heartbeat and reconnection. No webhook URL or public endpoint is required.</p>
+  <h2 id="discord-specific-behavior">Discord-specific behavior</h2>
+  <table>
+    <thead>
+      <tr><th>Concern</th><th>Discord behavior at the boundary</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Ingress transport</td><td>The adapter receives events through the Discord Gateway and uses Discord's REST APIs for outbound delivery</td></tr>
+      <tr><td>Conversation shape</td><td>Guild channels, direct messages, and thread channels influence how conversation continuity is mapped into the canonical path</td></tr>
+      <tr><td>Streaming presentation</td><td>When the agent side supports streaming, Discord messages can be progressively updated as output arrives</td></tr>
+      <tr><td>Commands</td><td>Discord slash commands can be canonicalized as command events on the same relay path</td></tr>
+      <tr><td>Rich message rendering</td><td>Discord-native embeds can present structured outbound content at the provider boundary</td></tr>
+      <tr><td>Edits and reactions</td><td>Discord-specific edits, deletions, and reactions can be preserved as canonical extension events where supported</td></tr>
+    </tbody>
+  </table>
 
-  <h3 id="streaming">Streaming</h3>
-  <p>When the connected agent supports streaming, Discord messages are progressively edited with incoming deltas. Users see the response build up in real time.</p>
-
-  <h3 id="threads">Threads</h3>
-  <p>Responses in thread channels maintain conversation context via the canonical <code>conversation_id</code>. The bot can participate in existing threads or create new ones.</p>
-
-  <h3 id="reactions">Reactions</h3>
-  <p>Reaction events from users are canonicalized as <code>reaction.received</code> events and flow through the pipeline like any other event.</p>
-
-  <h3 id="rich-messages">Rich messages (Embeds)</h3>
-  <p>Agent responses are rendered as Discord embeds when they contain structured content. Code blocks, formatted text, and multi-field layouts are supported.</p>
-
-  <h3 id="slash-commands">Slash commands</h3>
-  <p>Register slash commands in the Discord Developer Portal. CAR canonicalizes them as <code>command.received</code> events and routes them through the standard pipeline. Responses are sent as interaction replies.</p>
+  <h2 id="access-behavior">Access behavior</h2>
+  <p>The Discord adapter supports provider-specific access controls that remain at the channel boundary.</p>
+  <ul>
+    <li><strong>Guild allowlist</strong> — restrict the adapter to specific Discord servers.</li>
+    <li><strong>Channel permissions</strong> — rely on Discord's native permission model to control where the bot can read or send messages.</li>
+    <li><strong>Thread participation</strong> — the bot can participate in existing threads or other Discord conversation surfaces the platform permits.</li>
+  </ul>
 
   <h2 id="configuration">Configuration options</h2>
   <table>
@@ -173,27 +175,20 @@
         <td><code>botToken</code></td>
         <td><code>--bot-token</code></td>
         <td>Yes</td>
-        <td>Discord bot token from the Developer Portal</td>
+        <td>Discord bot token used for Gateway authentication and outbound delivery</td>
       </tr>
       <tr>
         <td><code>guildAllowlist</code></td>
         <td><code>--guild-allowlist</code></td>
         <td>No</td>
-        <td>Comma-separated guild (server) IDs to restrict the bot to</td>
+        <td>Restrict the adapter to specific guild IDs</td>
       </tr>
     </tbody>
   </table>
 
-  <h2 id="access-control">Access control</h2>
-  <p>The Discord adapter supports guild-level access control:</p>
-  <ul>
-    <li><strong>Guild allowlist</strong> &mdash; restrict the bot to specific Discord servers by providing a list of guild IDs. Messages from other servers are ignored.</li>
-    <li><strong>Channel permissions</strong> &mdash; use Discord&rsquo;s built-in role and channel permission system to control where the bot can read and send messages.</li>
-  </ul>
-
   <div class="callout callout-info">
-    <strong>Edit and delete events</strong>
-    The adapter captures message edits and deletions, canonicalizing them as <code>message.updated</code> and <code>message.deleted</code> events. These flow through the ledger for full audit trail support.
+    <strong>Boundary discipline</strong>
+    The Discord adapter is responsible for Discord-specific transport and delivery behavior. Governance, routing, A2A invocation, replay, and auditability remain CAR core responsibilities on the canonical message path.
   </div>
 
   <!-- Pagination -->

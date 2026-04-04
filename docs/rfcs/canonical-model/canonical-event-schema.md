@@ -4,51 +4,83 @@
 |---|---|
 | **Status** | Draft |
 | **Author** | Claude Code |
-| **Audience** | CAR core / adapter / backend implementers |
-| **Version** | v0.1 |
-| **Last Updated** | 2026-03-17 |
-|
+| **Audience** | CAR core / adapter / agent implementers |
+| **Version** | v0.2 |
+| **Last Updated** | 2026-04-02 |
 
 ## 1. Abstract
 
-This RFC defines the Chat Agent Relay (CAR) canonical event envelope as the protocol center of gravity for the system.
+This RFC defines the canonical event schema for Chat Agent Relay (CAR).
+
+CAR is a standard relay layer between chat platforms and agents. The canonical event model is the center of gravity for that relay path. It standardizes how inbound messages, governance decisions, route decisions, agent invocation, outbound delivery, and auditable outcomes are represented.
+
+On the agent side, CAR uses A2A as the standard protocol boundary, but this RFC focuses on the canonical event model rather than the transport details of that boundary.
+
+This document explicitly separates:
+- **Core** — event-schema semantics required to define CAR's canonical relay model
+- **Extension** — optional event families or schema capabilities aligned with CAR
+- **Future Considerations** — reserved long-range directions that are not current conformance requirements
 
 ## 2. Purpose
 
-This document defines the platform's single source of system truth: the **canonical event envelope**.
+This document defines the platform's canonical event center: the event envelope and event families that make CAR replayable, governed, and auditable as a chat-to-agent relay system.
 
-All channel adapters, backend agent adapters, routing, governance, audit, replay, delivery, and handoff MUST operate around this model.
+## 3. Product Boundary
 
-## 3. Normative Language
+For this RFC, the canonical event model is responsible for:
+- representing the message path in a stable, replayable form
+- preserving governance, routing, delivery, and audit semantics as durable events
+- giving the rest of CAR a common internal contract
 
-The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as described in RFC 2119.
+For this RFC, the canonical event model is not:
+- a full agent-runtime state model
+- a customer identity graph
+- an operator inbox or queue product model
+- a general-purpose storage format for every peripheral system around CAR
 
-## 4. Scope
+## 4. Layering Model
 
-This RFC defines the canonical event envelope for CAR. It is the source of truth for channel adapters, backend agent adapters, governance, routing, audit, replay, and projections.
+### 4.1 Core
 
-## 5. Design Principles
+Core schema semantics define the minimum canonical event model that a conforming CAR implementation MUST preserve.
+
+### 4.2 Extension
+
+Extension schema semantics define optional event families and fields that fit CAR without redefining its core relay identity.
+
+### 4.3 Future Considerations
+
+Future considerations preserve useful direction, but MUST NOT be interpreted as current schema requirements for conformance.
+
+## 5. Core Design Principles
 
 - Events are **append-only and replayable**
-- All internal routing, audit, and policy decisions operate solely on canonical events
-- Conversation state is reconstructed from the event ledger, not overwritten as a mutable store
-- Channel differences are preserved via `provider_extensions`, not forcefully flattened
-- Delivery semantics use **at-least-once + idempotency**, not exactly-once
-- REST / WebSocket / MCP / RPC are all bindings of the same canonical model, not independent protocols
+- Governance, routing, delivery, and audit operate on canonical events
+- Conversation history is reconstructed from recorded events rather than mutable hidden state
+- Provider-native differences are preserved through structured extension fields, not forced into the canonical core
+- CAR models the relay path, not all possible runtime-internal or product-surface state
 
-## 6. Minimal Kernel Relevance
+## 6. Core Canonical Event Model
 
-The canonical event schema is part of the **minimum CAR kernel**. A conforming minimum kernel MUST support:
-- canonical inbound message events
-- policy and route decision events
-- backend invocation and response events
-- outbound delivery events
-- blocked / denied event recording
-- correlation / causation / trace propagation
+### 6.1 Core Schema Statement
 
-The minimum kernel does NOT require every future event family before v1, but it MUST preserve forward-compatible extension points.
+A conforming CAR implementation MUST provide a canonical event envelope that can represent the governed message path between chat platforms and agents.
 
-## 7. Envelope
+The canonical event model is part of the minimum CAR relay kernel.
+
+### 6.2 Core Envelope
+
+A canonical event envelope MUST support the following core concerns:
+- stable event identity
+- canonical event type
+- channel and conversation context
+- correlation and causation across the message path
+- occurrence time
+- actor and actor-type context where relevant
+- canonical payload
+- optional structured provider extensions
+
+### 6.3 Envelope Example
 
 ```json
 {
@@ -65,21 +97,12 @@ The minimum kernel does NOT require every future event family before v1, but it 
   "message_id": "msg_123",
   "correlation_id": "corr_123",
   "causation_id": "evt_prev",
-  "trace_context": {
-    "trace_id": "trace_123",
-    "span_id": "span_123",
-    "parent_span_id": "span_122"
-  },
-  "occurred_at": "2026-03-17T12:00:00Z",
+  "occurred_at": "2026-04-02T12:00:00Z",
   "actor": {
     "id": "user_ext_42",
     "display_name": "Alice"
   },
   "actor_type": "end_user",
-  "identity_refs": {
-    "channel_user_id": "U123",
-    "platform_principal_id": "principal_42"
-  },
   "payload": {
     "text": "hello"
   },
@@ -89,16 +112,18 @@ The minimum kernel does NOT require every future event family before v1, but it 
       "team_id": "T123",
       "raw_event_type": "app_mention"
     }
-  },
-  "governance_labels": ["contains_pii:false", "tenant_policy:default"]
+  }
 }
 ```
 
-## Required Fields
+## 7. Core Fields
 
-### Identity and trace
+### 7.1 Required Core Fields
+
+A conforming canonical event envelope MUST include support for:
 - `event_id`
 - `schema_version`
+- `event_type`
 - `tenant_id`
 - `workspace_id`
 - `channel`
@@ -107,204 +132,181 @@ The minimum kernel does NOT require every future event family before v1, but it 
 - `session_id`
 - `correlation_id`
 - `occurred_at`
+- `payload`
 
-### Optional but strongly recommended
+### 7.2 Core Recommended Fields
+
+A conforming implementation SHOULD support:
 - `thread_id`
 - `message_id`
 - `causation_id`
-- `trace_context`
-- `identity_refs`
+- `actor`
+- `actor_type`
 - `attachments`
 - `provider_extensions`
-- `governance_labels`
 
-## Actor Types
+### 7.3 Actor Types
 
-Allowed values:
+Allowed core actor types:
 - `end_user`
 - `agent`
-- `human_operator`
 - `system`
 - `channel_adapter`
 
-## Event Types
+Additional actor types MAY be added as extensions if they do not distort the relay-centered model.
 
-### Messaging
+## 8. Core Event Families
+
+### 8.1 Core Message-Path Event Families
+
+A conforming CAR implementation MUST support core event families sufficient to model the governed relay path:
+
+#### Messaging
 - `message.received`
 - `message.send.requested`
 - `message.sent`
-- `message.delivery.updated`
 
-### Routing and policy
-- `route.decision.made`
+#### Governance and Routing
 - `policy.decision.made`
+- `route.decision.made`
 
-### Agent lifecycle
+#### Agent Relay
 - `agent.invocation.requested`
-- `agent.response.delta`
 - `agent.response.completed`
 
-### Tools
-- `tool.call.requested`
-- `tool.result.received`
+#### Error / Blocked Outcomes
+- `event.blocked`
 
-### Human handoff
-- `handoff.requested`
-- `handoff.started`
-- `handoff.completed`
+These events define the canonical minimum governed relay chain.
 
-### Identity / audit / error
-- `identity.linked`
+### 8.2 Core Happy Path
+
+The canonical happy path is:
+
+`message.received -> policy.decision.made -> route.decision.made -> agent.invocation.requested -> agent.response.completed -> message.send.requested -> message.sent`
+
+### 8.3 Core Failure Semantics
+
+When the governed relay path is denied, blocked, or fails terminally, the event model MUST preserve that outcome in auditable form rather than silently dropping it.
+
+## 9. Payload and Metadata Boundaries
+
+### 9.1 Payload
+
+`payload` contains the canonical business fact for the event.
+
+Examples include:
+- message text
+- governance decision result
+- route decision result
+- agent response content
+- delivery outcome
+- blocked reason and stage
+
+### 9.2 Attachments
+
+`attachments` SHOULD represent normalized attachment descriptors when attachment semantics matter to the relay path.
+
+### 9.3 Provider Extensions
+
+`provider_extensions` MAY preserve provider-native detail without making that detail part of CAR's canonical core semantics.
+
+Rules:
+- extensions SHOULD be namespaced by provider or integration key
+- extensions MUST remain optional to the core model
+- middleware and replay semantics MUST NOT depend on provider-native fields as the core source of truth
+- large or sensitive raw provider payloads SHOULD NOT become the default canonical payload shape
+
+## 10. Ordering, Correlation, and Replay
+
+### 10.1 Ordering Model
+
+A conforming CAR implementation SHOULD preserve best-effort event ordering within the relay scope needed for replay and audit.
+
+CAR does not require a global total ordering across all tenants or conversations.
+
+### 10.2 Correlation and Causation
+
+A conforming implementation MUST preserve correlation across a single relay path and SHOULD preserve causation between parent and child events.
+
+### 10.3 Replay Model
+
+The canonical event ledger MUST be sufficient to reconstruct:
+- the message path for a conversation or correlation scope
+- the governance decision path
+- the route decision path
+- the delivery outcome path
+- the blocked or failed path where applicable
+
+## 11. Extension Event Families
+
+The following event families and schema areas are aligned with CAR but are not required for all conforming implementations.
+
+### 11.1 Messaging Extensions
+- `message.delivery.updated`
+- `message.updated`
+- `message.deleted`
+- `reaction.received`
+- `command.received`
+
+### 11.2 Agent Extensions
+- `agent.status.changed`
+- `agent.input.requested`
+- `agent.input.provided`
+
+These extend the relay path with richer interaction semantics but are not part of the minimum canonical chain.
+
+### 11.3 Identity Extensions
 - `identity.resolution.requested`
 - `identity.resolution.completed`
 - `identity.resolution.ambiguous`
 - `identity.resolution.challenge.sent`
-- `audit.annotation.added`
-- `error.occurred`
-- `event.blocked`
 
-## Metadata Layers
+These support richer identity-related capabilities, but CAR does not require cross-channel identity workflows to remain CAR.
 
-To avoid conflating configuration and binding information with event facts, the platform SHOULD maintain three metadata boundary layers:
+### 11.4 Handoff Extensions
+- `handoff.requested`
 
-1. **Channel Instance Metadata**
-   - Scope: `channel_instance_id`
-   - Examples: provider name, tenant-scoped credentials, default rate limit, default delivery config
-2. **Conversation / Route Binding Metadata**
-   - Scope: a specific conversation / thread / route binding
-   - Examples: persona, locale, visibility override, handoff policy, segment tags
-3. **Event-Level Provider Metadata**
-   - Scope: a single canonical event
-   - Location: `provider_extensions`
-   - Examples: provider message id, provider event type, native receipt fields, callback payload digest
+Optional handoff signaling MAY exist, but queue or operator-workspace models are not part of the core canonical event identity.
 
-The protocol layer MUST NOT conflate these three layers; the event ledger stores only event facts and necessary references, without copying all static configuration into every event.
+### 11.5 Additional Envelope Extensions
+Potential extension fields may include:
+- richer trace-context structures
+- richer artifact descriptors
+- governance labels
+- selected projection-support metadata that remains consistent with the relay model
 
-## Payload Conventions
+## 12. Future Considerations
 
-### `payload`
-Canonical business content. Common shapes:
-- text
-- structured object
-- action metadata
-- delivery status
-- route result
-- policy result
-- tool call/result
-- handoff metadata
-- error metadata
-- identity resolution result
-- queue / assignment projection input
+The following directions are intentionally non-normative in this RFC.
 
-### `attachments`
-Normalized attachment descriptors:
-- `attachment_id`
-- `kind`
-- `mime_type`
-- `url` or `blob_ref`
-- `size_bytes`
-- `caption`
+### 12.1 Operator and Queue Product Models
+Examples:
+- assignment events
+- queue-state projections
+- inbox workflow event families
 
-### `provider_extensions`
-Preserve provider-native fields without leaking them into the canonical core.
+These are future product-surface concerns layered on top of the relay ledger, not part of the current core schema definition.
 
-Rules:
-- namespaced by provider or integration key
-- optional
-- never required by middleware core semantics
-- may be consumed by adapters or specialized policies
-- should prefer references / selected structured fields over full raw payload embedding
-- highly sensitive provider-native raw payloads SHOULD be stored in a secure trace store and referenced indirectly when needed
+### 12.2 Broad Runtime-Internal State Modeling
+Examples:
+- agent-internal tool lifecycle modeling
+- rich runtime workflow graph modeling
+- private execution-state families
 
-## Ordering and Idempotency
+These are outside the primary purpose of CAR's canonical relay model.
 
-- Every event should carry a stable `event_id`
-- Ingest adapters should also derive a provider idempotency key when possible
-- Consumers must be idempotent
-- Ordering is best-effort within a `(tenant_id, conversation_id, channel_instance_id)` scope
-- The platform does not guarantee global total ordering
+### 12.3 Peripheral Storage and Trace Concerns
+Examples:
+- secure raw trace references standardized as a first-class schema requirement
+- broad observability-specific record families
+- external-system projection schemas
 
-## Delivery State Model
+These may be valuable later, but they are not current conformance requirements for the canonical event model.
 
-`message.delivery.updated.payload.status` should use one of:
-- `accepted`
-- `queued`
-- `sent`
-- `delivered`
-- `read`
-- `failed`
-- `dead_lettered`
+## 13. Example Core Ledger
 
-### Delivery State Machine
-```mermaid
-stateDiagram-v2
-    [*] --> accepted
-    accepted --> queued
-    accepted --> sent
-    queued --> sent
-    sent --> delivered
-    delivered --> read
-    accepted --> failed
-    queued --> failed
-    sent --> failed
-    failed --> dead_lettered
-```
-
-## Identity Resolution State Model
-
-Identity-related payloads should use one of:
-- `identified`
-- `ambiguous`
-- `unknown`
-- `challenge_sent`
-- `rejected`
-
-The platform MAY provide an identity resolution pipeline, but MUST write final results as canonical events for audit / replay use.
-
-## Blocked and Rejected Event Semantics
-
-The following situations SHOULD NOT be silently discarded; they SHOULD enter the ledger:
-- policy deny
-- dedupe / idempotency rejection
-- invalid state transition
-- chain-depth / recursion protection
-- provider capability rejection
-
-Recommended unified approach:
-- original triggering event + `policy.decision.made` / `event.blocked`
-- `payload.reason`
-- `payload.block_stage`
-- `payload.retryable`
-
-## Conversation State Reconstruction
-
-The canonical source of truth is the event ledger. Projections may derive:
-- current conversation status
-- active route
-- current handoff state
-- current assignee / queue
-- latest delivery state
-- latest linked identities
-
-These projections are disposable and rebuildable.
-
-### Conversation State Machine
-```mermaid
-stateDiagram-v2
-    [*] --> active
-    active --> awaiting_agent: route.decision.made
-    awaiting_agent --> responding: agent.response.delta / agent.response.completed
-    responding --> active: message.sent
-    active --> handoff_pending: handoff.requested
-    handoff_pending --> human_active: handoff.started
-    human_active --> active: handoff.completed
-    active --> blocked: event.blocked
-    active --> failed: error.occurred
-```
-
-## Example Ledger
-
-### 1. inbound message
+### 13.1 Inbound Message
 ```json
 {
   "event_id": "evt_100",
@@ -316,14 +318,14 @@ stateDiagram-v2
   "conversation_id": "conv_1",
   "session_id": "sess_1",
   "correlation_id": "corr_1",
-  "occurred_at": "2026-03-17T12:00:00Z",
+  "occurred_at": "2026-04-02T12:00:00Z",
   "actor": {"id": "U123"},
   "actor_type": "end_user",
   "payload": {"text": "Where is my order?"}
 }
 ```
 
-### 2. policy decision
+### 13.2 Policy Decision
 ```json
 {
   "event_id": "evt_101",
@@ -334,13 +336,13 @@ stateDiagram-v2
   "session_id": "sess_1",
   "correlation_id": "corr_1",
   "causation_id": "evt_100",
-  "occurred_at": "2026-03-17T12:00:01Z",
+  "occurred_at": "2026-04-02T12:00:01Z",
   "actor_type": "system",
   "payload": {"policy": "default_ingress", "decision": "allow"}
 }
 ```
 
-### 3. route decision
+### 13.3 Route Decision
 ```json
 {
   "event_id": "evt_102",
@@ -351,13 +353,13 @@ stateDiagram-v2
   "session_id": "sess_1",
   "correlation_id": "corr_1",
   "causation_id": "evt_101",
-  "occurred_at": "2026-03-17T12:00:01Z",
+  "occurred_at": "2026-04-02T12:00:01Z",
   "actor_type": "system",
   "payload": {"route": "support-agent", "reason": "default_support_route"}
 }
 ```
 
-### 4. agent invocation
+### 13.4 Agent Invocation
 ```json
 {
   "event_id": "evt_103",
@@ -368,13 +370,13 @@ stateDiagram-v2
   "session_id": "sess_1",
   "correlation_id": "corr_1",
   "causation_id": "evt_102",
-  "occurred_at": "2026-03-17T12:00:02Z",
+  "occurred_at": "2026-04-02T12:00:02Z",
   "actor_type": "system",
-  "payload": {"backend": "http-agent", "input_event_id": "evt_100"}
+  "payload": {"agent": "support-agent", "input_event_id": "evt_100"}
 }
 ```
 
-### 5. agent response
+### 13.5 Agent Response
 ```json
 {
   "event_id": "evt_104",
@@ -385,18 +387,18 @@ stateDiagram-v2
   "session_id": "sess_1",
   "correlation_id": "corr_1",
   "causation_id": "evt_103",
-  "occurred_at": "2026-03-17T12:00:04Z",
+  "occurred_at": "2026-04-02T12:00:04Z",
   "actor": {"id": "agent_support"},
   "actor_type": "agent",
   "payload": {"text": "Your order shipped yesterday."}
 }
 ```
 
-### 6. outbound delivery
+### 13.6 Outbound Delivery Requested
 ```json
 {
   "event_id": "evt_105",
-  "event_type": "message.sent",
+  "event_type": "message.send.requested",
   "tenant_id": "tenant_acme",
   "workspace_id": "ws_support",
   "channel": "slack",
@@ -405,87 +407,52 @@ stateDiagram-v2
   "session_id": "sess_1",
   "correlation_id": "corr_1",
   "causation_id": "evt_104",
-  "occurred_at": "2026-03-17T12:00:05Z",
+  "occurred_at": "2026-04-02T12:00:05Z",
+  "actor_type": "system",
+  "payload": {"text": "Your order shipped yesterday."}
+}
+```
+
+### 13.7 Outbound Delivered
+```json
+{
+  "event_id": "evt_106",
+  "event_type": "message.sent",
+  "tenant_id": "tenant_acme",
+  "workspace_id": "ws_support",
+  "channel": "slack",
+  "channel_instance_id": "slack_support_prod",
+  "conversation_id": "conv_1",
+  "session_id": "sess_1",
+  "correlation_id": "corr_1",
+  "causation_id": "evt_105",
+  "occurred_at": "2026-04-02T12:00:06Z",
   "actor_type": "channel_adapter",
   "payload": {"provider_message_id": "slack_msg_555"}
 }
 ```
 
-### 7. optional human handoff
-```json
-{
-  "event_id": "evt_106",
-  "event_type": "handoff.requested",
-  "tenant_id": "tenant_acme",
-  "workspace_id": "ws_support",
-  "conversation_id": "conv_1",
-  "session_id": "sess_1",
-  "correlation_id": "corr_1",
-  "causation_id": "evt_104",
-  "occurred_at": "2026-03-17T12:00:06Z",
-  "actor_type": "agent",
-  "payload": {"queue": "human_support", "reason": "low_confidence"}
-}
-```
+## 14. Conformance
 
-## 8. Versioning and Phased Adoption
+A conforming CAR canonical event model MUST:
+- provide a stable canonical event envelope for the relay path
+- represent the core governed event chain in auditable form
+- preserve correlation across a message path
+- preserve replayability of governance, routing, invocation, delivery, and blocked outcomes
+- distinguish canonical facts from provider-native extensions
 
-### Phase 0 / Prototype
-- `message.received`
-- `policy.decision.made`
-- `route.decision.made`
-- `agent.invocation.requested`
-- `agent.response.completed`
-- `message.send.requested`
-- `message.sent`
-- `error.occurred`
+A conforming implementation is NOT required to provide every extension or future consideration in this RFC.
 
-### Phase 1 / Minimum Kernel
-Adds:
-- `message.delivery.updated`
-- `event.blocked`
-- `handoff.requested`
-- `handoff.started`
-- `handoff.completed`
-- identity resolution events
-
-### Phase 2 / Enterprise Control Plane
-Adds:
-- richer audit annotations
-- queue / assignment projection inputs
-- policy families beyond allow/deny
-- protocol trace references
-
-### Phase 3 / Rich and Realtime Extensions
-Adds optional extensions for:
-- richer channel-native content
-- voice / media semantics
-- advanced protocol trace families
-
-## 9. Non-Goals
-
-- Does not attempt to fully unify all provider-native features in v1
-- Does not promise exactly-once delivery
-- Does not treat UI-private state as a protocol source of truth
-
-## 10. Conformance
-
-A conforming CAR implementation MUST:
-- produce canonical events for the minimum kernel flow
-- preserve correlation / causation / trace semantics
-- distinguish canonical events from provider-native extensions
-- record blocked / denied outcomes in an auditable way
-
-## 11. Security Considerations
+## 15. Security Considerations
 
 Implementations SHOULD:
-- avoid embedding sensitive raw payloads directly in every canonical event
-- store sensitive provider traces in a secure companion store
-- scope access to event and projection data by tenant and workspace
-- preserve auditability while supporting redaction of downstream views
+- avoid making raw provider payloads the canonical internal contract
+- keep sensitive provider-native detail out of the canonical core unless needed for relay semantics
+- preserve auditability while still allowing optional downstream redaction or projection systems
+- keep the canonical event model centered on relay facts rather than agent-internal or workspace-product state
 
-## 12. Open Questions
+## 16. Open Questions
 
-- Should conversation-local sequence numbers become normative in v1 or remain projection-only?
-- Which identity resolution outcomes require mandatory dedicated event types versus payload-encoded state?
-- How much protocol trace linkage should be standardized in the core schema versus extension documents?
+- Which extension event families should eventually move into dedicated RFCs?
+- Which extension fields should be standardized more strongly versus left implementation-specific?
+- Where should future product-surface or observability-specific schemas be separated from the relay-centered canonical model?

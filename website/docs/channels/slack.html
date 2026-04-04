@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Slack — Chat Agent Relay</title>
-  <meta name="description" content="Connect Slack to your AI agents via Chat Agent Relay. Socket Mode, streaming, threads, reactions, Block Kit, slash commands, and mention gating.">
+  <meta name="description" content="Slack is a channel adapter in Chat Agent Relay. It handles Slack-specific ingress and delivery behavior at the chat-platform boundary, including Socket Mode, threads, reactions, commands, and message updates.">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
   <meta property="og:title" content="Slack — Chat Agent Relay">
-  <meta property="og:description" content="Integrate Slack with your AI agents using Chat Agent Relay's Socket Mode adapter.">
+  <meta property="og:description" content="Overview of the Slack channel adapter in Chat Agent Relay.">
   <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/slack.html">
   <meta property="og:site_name" content="Chat Agent Relay">
   <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
@@ -17,7 +17,7 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Slack — Chat Agent Relay">
-  <meta name="twitter:description" content="Slack Socket Mode adapter with streaming, threads, reactions, and slash commands.">
+  <meta name="twitter:description" content="Overview of the Slack channel adapter in Chat Agent Relay.">
   <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
 
   <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/slack.html">
@@ -45,7 +45,7 @@
     "@context": "https://schema.org",
     "@type": "TechArticle",
     "headline": "Slack — Chat Agent Relay",
-    "description": "Connect Slack to your AI agents via Chat Agent Relay. Socket Mode, streaming, threads, reactions, Block Kit, slash commands.",
+    "description": "Slack is a channel adapter in Chat Agent Relay. It handles Slack-specific ingress and delivery behavior at the chat-platform boundary, including Socket Mode, threads, reactions, commands, and message updates.",
     "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/slack.html"
   }
   </script>
@@ -69,7 +69,7 @@
 <aside class="doc-sidebar">
   <div class="sidebar-group">
     <span class="sidebar-group-title">Getting Started</span>
-    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Quick Start</a>
+    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Overview</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Channels</span>
@@ -84,13 +84,13 @@
   <div class="sidebar-group">
     <span class="sidebar-group-title">Agents</span>
     <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
-    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Configuration</span>
     <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
-    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Multi-Agent Routing</a>
-    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage Backends</a>
+    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Routing</a>
+    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Concepts</span>
@@ -107,28 +107,26 @@
 <!-- Content -->
 <main class="doc-content">
   <h1>Slack</h1>
-  <p class="subtitle">Connect Slack workspaces to your AI agents using Socket Mode. Supports streaming responses, threaded conversations, reactions, Block Kit output, and slash commands.</p>
+  <p class="subtitle">Slack is a channel adapter in Chat Agent Relay. It handles Slack-specific ingress and delivery behavior at the chat-platform boundary, including Socket Mode, threaded conversations, reactions, slash commands, and message updates for streaming-capable paths.</p>
+
+  <h2 id="slack-boundary">Slack boundary</h2>
+  <p>
+    The Slack adapter receives provider-native Slack events, verifies and interprets them according to Slack's platform rules, canonicalizes them into CAR events, and translates outbound canonical intent back into Slack-native send or update behavior.
+  </p>
+  <p>
+    Inside CAR, the rest of the relay path stays the same regardless of whether the message originated in Slack or another channel.
+  </p>
 
   <h2 id="prerequisites">Prerequisites</h2>
   <p>Before adding Slack to CAR, create a Slack app at <a href="https://api.slack.com/apps" target="_blank">api.slack.com/apps</a>:</p>
   <ol>
-    <li><strong>Enable Socket Mode</strong> &mdash; under Settings &rarr; Socket Mode, toggle it on. This generates an <strong>App-Level Token</strong> (<code>xapp-...</code>) with the <code>connections:write</code> scope.</li>
-    <li><strong>Add bot token scopes</strong> &mdash; under OAuth &amp; Permissions, add these Bot Token Scopes:
-      <ul>
-        <li><code>chat:write</code> &mdash; send messages</li>
-        <li><code>app_mentions:read</code> &mdash; respond to @mentions</li>
-        <li><code>channels:history</code> &mdash; read channel messages</li>
-        <li><code>groups:history</code> &mdash; read private channel messages</li>
-        <li><code>im:history</code> &mdash; read DMs</li>
-        <li><code>reactions:write</code> &mdash; add acknowledgment reactions</li>
-        <li><code>commands</code> &mdash; slash commands (if used)</li>
-      </ul>
-    </li>
-    <li><strong>Install the app</strong> to your workspace. Copy the <strong>Bot User OAuth Token</strong> (<code>xoxb-...</code>).</li>
-    <li><strong>Subscribe to events</strong> &mdash; under Event Subscriptions, add <code>app_mention</code>, <code>message.channels</code>, <code>message.groups</code>, <code>message.im</code>.</li>
+    <li><strong>Enable Socket Mode</strong> — under Settings &rarr; Socket Mode, turn it on and create an app-level token with the <code>connections:write</code> scope.</li>
+    <li><strong>Add bot token scopes</strong> — under OAuth &amp; Permissions, add the scopes your deployment needs, such as <code>chat:write</code>, <code>app_mentions:read</code>, message history scopes, <code>reactions:write</code>, and <code>commands</code> where applicable.</li>
+    <li><strong>Install the app</strong> into the target workspace and copy the bot token.</li>
+    <li><strong>Subscribe to events</strong> that match the Slack-side inputs you want CAR to receive.</li>
   </ol>
 
-  <h2 id="add-to-car">Add to CAR</h2>
+  <h2 id="registering">Registering Slack</h2>
   <p>Register the Slack channel with the <code>car</code> CLI:</p>
   <pre><code>car channel add my-slack \
   --type=slack \
@@ -136,28 +134,32 @@
   --app-token=xapp-your-app-token</code></pre>
 
   <div class="callout callout-tip">
-    <strong>Tokens are encrypted at rest</strong>
-    When <code>CAR_ENCRYPTION_KEY</code> is set, bot tokens and app tokens are stored with AES-256-GCM encryption in the SQLite config database. Always set this in production.
+    <strong>Encrypted secrets</strong>
+    When <code>CAR_ENCRYPTION_KEY</code> is set, Slack bot tokens and app tokens are stored encrypted in the config database.
   </div>
 
-  <h2 id="features">Features</h2>
-  <h3 id="streaming">Streaming</h3>
-  <p>When the connected agent supports streaming (e.g., A2A or LangGraph), Slack progressively updates the response message using <code>chat.update</code>. Users see the reply build up in real time rather than waiting for the full response.</p>
+  <h2 id="slack-specific-behavior">Slack-specific behavior</h2>
+  <table>
+    <thead>
+      <tr><th>Concern</th><th>Slack behavior at the boundary</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Ingress transport</td><td>Socket Mode delivers Slack events over an app-managed connection rather than a public webhook endpoint</td></tr>
+      <tr><td>Conversation shape</td><td>Slack threads and direct messages shape how conversation continuity is mapped into the canonical path</td></tr>
+      <tr><td>Streaming presentation</td><td>When the agent side supports streaming, Slack can progressively update a message using Slack-native edit behavior</td></tr>
+      <tr><td>Commands</td><td>Slack slash commands can be canonicalized as command events on the same relay path</td></tr>
+      <tr><td>Reactions and edits</td><td>Slack-native reactions, message edits, and related events can be preserved as canonical extension events where supported</td></tr>
+    </tbody>
+  </table>
 
-  <h3 id="threads">Threads</h3>
-  <p>Responses are posted as threaded replies when the original message is in a thread. Conversation context is maintained per-thread via the canonical <code>conversation_id</code>.</p>
-
-  <h3 id="reactions">Acknowledgment reactions</h3>
-  <p>CAR adds a configurable emoji reaction (default: eyes) to incoming messages to signal that processing has started. The reaction is removed when the response is delivered.</p>
-
-  <h3 id="rich-messages">Rich messages</h3>
-  <p>Agent responses are rendered as Slack Block Kit output. Code blocks, headers, lists, and bold/italic formatting are preserved. Long responses are automatically chunked to stay within Slack&rsquo;s message length limits.</p>
-
-  <h3 id="slash-commands">Slash commands</h3>
-  <p>Register slash commands in your Slack app configuration. CAR canonicalizes them as <code>command.received</code> events and routes them through the standard pipeline.</p>
-
-  <h3 id="mention-only">Mention-only mode</h3>
-  <p>When <code>mentionOnly</code> is enabled, the bot only responds to messages that @mention it. Other messages in the channel are ignored. DMs are always processed.</p>
+  <h2 id="access-control">Access behavior</h2>
+  <p>The Slack adapter can be configured to fit common workspace interaction patterns.</p>
+  <ul>
+    <li><strong>Direct messages</strong> — CAR can process direct messages sent to the bot.</li>
+    <li><strong>Channel participation</strong> — the bot can operate in channels where it has been added.</li>
+    <li><strong>Mention gating</strong> — when enabled, channel messages only enter the relay path if they explicitly mention the bot.</li>
+    <li><strong>Acknowledgment reactions</strong> — Slack-native reactions can signal that a turn has been accepted for processing.</li>
+  </ul>
 
   <h2 id="configuration">Configuration options</h2>
   <table>
@@ -174,48 +176,45 @@
         <td><code>botToken</code></td>
         <td><code>--bot-token</code></td>
         <td>Yes</td>
-        <td>Bot User OAuth Token (<code>xoxb-...</code>)</td>
+        <td>Slack bot token used for sending and updating messages</td>
       </tr>
       <tr>
         <td><code>appToken</code></td>
         <td><code>--app-token</code></td>
         <td>Yes</td>
-        <td>App-Level Token for Socket Mode (<code>xapp-...</code>)</td>
+        <td>Slack app-level token used for Socket Mode connectivity</td>
       </tr>
       <tr>
         <td><code>mentionOnly</code></td>
         <td><code>--mention-only</code></td>
         <td>No</td>
-        <td>Only respond to @mentions in channels (default: <code>false</code>)</td>
+        <td>Restrict channel-triggered turns to explicit bot mentions</td>
       </tr>
       <tr>
         <td><code>ackEmoji</code></td>
         <td><code>--ack-emoji</code></td>
         <td>No</td>
-        <td>Emoji name for acknowledgment reaction (default: <code>eyes</code>)</td>
+        <td>Emoji used for acknowledgment reactions when enabled</td>
       </tr>
       <tr>
         <td><code>ackEnabled</code></td>
         <td><code>--ack-enabled</code></td>
         <td>No</td>
-        <td>Enable/disable acknowledgment reactions (default: <code>true</code>)</td>
+        <td>Enable or disable Slack-side acknowledgment reactions</td>
       </tr>
     </tbody>
   </table>
 
-  <h2 id="access-control">Access control</h2>
-  <p>The Slack adapter supports two access modes:</p>
-  <ul>
-    <li><strong>DM mode</strong> &mdash; the bot responds to any direct message.</li>
-    <li><strong>Channel mode</strong> &mdash; the bot is added to specific channels. Combined with <code>mentionOnly</code>, this limits which messages trigger agent invocations.</li>
-  </ul>
-  <p>For workspace-level restrictions, use Slack&rsquo;s built-in app management to control which channels the bot can be added to.</p>
+  <div class="callout callout-info">
+    <strong>Boundary discipline</strong>
+    The Slack adapter is responsible for Slack-specific transport and delivery behavior. Governance, routing, A2A invocation, replay, and auditability remain CAR core responsibilities on the canonical message path.
+  </div>
 
   <!-- Pagination -->
   <div class="doc-pagination">
     <a href="/ChatAgentRelay/docs/channels/">
       <span class="label">Previous</span>
-      <span class="title">&larr; Channels Overview</span>
+      <span class="title">&larr; Channels</span>
     </a>
     <a href="/ChatAgentRelay/docs/channels/discord.html" class="next">
       <span class="label">Next</span>

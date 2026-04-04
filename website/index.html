@@ -3,21 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Chat Agent Relay — Connect Any Chat Platform to Any Agent</title>
-  <meta name="description" content="Open-source middleware connecting any chat platform to any AI agent. Governance, audit trail, streaming, delivery retry — done once, zero lock-in.">
-  <meta name="keywords" content="Chat Agent Relay, CAR, chat platform, AI agent, middleware, Slack, Teams, Discord, agent framework, open source, governance, audit">
+  <title>Chat Agent Relay — Standard Relay Layer Between Chat Platforms and Agents</title>
+  <meta name="description" content="Open-source relay layer between chat platforms and agents. Canonical events, governance, routing, delivery reliability, and auditability on the message path.">
+  <meta name="keywords" content="Chat Agent Relay, CAR, chat platform, agent, relay layer, A2A, canonical events, governance, audit, open source">
 
   <!-- Open Graph -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Chat Agent Relay — Your Agent Is Ready. Now Let Users Talk to It.">
-  <meta property="og:description" content="Open-source middleware between chat platforms and your agents. Governance, audit, zero lock-in.">
+  <meta property="og:title" content="Chat Agent Relay — A Standard Relay Layer Between Chat Platforms and Agents">
+  <meta property="og:description" content="Open-source relay layer centered on canonical events, governance, routing, delivery reliability, and auditability.">
   <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/">
   <meta property="og:site_name" content="Chat Agent Relay">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Chat Agent Relay — Your Agent Is Ready. Now Let Users Talk to It.">
-  <meta name="twitter:description" content="Open-source middleware: any chat platform, any agent, full audit trail.">
+  <meta name="twitter:title" content="Chat Agent Relay — A Standard Relay Layer Between Chat Platforms and Agents">
+  <meta name="twitter:description" content="Open-source relay layer for chat-to-agent message paths.">
 
   <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
   <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
@@ -48,7 +48,7 @@
     "name": "Chat Agent Relay",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Linux, macOS, Windows",
-    "description": "Open-source middleware that connects any chat platform to any agent with governance, audit, and zero lock-in.",
+    "description": "Open-source relay layer between chat platforms and agents, centered on canonical events and the governed message path.",
     "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/",
     "license": "https://opensource.org/licenses/MIT",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
@@ -77,21 +77,20 @@
   <div class="container">
     <span class="hero-tag">open source &middot; MIT license &middot; TypeScript</span>
     <h1>
-      Your agent is ready.<br>
-      <span class="accent">Now let users talk to it.</span>
+      A standard relay layer<br>
+      <span class="accent">between chat platforms and agents.</span>
     </h1>
     <p class="hero-sub">
-      You built the agent. But users are in Slack. Another team wants Teams. Legal needs audit logs. Product wants to try a different model. Each requirement means more plumbing you didn't sign up for.
+      You built an agent. Now teams want it in Slack, Teams, Discord, or web chat. Compliance asks what happened to a message. Product wants routing, retry, and governance to behave consistently.
     </p>
     <p class="hero-sub" style="margin-top:12px">
-      <strong>Chat Agent Relay is that plumbing, done once.</strong> Connect any chat platform to any agent &mdash; your internal agent, a LangChain pipeline, a self-hosted model, or a commercial API. Governance, audit trail, zero lock-in.
+      <strong>Chat Agent Relay provides that message path once.</strong> CAR canonicalizes inbound chat traffic, governs and routes it, invokes agents through A2A, delivers responses, and preserves replayable audit history in an append-only ledger.
     </p>
     <div class="hero-actions">
       <a href="/ChatAgentRelay/docs/" class="btn btn-primary" data-track="hero_get_started">Get Started</a>
       <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-secondary" data-track="hero_github">View on GitHub</a>
     </div>
 
-    <!-- Terminal demo -->
     <div class="terminal hero-terminal" style="margin-top:48px">
       <div class="terminal-header">
         <span class="terminal-dot red"></span>
@@ -104,23 +103,21 @@
 <span class="output">installed workspace packages</span>
 <span class="prompt-char">$</span> <span class="cmd">cd packages/server &amp;&amp; export CAR_ENCRYPTION_KEY=$(openssl rand -hex 32)</span>
 <span class="prompt-char">$</span> <span class="cmd">car channel add slack --type=slack --bot-token=xoxb-... --app-token=xapp-...</span>
-<span class="prompt-char">$</span> <span class="cmd">car agent add bot --type=a2a --endpoint=http://localhost:9000 &amp;&amp; car route add --default --agent=bot</span>
+<span class="prompt-char">$</span> <span class="cmd">car agent add bot --type=a2a --endpoint=http://localhost:9000</span>
+<span class="prompt-char">$</span> <span class="cmd">car route add --default --agent=bot</span>
 <span class="prompt-char">$</span> <span class="cmd">car start</span>
-<span class="output">[car] Slack connected &middot; Agent ready &middot; API on :3000</span>
-<span class="output">[car] Listening for messages...</span></pre></div>
+<span class="output">[car] Channel registered &middot; Agent registered &middot; Relay running</span></pre></div>
     </div>
   </div>
 </section>
 
-<!-- Problem → Solution -->
+<!-- Problem -->
 <section>
   <div class="container reveal">
     <div class="section-label">The Problem</div>
-    <h2 class="section-title">You keep building the same plumbing</h2>
+    <h2 class="section-title">Chat-to-agent plumbing keeps getting rebuilt</h2>
     <p class="section-desc">
-      Webhook parsing. Message formatting. Retry logic. Error handling. Audit logging.
-      You write it for Slack. Then you write it again for Teams. Then again when you switch agents.
-      This code is not your product. It's overhead &mdash; and it multiplies every time requirements change.
+      Teams repeatedly rebuild webhook verification, canonicalization, routing glue, retry behavior, and audit trails for each new chat surface or agent integration. That work is necessary, but it is rarely the product.
     </p>
   </div>
 </section>
@@ -128,10 +125,10 @@
 <!-- Architecture -->
 <section>
   <div class="container reveal">
-    <div class="section-label">The Solution</div>
-    <h2 class="section-title">One layer between chat and agent &mdash; with everything built in</h2>
+    <div class="section-label">Architecture</div>
+    <h2 class="section-title">Canonical events at the center of the relay path</h2>
     <p class="section-desc">
-      Every message flows through a 7-event chain. Chat platforms and agents are hot-pluggable adapters on both sides &mdash; register them via the CLI and a pluggable config store (SQLite default, swap for PostgreSQL etc.), with encrypted tokens and route rules for multi-agent setups.
+      CAR keeps channel-specific and agent-specific behavior at the boundaries. Inside the relay, middleware operates on canonical events so governance, routing, delivery, replay, and audit stay consistent.
     </p>
 
     <div class="terminal" style="max-width:100%;margin:24px auto">
@@ -142,13 +139,14 @@
         <span class="terminal-title">architecture</span>
       </div>
       <div class="terminal-body" style="line-height:1.6">
-<pre style="margin:0;background:transparent;border:none;padding:0;font-family:inherit;font-size:0.8rem;color:var(--text-muted);white-space:pre;overflow-x:auto">Chat Platforms          Chat Agent Relay              Your Agents
-┌──────────┐     ┌──────────────────────────┐     ┌────────────────┐
-│  Slack   │     │  Canonical Event Chain   │     │ Internal agent │
-│  Teams   │────>│  Policy + Governance     │────>│ LangChain agent│
-│  Discord │     │  Routing + Dispatch      │     │ Self-hosted LLM│
-│  Web     │     │  Audit Ledger            │     │ Any HTTP agent │
-└──────────┘     └──────────────────────────┘     └────────────────┘</pre>
+<pre style="margin:0;background:transparent;border:none;padding:0;font-family:inherit;font-size:0.8rem;color:var(--text-muted);white-space:pre;overflow-x:auto">Chat Platforms        Chat Agent Relay                      Agents
+┌──────────────┐     ┌──────────────────────────────────┐   ┌───────────────┐
+│ Slack        │     │ Channel Adapters                 │   │ Remote Agent  │
+│ Teams        │────>│ Canonical Events                 │──>│ via A2A       │
+│ Discord      │     │ Governance + Routing             │   │               │
+│ Telegram     │     │ Delivery + Retry                 │   │               │
+│ Web Chat     │     │ Append-Only Ledger / Audit       │   │               │
+└──────────────┘     └──────────────────────────────────┘   └───────────────┘</pre>
       </div>
     </div>
 
@@ -157,49 +155,49 @@
         <span class="event-num">1</span>
         <span class="event-arrow">&rarr;</span>
         <span class="event-name">message.received</span>
-        <span class="event-desc">&nbsp;user's message, canonicalized from any platform</span>
+        <span class="event-desc">&nbsp;inbound message canonicalized from the chat platform</span>
       </div>
       <div class="event-line">
         <span class="event-num">2</span>
         <span class="event-arrow">&rarr;</span>
         <span class="event-name">policy.decision.made</span>
-        <span class="event-desc">&nbsp;allow or deny (configurable rules)</span>
+        <span class="event-desc">&nbsp;message-path governance result</span>
       </div>
       <div class="event-line">
         <span class="event-num">3</span>
         <span class="event-arrow">&rarr;</span>
         <span class="event-name">route.decision.made</span>
-        <span class="event-desc">&nbsp;select the right agent</span>
+        <span class="event-desc">&nbsp;route selection for the turn</span>
       </div>
       <div class="event-line">
         <span class="event-num">4</span>
         <span class="event-arrow">&rarr;</span>
         <span class="event-name">agent.invocation.requested</span>
-        <span class="event-desc">&nbsp;dispatch to your agent</span>
+        <span class="event-desc">&nbsp;canonical invocation handed to the agent-side boundary</span>
       </div>
       <div class="event-line">
         <span class="event-num">5</span>
         <span class="event-arrow">&rarr;</span>
         <span class="event-name">agent.response.completed</span>
-        <span class="event-desc">&nbsp;agent's reply captured</span>
+        <span class="event-desc">&nbsp;agent result mapped back into canonical form</span>
       </div>
       <div class="event-line">
         <span class="event-num">6</span>
         <span class="event-arrow">&rarr;</span>
         <span class="event-name">message.send.requested</span>
-        <span class="event-desc">&nbsp;queued for delivery with retry</span>
+        <span class="event-desc">&nbsp;outbound intent prepared for delivery</span>
       </div>
       <div class="event-line">
         <span class="event-num">7</span>
         <span class="event-arrow">&rarr;</span>
         <span class="event-name">message.sent</span>
-        <span class="event-desc">&nbsp;delivered to user's chat platform</span>
+        <span class="event-desc">&nbsp;delivery outcome recorded</span>
       </div>
       <div class="event-line" style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
         <span class="event-num">&times;</span>
         <span class="event-arrow" style="color:var(--red)">&rarr;</span>
         <span class="event-blocked">event.blocked</span>
-        <span class="event-desc">&nbsp;captures failures with reason + stage</span>
+        <span class="event-desc">&nbsp;blocked or terminal failure path kept auditable</span>
       </div>
     </div>
   </div>
@@ -208,62 +206,85 @@
 <!-- Features -->
 <section>
   <div class="container reveal">
-    <div class="section-label">What You Get</div>
-    <h2 class="section-title">Focus on your agent. We handle the rest.</h2>
+    <div class="section-label">What CAR Provides</div>
+    <h2 class="section-title">A governed, replayable chat-to-agent message path</h2>
 
     <div class="feature-grid">
       <div class="feature-card">
-        <div class="feature-icon">$ car channel</div>
-        <h3>Any Chat Platform</h3>
-        <p>Slack, Discord, WebChat, Telegram, Lark/飞书, and DingTalk/钉钉 built-in. Hot-plug channels at runtime; pluggable config store (SQLite default) with encrypted tokens.</p>
+        <div class="feature-icon">events</div>
+        <h3>Canonical Event Model</h3>
+        <p>Provider-native input becomes canonical events, giving the relay one stable internal contract across channels and agents.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">$ car agent</div>
-        <h3>Any Agent Runtime</h3>
-        <p>Connect any agent via the A2A protocol &mdash; the universal standard for agent interoperability. Register multiple agents; route rules pick who answers &mdash; structured events, HITL, sessions.</p>
+        <div class="feature-icon">gov</div>
+        <h3>Message-Path Governance</h3>
+        <p>Inbound and outbound governance run on canonical events before routing and before delivery.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">$ car policy</div>
-        <h3>Governance Built-In</h3>
-        <p>Keyword/regex policy engine blocks messages before they reach your agent. Every decision logged.</p>
+        <div class="feature-icon">route</div>
+        <h3>Routing</h3>
+        <p>Route rules choose which registered agent handles a turn without changing channel integrations.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">$ car audit</div>
-        <h3>Full Audit Trail</h3>
-        <p>Every message is a 7-event chain in an append-only ledger. Query conversations and audit explanations via REST API.</p>
+        <div class="feature-icon">a2a</div>
+        <h3>A2A Agent Boundary</h3>
+        <p>CAR uses A2A as the standard agent-side protocol boundary while keeping runtime-private state on the agent side.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">$ car stream</div>
-        <h3>Streaming Responses</h3>
-        <p>SSE streams update chat messages progressively. Users see the agent thinking in real-time.</p>
+        <div class="feature-icon">retry</div>
+        <h3>Delivery Reliability</h3>
+        <p>Outbound delivery behavior includes retry handling and structured blocked outcomes instead of silent failure.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">$ car retry</div>
-        <h3>Delivery Retry + DLQ</h3>
-        <p>Exponential backoff on failures. Dead-letter queue for exhausted retries. No lost messages.</p>
+        <div class="feature-icon">audit</div>
+        <h3>Replay and Audit</h3>
+        <p>An append-only ledger preserves what happened on the message path and why.</p>
       </div>
     </div>
   </div>
 </section>
 
-<!-- Who is this for -->
+<!-- Boundaries -->
 <section>
   <div class="container reveal">
-    <div class="section-label">Use Cases</div>
-    <h2 class="section-title">Built for teams that ship agents</h2>
+    <div class="section-label">Boundaries</div>
+    <h2 class="section-title">Narrow boundaries on both sides of the relay</h2>
 
     <div class="feature-grid">
       <div class="feature-card">
-        <h3>Agent Teams</h3>
-        <p>You built the agent. CAR handles delivery to Slack, Teams, web &mdash; with governance and audit you'd otherwise build from scratch.</p>
+        <h3>Channel adapters</h3>
+        <p>Receive provider-native traffic, verify it where applicable, canonicalize it, and translate canonical outbound intent back into provider-native delivery actions.</p>
       </div>
       <div class="feature-card">
-        <h3>Platform Engineers</h3>
-        <p>Multiple teams, multiple agents, multiple chat surfaces. One middleware layer with consistent policy and observability.</p>
+        <h3>CAR core</h3>
+        <p>Owns canonical events, governance, routing, delivery orchestration, replay, and auditability on the message path.</p>
       </div>
       <div class="feature-card">
-        <h3>Compliance-First Orgs</h3>
-        <p>Every AI interaction is an immutable event in an append-only ledger. Auditable by default. No "we'll add logging later."</p>
+        <h3>Remote agents</h3>
+        <p>Keep ownership of their internal execution model, private memory, tools, and framework-specific runtime state.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Use Cases -->
+<section>
+  <div class="container reveal">
+    <div class="section-label">Use Cases</div>
+    <h2 class="section-title">Built for teams that need consistent chat-to-agent integration</h2>
+
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h3>Agent product teams</h3>
+        <p>Keep agent development separate from chat transport, delivery behavior, and message-path governance.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Platform engineers</h3>
+        <p>Support multiple chat surfaces and multiple agents through one relay model instead of one-off integrations.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Audit-sensitive environments</h3>
+        <p>Preserve replayable outcomes for policy, routing, invocation, and delivery without relying on scattered logs.</p>
       </div>
     </div>
 
@@ -271,20 +292,20 @@
       <span class="use-case-tag">customer support agents</span>
       <span class="use-case-tag">internal tooling</span>
       <span class="use-case-tag">developer assistants</span>
-      <span class="use-case-tag">content moderation</span>
-      <span class="use-case-tag">multi-tenant SaaS</span>
-      <span class="use-case-tag">agent orchestration</span>
+      <span class="use-case-tag">chat-native workflows</span>
+      <span class="use-case-tag">multi-agent routing</span>
+      <span class="use-case-tag">replay and audit</span>
     </div>
   </div>
 </section>
 
-<!-- Quick compare -->
+<!-- Compare -->
 <section>
   <div class="container reveal">
     <div class="section-label">Compare</div>
-    <h2 class="section-title">CAR vs building it yourself</h2>
+    <h2 class="section-title">CAR vs rebuilding the relay yourself</h2>
     <p class="section-desc">
-      You can always build the plumbing yourself. Here's what that means in practice.
+      You can always build the integration path yourself. CAR exists so the canonical message path does not have to be reinvented for every channel and agent combination.
     </p>
 
     <div style="overflow-x:auto">
@@ -299,38 +320,28 @@
         <tbody>
           <tr>
             <td class="highlight">New chat platform</td>
-            <td>Weeks of integration work</td>
-            <td class="check">Implement one interface</td>
+            <td>Rebuild provider verification, canonicalization, and delivery</td>
+            <td class="check">Implement the channel boundary once</td>
           </tr>
           <tr>
-            <td class="highlight">Switch agents</td>
-            <td>Rewrite integration logic</td>
-            <td class="check">Register another agent; adjust route rules</td>
+            <td class="highlight">Another agent</td>
+            <td>Rewrite routing and invocation glue</td>
+            <td class="check">Register another agent behind the same relay path</td>
           </tr>
           <tr>
             <td class="highlight">Audit trail</td>
-            <td>Build from scratch</td>
-            <td class="check">Built-in event ledger + REST API</td>
+            <td>Assemble logs from multiple systems</td>
+            <td class="check">Replay from canonical events in one ledger</td>
           </tr>
           <tr>
-            <td class="highlight">Policy / governance</td>
-            <td>Custom middleware</td>
-            <td class="check">Configurable policy engine</td>
+            <td class="highlight">Policy and routing</td>
+            <td>Custom logic per integration</td>
+            <td class="check">One governed message path</td>
           </tr>
           <tr>
-            <td class="highlight">Delivery retry</td>
-            <td>Implement yourself</td>
-            <td class="check">Exponential backoff + DLQ</td>
-          </tr>
-          <tr>
-            <td class="highlight">Streaming</td>
-            <td>SSE parsing + update logic</td>
-            <td class="check">Progressive message updates</td>
-          </tr>
-          <tr>
-            <td class="highlight">Time to production</td>
-            <td>Weeks</td>
-            <td class="check">Minutes</td>
+            <td class="highlight">Delivery failure</td>
+            <td>Opaque retries and scattered errors</td>
+            <td class="check">Structured retry and blocked outcomes</td>
           </tr>
         </tbody>
       </table>
@@ -342,33 +353,28 @@
   </div>
 </section>
 
-<!-- Roadmap -->
+<!-- Current coverage -->
 <section>
   <div class="container reveal">
-    <div class="section-label">Roadmap</div>
-    <h2 class="section-title">What's next &mdash; and what do you need?</h2>
+    <div class="section-label">Current Coverage</div>
+    <h2 class="section-title">Built-in adapters for the current repository</h2>
     <p class="section-desc">
-      We're expanding both sides of the relay. Tell us which integrations matter to you.
+      The repository currently includes built-in channel adapters for major chat platforms and a built-in A2A agent adapter.
     </p>
 
     <div class="feature-grid">
       <div class="feature-card">
-        <h3>More chat platforms</h3>
-        <p>Microsoft Teams, Discord, Telegram, WhatsApp Business, LINE &mdash; and a web widget SDK for embedding.</p>
+        <h3>Built-in channels</h3>
+        <p>Slack, Discord, Telegram, Lark / 飞书, DingTalk / 钉钉, Microsoft Teams, WhatsApp Business, and WebChat.</p>
       </div>
       <div class="feature-card">
-        <h3>More agent patterns</h3>
-        <p>Webhook/async agents, MCP-compatible agents. Multi-agent routing via CLI and route rules is supported; A2A is the sole agent protocol, covering all major frameworks.</p>
+        <h3>Built-in agent protocol</h3>
+        <p>A2A is the standard agent-side protocol boundary used by CAR.</p>
       </div>
       <div class="feature-card">
-        <h3>Enterprise capabilities</h3>
-        <p>RBAC, multi-tenant routing, usage analytics, admin UI for policy and routing management.</p>
+        <h3>Extension model</h3>
+        <p>New channel adapters and compatible agent integrations can be added while preserving the same canonical relay path.</p>
       </div>
-    </div>
-
-    <div style="text-align:center;margin-top:24px">
-      <p><strong>Which chat platform do your users live in? What kind of agent do you want to connect?</strong></p>
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues" class="btn btn-secondary" data-track="roadmap_issue" style="margin-top:8px">Tell us &rarr;</a>
     </div>
   </div>
 </section>
@@ -376,17 +382,17 @@
 <!-- CTA -->
 <section class="cta-banner">
   <div class="container">
-    <h2>Stop building plumbing. Start shipping your agent.</h2>
-    <p>Chat Agent Relay is MIT licensed and free forever. Get started in 2 minutes.</p>
+    <h2>Stop rebuilding chat-to-agent plumbing.</h2>
+    <p>Use a standard relay layer centered on canonical events, A2A invocation, delivery reliability, replay, and audit.</p>
     <div class="hero-actions">
       <a href="/ChatAgentRelay/docs/" class="btn btn-primary" data-track="cta_get_started">Get Started</a>
       <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-secondary" data-track="cta_github">Star on GitHub</a>
     </div>
 
     <div class="share-row">
-      <a href="https://twitter.com/intent/tweet?text=Chat%20Agent%20Relay%20%E2%80%94%20connect%20any%20chat%20platform%20to%20any%20agent.%20Open%20source.%20https%3A%2F%2Fgithub.com%2FChatAgentRelay%2FChatAgentRelay" class="share-btn" target="_blank" rel="noopener" data-track="share_twitter">Share on X</a>
+      <a href="https://twitter.com/intent/tweet?text=Chat%20Agent%20Relay%20%E2%80%94%20open-source%20relay%20layer%20between%20chat%20platforms%20and%20agents.%20https%3A%2F%2Fgithub.com%2FChatAgentRelay%2FChatAgentRelay" class="share-btn" target="_blank" rel="noopener" data-track="share_twitter">Share on X</a>
       <a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fgithub.com%2FChatAgentRelay%2FChatAgentRelay" class="share-btn" target="_blank" rel="noopener" data-track="share_linkedin">Share on LinkedIn</a>
-      <a href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fgithub.com%2FChatAgentRelay%2FChatAgentRelay&t=Chat%20Agent%20Relay%20%E2%80%94%20Your%20agent%20is%20ready.%20Now%20let%20users%20talk%20to%20it." class="share-btn" target="_blank" rel="noopener" data-track="share_hn">Share on HN</a>
+      <a href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fgithub.com%2FChatAgentRelay%2FChatAgentRelay&t=Chat%20Agent%20Relay%20%E2%80%94%20a%20standard%20relay%20layer%20between%20chat%20platforms%20and%20agents" class="share-btn" target="_blank" rel="noopener" data-track="share_hn">Share on HN</a>
     </div>
   </div>
 </section>

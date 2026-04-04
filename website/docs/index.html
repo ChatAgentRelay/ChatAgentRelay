@@ -3,21 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Quick Start — Chat Agent Relay</title>
-  <meta name="description" content="Get Chat Agent Relay running in 5 minutes. Install, pick a channel, pick an agent, set a route, and start the server.">
+  <title>Docs — Chat Agent Relay</title>
+  <meta name="description" content="Documentation for Chat Agent Relay, the standard relay layer between chat platforms and agents.">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
-  <meta property="og:title" content="Quick Start — Chat Agent Relay">
-  <meta property="og:description" content="From zero to a running chat-to-agent relay in 5 minutes.">
+  <meta property="og:title" content="Docs — Chat Agent Relay">
+  <meta property="og:description" content="Documentation for the standard relay layer between chat platforms and agents.">
   <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/">
   <meta property="og:site_name" content="Chat Agent Relay">
   <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Quick Start — Chat Agent Relay">
-  <meta name="twitter:description" content="Install, configure, and run Chat Agent Relay in 5 minutes.">
+  <meta name="twitter:title" content="Docs — Chat Agent Relay">
+  <meta name="twitter:description" content="Documentation for the standard relay layer between chat platforms and agents.">
   <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
 
   <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/">
@@ -44,8 +44,8 @@
   {
     "@context": "https://schema.org",
     "@type": "TechArticle",
-    "headline": "Quick Start — Chat Agent Relay",
-    "description": "Get Chat Agent Relay running in 5 minutes. Install, pick a channel, pick an agent, set a route, and start.",
+    "headline": "Docs — Chat Agent Relay",
+    "description": "Documentation for Chat Agent Relay, the standard relay layer between chat platforms and agents.",
     "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/"
   }
   </script>
@@ -69,7 +69,7 @@
 <aside class="doc-sidebar">
   <div class="sidebar-group">
     <span class="sidebar-group-title">Getting Started</span>
-    <a href="/ChatAgentRelay/docs/" class="sidebar-link active">Quick Start</a>
+    <a href="/ChatAgentRelay/docs/" class="sidebar-link active">Overview</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Channels</span>
@@ -84,13 +84,13 @@
   <div class="sidebar-group">
     <span class="sidebar-group-title">Agents</span>
     <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
-    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Configuration</span>
     <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
-    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Multi-Agent Routing</a>
-    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage Backends</a>
+    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Routing</a>
+    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Concepts</span>
@@ -106,93 +106,86 @@
 
 <!-- Content -->
 <main class="doc-content">
-  <h1>Quick Start</h1>
-  <p class="subtitle">Get Chat Agent Relay running in 5 minutes. Install, pick a channel, connect an agent, and start relaying messages.</p>
+  <h1>Documentation Overview</h1>
+  <p class="subtitle">Chat Agent Relay is a standard relay layer between chat platforms and agents. These docs explain the relay path, the adapter boundaries, and how to run and extend the current repository.</p>
 
   <div class="steps">
 
     <div class="step">
-      <h2 id="install">Install</h2>
+      <h2 id="what-is-car">What CAR is</h2>
+      <p>CAR sits between chat platforms and agents. It canonicalizes inbound chat traffic into a stable internal event model, applies governance on the message path, makes route decisions, invokes agents through the agent-side boundary, and delivers the response back to the chat platform.</p>
+      <p>The canonical happy path is:</p>
+      <pre><code>message.received
+  → policy.decision.made
+  → route.decision.made
+  → agent.invocation.requested
+  → agent.response.completed
+  → message.send.requested
+  → message.sent</code></pre>
+      <p>When a path is denied, blocked, or fails terminally, CAR records <code>event.blocked</code> rather than silently dropping the outcome.</p>
+    </div>
+
+    <div class="step">
+      <h2 id="channel-boundary">Channel-side boundary</h2>
+      <p>On the channel side, CAR uses channel adapters to receive provider-native traffic, verify it where applicable, canonicalize it into CAR events, and translate canonical outbound intent back into provider-native delivery behavior.</p>
+      <div class="card-grid">
+        <a href="/ChatAgentRelay/docs/channels/slack.html" class="card">
+          <div class="card-title">Slack</div>
+          <div class="card-desc">Socket Mode ingress, canonicalization, delivery, and progressive update support.</div>
+        </a>
+        <a href="/ChatAgentRelay/docs/channels/discord.html" class="card">
+          <div class="card-title">Discord</div>
+          <div class="card-desc">Gateway ingress, canonicalization, delivery, and slash command support.</div>
+        </a>
+        <a href="/ChatAgentRelay/docs/channels/webchat.html" class="card">
+          <div class="card-title">WebChat</div>
+          <div class="card-desc">HTTP-based testing and browser-facing chat integration.</div>
+        </a>
+      </div>
+      <p>See the <a href="/ChatAgentRelay/docs/channels/">channel docs</a> for current built-in integrations and channel-specific setup details.</p>
+    </div>
+
+    <div class="step">
+      <h2 id="agent-boundary">Agent-side boundary</h2>
+      <p>On the agent side, CAR uses <strong>A2A</strong> as the standard protocol boundary. The agent adapter accepts canonical invocation context from CAR, maps that request into A2A, and maps the result back into canonical CAR semantics.</p>
+      <div class="card-grid">
+        <a href="/ChatAgentRelay/docs/agents/a2a.html" class="card">
+          <div class="card-title">A2A</div>
+          <div class="card-desc">Standard agent-side protocol boundary used by CAR.</div>
+        </a>
+      </div>
+      <p>CAR is not an agent runtime. Remote agents keep ownership of their internal execution model, private memory, tools, and framework-specific runtime state.</p>
+    </div>
+
+    <div class="step">
+      <h2 id="quick-start">Quick start</h2>
       <p>Clone the repository and install dependencies with <a href="https://bun.sh">Bun</a>:</p>
       <pre><code>git clone https://github.com/ChatAgentRelay/ChatAgentRelay.git
 cd ChatAgentRelay
 bun install</code></pre>
-      <p>This pulls all workspace packages so the <code>car</code> CLI is immediately available from <code>packages/server</code>.</p>
+      <p>Add a channel, add an agent, set a route, and start the relay:</p>
+      <pre><code>cd packages/server
+export CAR_ENCRYPTION_KEY="$(openssl rand -hex 32)"
+car channel add web --type=webchat
+car agent add my-bot --endpoint=http://localhost:8080
+car route add --default --agent=my-bot
+car start</code></pre>
+      <p>The built-in default configuration store is SQLite-backed. Set <code>CAR_API_KEY</code> in production to secure the management API.</p>
     </div>
 
     <div class="step">
-      <h2 id="pick-channel">Pick a channel</h2>
-      <p>Channels are chat-platform adapters. Choose one to start:</p>
-      <div class="card-grid">
-        <a href="/ChatAgentRelay/docs/channels/slack.html" class="card">
-          <div class="card-icon">💬</div>
-          <div class="card-title">Slack</div>
-          <div class="card-desc">Socket Mode, threads, reactions, streaming, slash commands.</div>
-        </a>
-        <a href="/ChatAgentRelay/docs/channels/discord.html" class="card">
-          <div class="card-icon">🎮</div>
-          <div class="card-title">Discord</div>
-          <div class="card-desc">Gateway connection, embeds, slash commands, guild control.</div>
-        </a>
-        <a href="/ChatAgentRelay/docs/channels/webchat.html" class="card">
-          <div class="card-icon">🌐</div>
-          <div class="card-title">WebChat</div>
-          <div class="card-desc">HTTP-based, no setup needed. Great for testing.</div>
-        </a>
-      </div>
-      <p>The simplest option is WebChat &mdash; no external app setup required:</p>
-      <pre><code>car channel add web --type=webchat</code></pre>
-    </div>
-
-    <div class="step">
-      <h2 id="pick-agent">Pick an agent</h2>
-      <p>Agents are the AI backends that respond to messages. CAR connects to all agents via the <strong>A2A (Agent-to-Agent)</strong> protocol &mdash; the universal standard for agent interoperability:</p>
-      <div class="card-grid">
-        <a href="/ChatAgentRelay/docs/agents/a2a.html" class="card">
-          <div class="card-icon">🔗</div>
-          <div class="card-title">A2A Protocol</div>
-          <div class="card-desc">Google&rsquo;s Agent-to-Agent protocol with streaming, HITL, sessions, and artifacts.</div>
-        </a>
-      </div>
-      <p>Common integration paths include <strong>CrewAI</strong>, <strong>LangGraph / LangChain</strong>, <strong>Google ADK</strong>, <strong>AutoGen / AG2</strong>, and <strong>Mastra</strong> &mdash; all by exposing an A2A endpoint and registering it in CAR. If your framework does not speak A2A yet, put a thin A2A wrapper in front of it and connect CAR to that wrapper.</p>
-      <p>Point CAR at your agent&rsquo;s A2A endpoint:</p>
-      <pre><code>car agent add my-bot --endpoint=http://localhost:8080</code></pre>
-      <p>Then follow the dedicated agents docs for framework-specific paths and capabilities.</p>
-    </div>
-
-    <div class="step">
-      <h2 id="set-route">Set a route</h2>
-      <p>Routes decide which agent handles each incoming message. Set a default route to send everything to your agent:</p>
-      <pre><code>car route add --default --agent=my-bot</code></pre>
-      <div class="callout callout-info">
-        <strong>Multi-agent routing</strong>
-        You can register multiple agents and use pattern-based or channel-based rules to route messages. See <a href="/ChatAgentRelay/docs/configuration/routing.html">Multi-Agent Routing</a>.
-      </div>
-    </div>
-
-    <div class="step">
-      <h2 id="start">Start</h2>
-      <p>Launch the relay server:</p>
-      <pre><code>car start</code></pre>
-      <p>The server starts on port 3000 by default. Verify with:</p>
-      <pre><code>curl http://localhost:3000/api/health</code></pre>
-      <div class="callout callout-tip">
-        <strong>Encrypt secrets at rest</strong>
-        Set <code>CAR_ENCRYPTION_KEY</code> before adding channels or agents so tokens and API keys are stored with AES-256-GCM encryption in the SQLite config database.
-      </div>
+      <h2 id="where-to-next">Where to go next</h2>
+      <ul>
+        <li><a href="/ChatAgentRelay/docs/channels/">Channels</a> — current built-in channel adapters and setup details.</li>
+        <li><a href="/ChatAgentRelay/docs/agents/">Agents</a> — the A2A-centered agent-side boundary.</li>
+        <li><a href="/ChatAgentRelay/docs/concepts/">Concepts</a> — architecture, event model, and pipeline behavior.</li>
+        <li><a href="/ChatAgentRelay/docs/configuration/">Configuration</a> — CLI, routing, and storage model.</li>
+        <li><a href="/ChatAgentRelay/docs/api/">HTTP API</a> — management and query endpoints.</li>
+      </ul>
     </div>
 
   </div>
 
-  <h2 id="whats-next">What&rsquo;s next?</h2>
-  <ul>
-    <li><a href="/ChatAgentRelay/docs/channels/">Channels</a> &mdash; deep dive into Slack, Discord, WebChat, Telegram, Lark/飞书, and DingTalk/钉钉 configuration.</li>
-    <li><a href="/ChatAgentRelay/docs/agents/">Agents</a> &mdash; connect any agent via the A2A protocol.</li>
-    <li><a href="/ChatAgentRelay/docs/concepts/">Architecture</a> &mdash; understand the event model, pipeline, and ledger.</li>
-    <li><a href="/ChatAgentRelay/docs/configuration/">CLI &amp; Config</a> &mdash; full reference for the <code>car</code> CLI.</li>
-  </ul>
-
-  <!-- Pagination -->
   <div class="doc-pagination">
     <a href="/ChatAgentRelay/docs/channels/" class="next">
       <span class="label">Next</span>

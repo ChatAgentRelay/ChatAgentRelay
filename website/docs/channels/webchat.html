@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>WebChat — Chat Agent Relay</title>
-  <meta name="description" content="The simplest Chat Agent Relay channel. HTTP-based, no external app setup. Ideal for testing, internal tools, and custom web UIs.">
+  <meta name="description" content="WebChat is the HTTP-based channel adapter in Chat Agent Relay. It provides a simple browser-facing chat boundary for local development, internal tools, and custom web interfaces while preserving the same canonical relay path.">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
   <meta property="og:title" content="WebChat — Chat Agent Relay">
-  <meta property="og:description" content="HTTP-based chat channel for testing, internal tools, and custom web interfaces.">
+  <meta property="og:description" content="Overview of the HTTP-based WebChat channel adapter in Chat Agent Relay.">
   <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/webchat.html">
   <meta property="og:site_name" content="Chat Agent Relay">
   <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
@@ -17,7 +17,7 @@
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="WebChat — Chat Agent Relay">
-  <meta name="twitter:description" content="HTTP-based WebChat adapter for Chat Agent Relay. Zero setup, great for testing.">
+  <meta name="twitter:description" content="Overview of the HTTP-based WebChat channel adapter in Chat Agent Relay.">
   <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
 
   <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/webchat.html">
@@ -45,7 +45,7 @@
     "@context": "https://schema.org",
     "@type": "TechArticle",
     "headline": "WebChat — Chat Agent Relay",
-    "description": "The simplest Chat Agent Relay channel. HTTP-based, no external app setup. Ideal for testing, internal tools, and custom web UIs.",
+    "description": "WebChat is the HTTP-based channel adapter in Chat Agent Relay. It provides a simple browser-facing chat boundary for local development, internal tools, and custom web interfaces while preserving the same canonical relay path.",
     "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/webchat.html"
   }
   </script>
@@ -69,7 +69,7 @@
 <aside class="doc-sidebar">
   <div class="sidebar-group">
     <span class="sidebar-group-title">Getting Started</span>
-    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Quick Start</a>
+    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Overview</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Channels</span>
@@ -84,13 +84,13 @@
   <div class="sidebar-group">
     <span class="sidebar-group-title">Agents</span>
     <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
-    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Configuration</span>
     <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
-    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Multi-Agent Routing</a>
-    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage Backends</a>
+    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Routing</a>
+    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Concepts</span>
@@ -107,20 +107,65 @@
 <!-- Content -->
 <main class="doc-content">
   <h1>WebChat</h1>
-  <p class="subtitle">HTTP-based channel with synchronous JSON, optional Server-Sent Events streaming, built-in slash commands, human-in-the-loop resume endpoints, and server-side session tracking. Still the simplest way to talk to CAR: no external app registration, OAuth, or platform tokens.</p>
+  <p class="subtitle">WebChat is the HTTP-based channel adapter in Chat Agent Relay. It provides a simple browser-facing chat boundary for local development, internal tools, automated tests, and custom web interfaces while preserving the same canonical relay path used by other channels.</p>
 
-  <h2 id="overview">Overview</h2>
-  <p>WebChat exposes a small HTTP API on the channel server port. You can send a message and receive a full reply in one JSON response (<code>POST /api/chat</code>), or open an SSE stream for token-style updates (<code>POST /api/chat/stream</code>). Built-in commands (<code>/help</code>, <code>/status</code>, <code>/clear</code>) are handled at the transport layer without invoking an agent. When an agent needs input, responses include <code>hitl_pending</code> and a <code>session_handle</code>; clients resume with <code>POST /api/chat/resume</code> or <code>POST /api/chat/resume/stream</code>. Conversations are keyed by <code>conversation_id</code>; the server maps that to an internal session handle and exposes session metadata via <code>GET /api/chat/sessions/:id</code>.</p>
-  <p>WebChat remains ideal for local development, internal dashboards, custom chat UIs, and automated tests &mdash; same full CAR pipeline and ledger as other channels, minimal setup.</p>
+  <h2 id="webchat-boundary">WebChat boundary</h2>
+  <p>
+    WebChat plays the same architectural role as Slack, Discord, Telegram, or other channel adapters. The difference is that its provider boundary is an HTTP surface controlled by CAR rather than an external chat platform API.
+  </p>
+  <p>
+    That makes WebChat useful when you want a lightweight chat entry point without first integrating a third-party messaging product.
+  </p>
 
-  <h2 id="add-to-car">Add to CAR</h2>
-  <p>Register the WebChat channel (no third-party tokens required):</p>
+  <h2 id="where-it-fits">Where WebChat fits on the message path</h2>
+  <pre><code>HTTP request
+  → WebChat canonicalization
+  → message.received
+  → governance
+  → route decision
+  → agent invocation via A2A
+  → message.send.requested
+  → HTTP response or stream
+  → message.sent</code></pre>
+  <p>
+    WebChat still feeds the same canonical relay path. The transport surface is different, but the governed message path remains the same.
+  </p>
+
+  <h2 id="good-fit">Good fit for WebChat</h2>
+  <ul>
+    <li><strong>Local development</strong> — exercise the relay path without setting up an external chat platform.</li>
+    <li><strong>Internal tools</strong> — add a browser-based chat surface in front of CAR.</li>
+    <li><strong>Custom web UIs</strong> — connect your own frontend directly to a channel boundary you control.</li>
+    <li><strong>Automated tests</strong> — drive the relay path through a deterministic HTTP interface.</li>
+  </ul>
+
+  <h2 id="transport-shape">Transport shape</h2>
+  <p>
+    WebChat exposes HTTP endpoints for synchronous interaction and, where configured, streaming interaction. It also supports resumable flows for human-in-the-loop interaction.
+  </p>
+  <table>
+    <thead>
+      <tr><th>Capability</th><th>How WebChat surfaces it</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Synchronous request/response</td><td>HTTP JSON request with a final JSON response</td></tr>
+      <tr><td>Streaming</td><td>Server-Sent Events when the configured pipeline supports streaming</td></tr>
+      <tr><td>Resumable interaction</td><td>Follow-up HTTP endpoints for continuing a paused session</td></tr>
+      <tr><td>Session continuity</td><td>Conversation identifiers mapped to server-side session handles</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="registering">Registering WebChat</h2>
+  <p>Register the WebChat channel with the <code>car</code> CLI.</p>
   <pre><code>car channel add web --type=webchat</code></pre>
-  <p>With <code>car start</code>, the endpoints below are served on the main CAR HTTP API (default <code>http://localhost:3000</code>). The standalone WebChat transport uses the same paths on whichever port you assign to that server.</p>
+  <p>
+    The CAR server then exposes the WebChat transport surface through its HTTP runtime.
+  </p>
 
-  <h2 id="sending-messages-sync">Sending messages (sync)</h2>
-  <p><code>POST /api/chat</code> accepts a JSON body and returns a single JSON object with the agent reply and identifiers.</p>
-  <p><strong>Request body example:</strong></p>
+  <h2 id="minimum-request-shape">Minimum request shape</h2>
+  <p>
+    WebChat requests carry the same kinds of identifiers needed by the canonical relay path: message identity, actor identity, tenant/workspace scope where relevant, and conversation continuity.
+  </p>
   <pre><code>{
   "client_message_id": "msg_001",
   "text": "Hello!",
@@ -130,194 +175,37 @@
   "channel_instance_id": "web_1",
   "conversation_id": "conv_123"
 }</code></pre>
-  <p><strong>Example with <code>curl</code>:</strong></p>
-  <pre><code>curl -X POST http://localhost:3000/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{
-    "client_message_id": "msg_001",
-    "text": "Hello!",
-    "user_id": "user_1",
-    "tenant_id": "t1",
-    "workspace_id": "ws1",
-    "channel_instance_id": "web_1",
-    "conversation_id": "conv_123"
-  }'</code></pre>
-  <p><strong>Response example:</strong></p>
-  <pre><code>{
-  "ok": true,
-  "conversation_id": "conv_123",
-  "correlation_id": "corr_456",
-  "reply": "Hello! How can I help?",
-  "session_handle": "sess_abc"
-}</code></pre>
-  <p>When the agent is waiting for human input, the sync response may include <code>"hitl_pending": true</code>, <code>session_handle</code>, and <code>hitl_prompt</code> instead of a final natural-language <code>reply</code>. Use the resume endpoints below to continue.</p>
 
-  <div class="callout callout-info">
-    <strong>Full pipeline</strong>
-    Agent-handled messages still flow through the same canonical event chain as Slack and Discord: policy, routing, agent invocation, delivery, and ledger. Slash commands short-circuit before canonicalization so they never hit the agent.
-  </div>
-
-  <h2 id="streaming-sse">Streaming (SSE)</h2>
-  <p><code>POST /api/chat/stream</code> returns <code>text/event-stream</code>. Each event is one line of the form <code>data: &lt;JSON&gt;</code> (blank line between events), matching the usual SSE framing.</p>
-  <p><strong>Example stream (abbreviated):</strong></p>
-  <pre><code>data: {"type":"status","status":"working"}
-
-data: {"type":"text_delta","content":"Hello"}
-
-data: {"type":"text_delta","content":" World"}
-
-data: {"type":"done","conversation_id":"conv_123","correlation_id":"corr_456","reply":"Hello World","session_handle":"sess_abc"}
-</code></pre>
-  <p><strong>Event types:</strong></p>
-  <ul>
-    <li><code>text_delta</code> &mdash; incremental assistant text (<code>content</code>).</li>
-    <li><code>status</code> &mdash; progress signal (<code>status</code>, optional <code>message</code>).</li>
-    <li><code>input_required</code> &mdash; HITL pause (<code>prompt</code>, <code>session_handle</code>).</li>
-    <li><code>done</code> &mdash; final summary: <code>conversation_id</code>, <code>correlation_id</code>, full <code>reply</code>, optional <code>session_handle</code>, optional <code>hitl_pending</code>.</li>
-    <li><code>error</code> &mdash; failure (<code>message</code>).</li>
-  </ul>
-  <p>Streaming requires a server configuration that supplies a streaming pipeline. If streaming is not configured, the endpoint responds with an error status and JSON body.</p>
-
-  <h2 id="slash-commands">Slash commands</h2>
-  <p>These commands are built into the WebChat transport. They do not invoke the agent or the middleware pipeline.</p>
-  <ul>
-    <li><code>/help</code> &mdash; Lists available commands.</li>
-    <li><code>/status</code> &mdash; Reports active session count on the WebChat server.</li>
-    <li><code>/clear</code> &mdash; Clears the session mapping for the current <code>conversation_id</code> when provided.</li>
-  </ul>
-  <p>Send them as the message <code>text</code> on <code>POST /api/chat</code> or <code>POST /api/chat/stream</code>; the response is ordinary JSON (sync) or a short stream ending with <code>done</code> depending on the endpoint.</p>
-
-  <h2 id="hitl-resume">HITL resume</h2>
-  <p>Human-in-the-loop flow:</p>
-  <ol>
-    <li>Send a normal message with <code>POST /api/chat</code> (or stream with <code>POST /api/chat/stream</code>).</li>
-    <li>If the agent needs input, the sync response includes <code>"hitl_pending": true</code> and a <code>session_handle</code> (and often <code>hitl_prompt</code>). On SSE, you may see an <code>input_required</code> event and a final <code>done</code> with <code>hitl_pending</code>.</li>
-    <li>Submit the user&rsquo;s answer with <code>POST /api/chat/resume</code> and JSON body <code>session_handle</code> plus <code>text</code>.</li>
-  </ol>
-  <p><strong>Resume request example:</strong></p>
-  <pre><code>curl -X POST http://localhost:3000/api/chat/resume \
-  -H "Content-Type: application/json" \
-  -d '{
-    "session_handle": "sess_abc",
-    "text": "Yes, proceed with option B."
-  }'</code></pre>
-  <p>For streaming completion after resume, use <code>POST /api/chat/resume/stream</code> with the same JSON body; the response is SSE with the same event types as <code>/api/chat/stream</code>.</p>
-
-  <h2 id="session-management">Session management</h2>
-  <p>The server keeps a mapping from <code>conversation_id</code> to the latest <code>session_handle</code> for that conversation. Pass a stable <code>conversation_id</code> on each turn for multi-turn chat; new handles are stored as the pipeline returns them.</p>
-  <p>Inspect the current mapping:</p>
-  <pre><code>GET /api/chat/sessions/:id</code></pre>
-  <p><code>:id</code> is the URL-encoded <code>conversation_id</code>. A successful response includes <code>conversation_id</code>, <code>session_handle</code>, and <code>last_active</code> (ISO timestamp). Unknown IDs return 404.</p>
-
-  <h2 id="frontend-integration">Frontend integration</h2>
-  <p>Below: synchronous <code>fetch</code> plus SSE over <code>POST</code> using <code>fetch</code> and a readable stream (same <code>data:</code> line discipline as <code>EventSource</code>; native <code>EventSource</code> only supports GET, so POST streaming uses this pattern).</p>
-  <pre><code>const base = "http://localhost:3000";
-const payload = {
-  client_message_id: crypto.randomUUID(),
-  text: userInput,
-  user_id: "user_1",
-  tenant_id: "t1",
-  workspace_id: "ws1",
-  channel_instance_id: "web_1",
-  conversation_id: sessionId,
-};
-
-// — Sync —
-const syncRes = await fetch(`${base}/api/chat`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(payload),
-});
-const syncData = await syncRes.json();
-if (syncData.hitl_pending &amp;&amp; syncData.session_handle) {
-  // POST /api/chat/resume with { session_handle, text: "..." }
-}
-displayMessage(syncData.reply);
-
-// — SSE (POST + stream reader, EventSource-style parsing) —
-const streamRes = await fetch(`${base}/api/chat/stream`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(payload),
-});
-const reader = streamRes.body.getReader();
-const decoder = new TextDecoder();
-let buffer = "";
-while (true) {
-  const { value, done } = await reader.read();
-  if (done) break;
-  buffer += decoder.decode(value, { stream: true });
-  const lines = buffer.split("\n");
-  buffer = lines.pop() ?? "";
-  for (const line of lines) {
-    if (line.startsWith("data: ")) {
-      const event = JSON.parse(line.slice(6));
-      if (event.type === "text_delta") appendToken(event.content);
-      if (event.type === "done") finalize(event.reply, event.session_handle);
-      if (event.type === "input_required") promptUser(event.prompt, event.session_handle);
-      if (event.type === "error") showError(event.message);
-    }
-  }
-}</code></pre>
+  <h2 id="commands-and-resume">Commands and resumable interaction</h2>
+  <p>
+    WebChat can expose transport-level commands and resumable flows without changing CAR's core architecture. If the connected agent requests additional human input, WebChat can continue that interaction through follow-up HTTP requests tied to the same session handle.
+  </p>
+  <p>
+    Those are transport capabilities layered on top of the same canonical path, not a separate product surface.
+  </p>
 
   <h2 id="configuration">Configuration</h2>
   <table>
     <thead>
-      <tr>
-        <th>Option</th>
-        <th>Description</th>
-      </tr>
+      <tr><th>Option</th><th>Description</th></tr>
     </thead>
     <tbody>
       <tr>
         <td><code>corsOrigins</code></td>
-        <td>Allowed CORS origin(s) for browser clients. Configure via CLI when adding the channel (for example <code>--cors-origins=https://app.example.com</code>). Default is permissive for local dev; restrict in production.</td>
+        <td>Allowed CORS origin list for browser-based clients using the WebChat surface</td>
       </tr>
     </tbody>
   </table>
 
   <div class="callout callout-warn">
-    <strong>Production CORS</strong>
-    Set explicit origins in production so only your frontends can call the WebChat API from the browser.
+    <strong>Browser-facing boundary</strong>
+    When WebChat is exposed to browsers, configure explicit CORS origins in production so only approved frontends can call the HTTP channel surface.
   </div>
 
-  <h2 id="feature-comparison">Feature comparison</h2>
-  <table>
-    <thead>
-      <tr>
-        <th>Feature</th>
-        <th>WebChat</th>
-        <th>Slack</th>
-        <th>Discord</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Streaming</td>
-        <td>SSE (<code>POST /api/chat/stream</code>)</td>
-        <td>Socket Mode</td>
-        <td>Gateway</td>
-      </tr>
-      <tr>
-        <td>HITL</td>
-        <td>Yes (resume + resume/stream)</td>
-        <td>Yes</td>
-        <td>Yes</td>
-      </tr>
-      <tr>
-        <td>Commands</td>
-        <td><code>/help</code>, <code>/status</code>, <code>/clear</code> (built-in)</td>
-        <td>Slash commands</td>
-        <td>Slash commands</td>
-      </tr>
-      <tr>
-        <td>Sessions</td>
-        <td>Automatic (<code>conversation_id</code> &rarr; <code>session_handle</code>)</td>
-        <td>Thread-based</td>
-        <td>Thread-based</td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="callout callout-info">
+    <strong>Reference details</strong>
+    This page explains where WebChat fits architecturally. Endpoint-by-endpoint request and response details belong in the HTTP API reference rather than the channel overview itself.
+  </div>
 
   <!-- Pagination -->
   <div class="doc-pagination">
@@ -325,9 +213,9 @@ while (true) {
       <span class="label">Previous</span>
       <span class="title">&larr; Discord</span>
     </a>
-    <a href="/ChatAgentRelay/docs/agents/" class="next">
+    <a href="/ChatAgentRelay/docs/channels/telegram.html" class="next">
       <span class="label">Next</span>
-      <span class="title">Agents Overview &rarr;</span>
+      <span class="title">Telegram &rarr;</span>
     </a>
   </div>
 </main>

@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Multi-Agent Routing — Chat Agent Relay</title>
-  <meta name="description" content="Route messages to different AI agents based on channel, regex patterns, or defaults. Priority-based evaluation with hot-reloadable rules.">
+  <title>Routing — Chat Agent Relay</title>
+  <meta name="description" content="Routing in Chat Agent Relay determines which registered agent handles an inbound turn after governance and before agent invocation. This page explains route rules, evaluation order, and how routing fits on the canonical message path.">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
-  <meta property="og:title" content="Multi-Agent Routing — Chat Agent Relay">
-  <meta property="og:description" content="Route messages to different AI agents based on channel, regex patterns, or defaults. Priority-based multi-agent routing.">
+  <meta property="og:title" content="Routing — Chat Agent Relay">
+  <meta property="og:description" content="How Chat Agent Relay evaluates routing rules and selects the agent-side destination on the canonical message path.">
   <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/configuration/routing.html">
   <meta property="og:site_name" content="Chat Agent Relay">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Multi-Agent Routing — Chat Agent Relay">
-  <meta name="twitter:description" content="Priority-based routing rules: channel, pattern, and default match types for multi-agent setups.">
+  <meta name="twitter:title" content="Routing — Chat Agent Relay">
+  <meta name="twitter:description" content="How Chat Agent Relay evaluates routing rules and selects the agent-side destination on the canonical message path.">
 
   <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
   <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
@@ -45,8 +45,8 @@
   {
     "@context": "https://schema.org",
     "@type": "TechArticle",
-    "headline": "Multi-Agent Routing — Chat Agent Relay",
-    "description": "Route messages to different AI agents based on channel, regex patterns, or defaults with priority-based evaluation.",
+    "headline": "Routing — Chat Agent Relay",
+    "description": "Routing in Chat Agent Relay determines which registered agent handles an inbound turn after governance and before agent invocation. This page explains route rules, evaluation order, and how routing fits on the canonical message path.",
     "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/configuration/routing.html"
   }
   </script>
@@ -70,7 +70,7 @@
 <aside class="doc-sidebar">
   <div class="sidebar-group">
     <span class="sidebar-group-title">Getting Started</span>
-    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Quick Start</a>
+    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Overview</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Channels</span>
@@ -85,13 +85,13 @@
   <div class="sidebar-group">
     <span class="sidebar-group-title">Agents</span>
     <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
-    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Configuration</span>
     <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
-    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link active">Multi-Agent Routing</a>
-    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage Backends</a>
+    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link active">Routing</a>
+    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Concepts</span>
@@ -107,79 +107,92 @@
 
 <!-- Content -->
 <main class="doc-content">
-  <h1>Multi-Agent Routing</h1>
-  <p class="subtitle">Register multiple agents and define rules that determine which one handles each message.</p>
+  <h1>Routing</h1>
+  <p class="subtitle">Routing determines which registered agent handles an inbound turn after governance and before agent invocation. It is part of the canonical message path inside Chat Agent Relay, not a separate product surface.</p>
 
-  <h2 id="overview">Overview</h2>
+  <h2 id="where-routing-fits">Where routing fits</h2>
   <p>
-    Chat Agent Relay supports running multiple agents simultaneously. When a message arrives, the <strong>route engine</strong> evaluates rules in priority order to decide which agent should handle it. Rules are managed with <code>car route add</code> and stored in the configuration database.
+    Once an inbound message has crossed the channel boundary and been canonicalized, CAR evaluates governance on the message path. If the turn is allowed to continue, routing decides which registered agent should receive the invocation.
+  </p>
+  <pre><code>message.received
+  → policy.decision.made
+  → route.decision.made
+  → agent.invocation.requested</code></pre>
+  <p>
+    This keeps route choice explicit and replayable instead of hiding it in channel-specific or agent-specific logic.
   </p>
 
-  <h2 id="match-types">Match Types</h2>
-  <p>There are three match types, evaluated in this priority order:</p>
+  <h2 id="route-rule-types">Route rule types</h2>
+  <p>The current runtime supports three common rule types.</p>
   <table>
     <thead>
-      <tr><th>Priority</th><th>Type</th><th>Matches On</th><th>Example</th></tr>
+      <tr><th>Rule type</th><th>What it matches</th><th>Example</th></tr>
     </thead>
     <tbody>
-      <tr><td>1 (highest)</td><td><code>channel</code></td><td>Specific channel name</td><td><code>--channel=support-discord</code></td></tr>
-      <tr><td>2</td><td><code>pattern</code></td><td>Regex against message text</td><td><code>--pattern="^/code"</code></td></tr>
-      <tr><td>3 (lowest)</td><td><code>default</code></td><td>Everything else (catch-all route)</td><td><code>--default</code></td></tr>
+      <tr><td><code>channel</code></td><td>A specific registered channel instance</td><td><code>--channel=support-discord</code></td></tr>
+      <tr><td><code>pattern</code></td><td>A regular expression matched against inbound text</td><td><code>--pattern="^/code"</code></td></tr>
+      <tr><td><code>default</code></td><td>The fallback when no more specific rule matches</td><td><code>--default</code></td></tr>
     </tbody>
   </table>
+
+  <h2 id="evaluation-order">Evaluation order</h2>
+  <p>Rules are evaluated from more specific toward more general behavior.</p>
+  <ol>
+    <li><strong>Channel rules</strong> are checked first.</li>
+    <li><strong>Pattern rules</strong> are checked if no channel rule matches.</li>
+    <li><strong>Default rule</strong> is used if no earlier rule matches.</li>
+  </ol>
   <p>
-    The engine checks <code>channel</code> rules first. If none match, it tests <code>pattern</code> rules in order. If nothing matches, the <code>default</code> rule applies. If there is no default rule and nothing matches, the message is blocked with an <code>event.blocked</code> event.
+    If no route matches and no default route is present, the turn does not proceed to agent invocation. In that case, CAR records a blocked outcome on the canonical path.
   </p>
 
-  <h2 id="setup">Setting Up Routes</h2>
-  <p>First, register your agents:</p>
+  <h2 id="register-agents">Register agents before routes</h2>
+  <p>Routing targets registered agents, so register the agent-side destinations first.</p>
   <pre><code>car agent add general --endpoint=http://localhost:8080/a2a
 car agent add coder --endpoint=http://localhost:8081
 car agent add support --endpoint=http://localhost:9000</code></pre>
 
-  <p>Then define routing rules:</p>
-  <pre><code># Messages from the support channel go to the support agent
+  <h2 id="add-routes">Add routes</h2>
+  <p>Then create the rules that map inbound turns to those registered agents.</p>
+  <pre><code># Route a specific channel to a support agent
 car route add --channel=support-discord --agent=support
 
-# Messages starting with /code go to the coding agent
+# Route matching text to a coding agent
 car route add --pattern="^/code" --agent=coder
 
-# Everything else goes to the general agent
+# Route everything else to the default agent
 car route add --default --agent=general</code></pre>
 
-  <h2 id="evaluation">Evaluation Order</h2>
-  <p>When a message arrives from channel <code>support-discord</code> with text <code>/code fix the bug</code>:</p>
+  <h2 id="example-evaluation">Example evaluation</h2>
+  <p>For an inbound turn from channel <code>support-discord</code> with text <code>/code fix the bug</code>:</p>
   <ol>
-    <li>The engine checks channel rules &mdash; <code>support-discord</code> matches, routes to <strong>support</strong>.</li>
-    <li>Pattern rules are not evaluated because a channel rule already matched.</li>
+    <li>The runtime checks channel rules first.</li>
+    <li><code>support-discord</code> matches the configured channel rule.</li>
+    <li>The turn is routed to <code>support</code>.</li>
+    <li>Pattern rules are not consulted because a more specific rule already matched.</li>
   </ol>
-  <p>When a message arrives from channel <code>my-slack</code> with text <code>/code refactor the module</code>:</p>
+  <p>For an inbound turn from <code>my-slack</code> with text <code>/code refactor the module</code>:</p>
   <ol>
-    <li>No channel rule matches <code>my-slack</code>.</li>
-    <li>Pattern rule <code>^/code</code> matches, routes to <strong>coder</strong>.</li>
+    <li>No channel rule matches.</li>
+    <li>The pattern rule <code>^/code</code> matches.</li>
+    <li>The turn is routed to <code>coder</code>.</li>
   </ol>
-  <p>When a message arrives from <code>my-slack</code> with text <code>hello</code>:</p>
+  <p>For an inbound turn from <code>my-slack</code> with text <code>hello</code>:</p>
   <ol>
     <li>No channel rule matches.</li>
     <li>No pattern rule matches.</li>
-    <li>Default rule applies, routes to <strong>general</strong>.</li>
+    <li>The default rule routes the turn to <code>general</code>.</li>
   </ol>
 
-  <h2 id="managing">Managing Routes</h2>
-  <pre><code># List all routes
-car route list
+  <h2 id="manage-routes">Manage routes</h2>
+  <pre><code>car route list
+car route remove &lt;id&gt;</code></pre>
+  <p>
+    Use these commands to inspect the current route table and remove rules that are no longer wanted.
+  </p>
 
-# Remove a route by ID
-car route remove 2</code></pre>
-  <p>When the server is running, route changes take effect immediately via the HTTP API without restart.</p>
-
-  <div class="callout callout-tip">
-    <strong>Real-world multi-agent scenario</strong>
-    A company uses Slack for internal chat and Discord for customer support. They register three agents: a general-purpose assistant for everyday Slack questions, a specialized coding agent triggered by <code>/code</code> commands, and a customer-facing support agent for the Discord channel. All three share the same ledger and governance layer, but each handles only the traffic routed to it.
-  </div>
-
-  <h2 id="api">Route API</h2>
-  <p>Routes can also be managed via the HTTP API when the server is running:</p>
+  <h2 id="api-management">HTTP API management</h2>
+  <p>When the server runtime is active, route management can also be exposed through the HTTP API.</p>
   <pre><code># List routes
 curl -s http://localhost:3000/api/routes
 
@@ -191,6 +204,11 @@ curl -X POST http://localhost:3000/api/routes \
 # Remove a route
 curl -X DELETE http://localhost:3000/api/routes/2</code></pre>
 
+  <div class="callout callout-info">
+    <strong>Boundary discipline</strong>
+    Routing chooses the agent-side destination on the canonical message path. It does not turn CAR into an agent orchestration framework or a broad control-plane product; it remains one governed step in the relay path.
+  </div>
+
   <!-- Pagination -->
   <div class="doc-pagination">
     <a href="/ChatAgentRelay/docs/configuration/" class="prev">
@@ -199,7 +217,7 @@ curl -X DELETE http://localhost:3000/api/routes/2</code></pre>
     </a>
     <a href="/ChatAgentRelay/docs/configuration/storage.html" class="next">
       <span class="label">Next</span>
-      <span class="title">Storage Backends &rarr;</span>
+      <span class="title">Storage &rarr;</span>
     </a>
   </div>
 </main>

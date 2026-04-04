@@ -4,18 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DingTalk / 钉钉 — Chat Agent Relay</title>
-  <meta name="description" content="Connect DingTalk (钉钉) to your AI agents via Chat Agent Relay. Robot webhook callbacks, session-based reply, group and private chat support.">
+  <meta name="description" content="DingTalk is a channel adapter in Chat Agent Relay. It handles DingTalk-specific ingress and delivery behavior at the chat-platform boundary, including robot callbacks, session-based reply behavior, signature verification, and conversation-type-specific behavior.">
 
   <meta property="og:type" content="article">
   <meta property="og:title" content="DingTalk / 钉钉 — Chat Agent Relay">
-  <meta property="og:description" content="Integrate DingTalk robots with your AI agents using Chat Agent Relay.">
+  <meta property="og:description" content="Overview of the DingTalk / 钉钉 channel adapter in Chat Agent Relay.">
   <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/dingtalk.html">
   <meta property="og:site_name" content="Chat Agent Relay">
   <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
 
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="DingTalk / 钉钉 — Chat Agent Relay">
-  <meta name="twitter:description" content="DingTalk robot adapter for Chat Agent Relay with session webhook reply.">
+  <meta name="twitter:description" content="Overview of the DingTalk / 钉钉 channel adapter in Chat Agent Relay.">
   <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
 
   <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/dingtalk.html">
@@ -41,7 +41,7 @@
     "@context": "https://schema.org",
     "@type": "TechArticle",
     "headline": "DingTalk / 钉钉 — Chat Agent Relay",
-    "description": "Connect DingTalk (钉钉) robots to your AI agents via Chat Agent Relay.",
+    "description": "DingTalk is a channel adapter in Chat Agent Relay. It handles DingTalk-specific ingress and delivery behavior at the chat-platform boundary, including robot callbacks, session-based reply behavior, signature verification, and conversation-type-specific behavior.",
     "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/channels/dingtalk.html"
   }
   </script>
@@ -63,7 +63,7 @@
 <aside class="doc-sidebar">
   <div class="sidebar-group">
     <span class="sidebar-group-title">Getting Started</span>
-    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Quick Start</a>
+    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Overview</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Channels</span>
@@ -78,13 +78,13 @@
   <div class="sidebar-group">
     <span class="sidebar-group-title">Agents</span>
     <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
-    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Configuration</span>
     <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
-    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Multi-Agent Routing</a>
-    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage Backends</a>
+    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Routing</a>
+    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Concepts</span>
@@ -100,43 +100,58 @@
 
 <main class="doc-content">
   <h1>DingTalk / 钉钉</h1>
-  <p class="subtitle">Connect DingTalk (钉钉) robots to your AI agents. Supports robot webhook callbacks, session-based reply, group and private chat handling, and staff identity mapping.</p>
+  <p class="subtitle">DingTalk is a channel adapter in Chat Agent Relay. It handles DingTalk-specific ingress and delivery behavior at the chat-platform boundary, including robot callbacks, session-based reply behavior, signature verification, and conversation-type-specific behavior.</p>
+
+  <h2 id="dingtalk-boundary">DingTalk / 钉钉 boundary</h2>
+  <p>
+    The DingTalk adapter receives provider-native DingTalk robot callbacks, interprets them according to DingTalk's platform rules, canonicalizes them into CAR events, and translates outbound canonical intent back into DingTalk-native delivery behavior.
+  </p>
+  <p>
+    Once the callback has crossed that boundary, CAR continues on the same governed message path used for every other channel.
+  </p>
 
   <h2 id="prerequisites">Prerequisites</h2>
-  <p>Set up a DingTalk custom robot:</p>
+  <p>Set up a DingTalk robot for the conversation surface you want CAR to serve:</p>
   <ol>
-    <li><strong>Create a robot</strong> &mdash; in a DingTalk group, go to Group Settings &rarr; Smart Group Assistant &rarr; Add Robot &rarr; Custom Robot.</li>
-    <li><strong>Configure security</strong> &mdash; choose IP allowlist, custom keyword, or HMAC-SHA256 signature verification.</li>
-    <li><strong>Set the message callback URL</strong> &mdash; point it to your CAR server endpoint that handles DingTalk webhooks.</li>
-    <li><strong>Copy the webhook URL</strong> &mdash; for outgoing messages.</li>
+    <li><strong>Create a robot</strong> in the relevant DingTalk environment.</li>
+    <li><strong>Choose the security model</strong> appropriate for the deployment, such as IP allowlists, keyword checks, or signature-based verification.</li>
+    <li><strong>Configure the callback target</strong> so DingTalk can send inbound message events to the CAR deployment.</li>
+    <li><strong>Retain the webhook URL and related credentials</strong> needed for outbound replies and verification.</li>
   </ol>
 
-  <div class="callout callout-info">
-    <strong>Enterprise App Robot</strong>
-    For organization-wide deployment, create an Enterprise Internal App robot in the DingTalk Developer Console. This supports the full OpenAPI, richer message types, and more fine-grained permission control.
-  </div>
-
-  <h2 id="add-to-car">Add to CAR</h2>
+  <h2 id="registering">Registering DingTalk</h2>
+  <p>Register the channel with the <code>car</code> CLI:</p>
   <pre><code>car channel add my-dingtalk \
   --type=dingtalk \
   --webhook-url=https://oapi.dingtalk.com/robot/send?access_token=xxx</code></pre>
 
-  <h2 id="features">Features</h2>
+  <h2 id="dingtalk-specific-behavior">DingTalk-specific behavior</h2>
+  <table>
+    <thead>
+      <tr><th>Concern</th><th>DingTalk behavior at the boundary</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Ingress transport</td><td>The adapter receives DingTalk robot callbacks and canonicalizes them into CAR events</td></tr>
+      <tr><td>Reply behavior</td><td>DingTalk can provide a session-scoped reply webhook that the adapter uses for outbound delivery in the active conversation context</td></tr>
+      <tr><td>Conversation shape</td><td>Private and group conversation types influence how conversation continuity and actor context are mapped into the canonical path</td></tr>
+      <tr><td>Verification</td><td>The provider boundary can enforce DingTalk-specific verification rules such as signature validation</td></tr>
+      <tr><td>Provider metadata</td><td>DingTalk-specific message, sender, and conversation identifiers can be preserved in structured provider extension data</td></tr>
+    </tbody>
+  </table>
 
-  <h3 id="session-webhook">Session webhook reply</h3>
-  <p>Each incoming message includes a temporary <code>sessionWebhook</code> URL that allows direct reply to the conversation. CAR uses this by default for delivering responses, ensuring replies go to the correct group/DM context. The session webhook has an expiration time (typically 1 hour), which is tracked in <code>provider_extensions</code>.</p>
-
-  <h3 id="chat-types">Group and private chat</h3>
-  <p>The adapter supports both 1-on-1 conversations (<code>conversationType: "1"</code>) and group chats (<code>conversationType: "2"</code>). The <code>conversationType</code> is preserved in <code>provider_extensions</code>.</p>
-
-  <h3 id="staff-identity">Staff identity</h3>
-  <p>When available, the sender&rsquo;s <code>senderStaffId</code> and <code>senderCorpId</code> are preserved, enabling integration with enterprise identity systems.</p>
-
-  <h2 id="limitations">Limitations</h2>
+  <h2 id="chat-behavior">Chat behavior</h2>
+  <p>The adapter supports DingTalk conversation surfaces that matter at the provider boundary.</p>
   <ul>
-    <li><strong>No streaming</strong> &mdash; DingTalk&rsquo;s webhook API does not support message editing or progressive updates. Responses are delivered as a single message.</li>
-    <li><strong>Rate limiting</strong> &mdash; each robot can send a maximum of 20 messages per minute. Exceeding this triggers a 10-minute cooldown.</li>
-    <li><strong>Text only</strong> &mdash; only <code>msgtype: "text"</code> is currently supported for ingestion. Rich message types (Markdown, ActionCard) can be sent but not received.</li>
+    <li><strong>Private conversations</strong> — one-to-one message flows where the bot participates directly.</li>
+    <li><strong>Group conversations</strong> — shared chat surfaces where DingTalk-specific conversation metadata remains relevant at the edge.</li>
+    <li><strong>Session-scoped reply behavior</strong> — outbound replies can follow the provider's current conversation context instead of relying only on a long-lived global webhook.</li>
+  </ul>
+
+  <h2 id="limitations">Boundary limitations</h2>
+  <ul>
+    <li><strong>No progressive message editing</strong> — DingTalk's current robot delivery model does not provide the same streaming-style message update behavior available on some other channels.</li>
+    <li><strong>Provider rate limits</strong> — outbound throughput is constrained by DingTalk platform limits.</li>
+    <li><strong>Input shape constraints</strong> — inbound behavior depends on the message and callback formats DingTalk exposes at the robot boundary.</li>
   </ul>
 
   <h2 id="configuration">Configuration options</h2>
@@ -145,29 +160,21 @@
       <tr><th>Option</th><th>CLI flag</th><th>Required</th><th>Description</th></tr>
     </thead>
     <tbody>
-      <tr><td><code>webhookUrl</code></td><td><code>--webhook-url</code></td><td>No</td><td>Permanent webhook URL for the robot, used when DingTalk returns a refreshed <code>sessionWebhook</code> later in the conversation</td></tr>
-      <tr><td><code>secret</code></td><td><code>--secret</code></td><td>No</td><td>HMAC-SHA256 signing secret for signature verification</td></tr>
+      <tr><td><code>webhookUrl</code></td><td><code>--webhook-url</code></td><td>No</td><td>Robot webhook URL used for outbound delivery where a session-scoped reply URL is not available</td></tr>
+      <tr><td><code>secret</code></td><td><code>--secret</code></td><td>No</td><td>Secret used for DingTalk signature verification when enabled</td></tr>
     </tbody>
   </table>
 
   <h2 id="provider-extensions">Provider extensions</h2>
-  <table>
-    <thead>
-      <tr><th>Field</th><th>Type</th><th>Description</th></tr>
-    </thead>
-    <tbody>
-      <tr><td><code>msg_id</code></td><td>string</td><td>DingTalk message ID</td></tr>
-      <tr><td><code>conversation_type</code></td><td>string</td><td>1 (private) or 2 (group)</td></tr>
-      <tr><td><code>conversation_title</code></td><td>string</td><td>Group name (when in a group)</td></tr>
-      <tr><td><code>sender_staff_id</code></td><td>string</td><td>Enterprise staff ID (when available)</td></tr>
-      <tr><td><code>is_admin</code></td><td>boolean</td><td>Whether the sender is a group admin</td></tr>
-      <tr><td><code>session_webhook</code></td><td>string</td><td>Temporary reply webhook URL</td></tr>
-      <tr><td><code>chatbot_user_id</code></td><td>string</td><td>Robot user ID in DingTalk</td></tr>
-    </tbody>
-  </table>
+  <p>DingTalk-specific metadata can be preserved in structured provider extensions, including message identity, conversation type, conversation title, sender identity, and session reply webhook information.</p>
 
   <h2 id="idempotency">Idempotency</h2>
-  <p>The idempotency key is <code>dt-{msgId}</code>, preventing duplicate processing of the same message callback.</p>
+  <p>The adapter can use DingTalk message identity to deduplicate repeated callback deliveries at the provider boundary.</p>
+
+  <div class="callout callout-info">
+    <strong>Boundary discipline</strong>
+    The DingTalk adapter is responsible for DingTalk-specific transport and delivery behavior. Governance, routing, A2A invocation, replay, and auditability remain CAR core responsibilities on the canonical message path.
+  </div>
 
   <div class="doc-pagination">
     <a href="/ChatAgentRelay/docs/channels/lark.html">
@@ -176,7 +183,7 @@
     </a>
     <a href="/ChatAgentRelay/docs/agents/" class="next">
       <span class="label">Next</span>
-      <span class="title">Agents Overview &rarr;</span>
+      <span class="title">Agents &rarr;</span>
     </a>
   </div>
 </main>

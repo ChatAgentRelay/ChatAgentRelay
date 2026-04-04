@@ -3,20 +3,20 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>CLI &amp; Configuration — Chat Agent Relay</title>
-  <meta name="description" content="Full CLI command reference for Chat Agent Relay: car start, channel, agent, route, and config management. SQLite-backed configuration with AES-256-GCM encryption.">
+  <title>CLI &amp; Config — Chat Agent Relay</title>
+  <meta name="description" content="Configuration in Chat Agent Relay covers the runtime state needed to register channels, agents, routes, and settings for the canonical relay path. The car CLI manages that configuration and starts the server runtime.">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
-  <meta property="og:title" content="CLI &amp; Configuration — Chat Agent Relay">
-  <meta property="og:description" content="Manage channels, agents, routes, and settings with the car CLI. SQLite config store with optional AES-256-GCM encryption.">
+  <meta property="og:title" content="CLI &amp; Config — Chat Agent Relay">
+  <meta property="og:description" content="How Chat Agent Relay stores runtime configuration and how the car CLI manages channels, agents, routes, and settings.">
   <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/configuration/">
   <meta property="og:site_name" content="Chat Agent Relay">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="CLI &amp; Configuration — Chat Agent Relay">
-  <meta name="twitter:description" content="Full CLI reference for the car command: channels, agents, routes, config, and server management.">
+  <meta name="twitter:title" content="CLI &amp; Config — Chat Agent Relay">
+  <meta name="twitter:description" content="How Chat Agent Relay stores runtime configuration and how the car CLI manages channels, agents, routes, and settings.">
 
   <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
   <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
@@ -46,7 +46,7 @@
     "@context": "https://schema.org",
     "@type": "TechArticle",
     "headline": "CLI & Configuration — Chat Agent Relay",
-    "description": "Full CLI command reference for Chat Agent Relay: car start, channel, agent, route, and config management with SQLite-backed storage.",
+    "description": "Configuration in Chat Agent Relay covers the runtime state needed to register channels, agents, routes, and settings for the canonical relay path. The car CLI manages that configuration and starts the server runtime.",
     "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/configuration/"
   }
   </script>
@@ -70,7 +70,7 @@
 <aside class="doc-sidebar">
   <div class="sidebar-group">
     <span class="sidebar-group-title">Getting Started</span>
-    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Quick Start</a>
+    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Overview</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Channels</span>
@@ -85,13 +85,13 @@
   <div class="sidebar-group">
     <span class="sidebar-group-title">Agents</span>
     <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
-    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Configuration</span>
     <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link active">CLI &amp; Config</a>
-    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Multi-Agent Routing</a>
-    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage Backends</a>
+    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Routing</a>
+    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Concepts</span>
@@ -107,170 +107,111 @@
 
 <!-- Content -->
 <main class="doc-content">
-  <h1>CLI &amp; Configuration</h1>
-  <p class="subtitle">All runtime configuration lives in a SQLite database managed by the <code>car</code> CLI. Two environment variables, zero config files.</p>
+  <h1>CLI &amp; Config</h1>
+  <p class="subtitle">Configuration in Chat Agent Relay covers the runtime state needed to register channels, agents, routes, and settings for the canonical relay path. The <code>car</code> CLI is the main operational interface for managing that state and starting the server runtime.</p>
 
-  <h2 id="overview">Overview</h2>
+  <h2 id="configuration-role">What configuration means in CAR</h2>
   <p>
-    Chat Agent Relay uses a single <strong>SQLite database</strong> (configurable via <code>CAR_DB_PATH</code>) as its configuration store. The <code>car</code> CLI provides a complete command-line interface for managing channels, agents, routes, and settings. There are only two environment variables in the entire system:
+    CAR is a relay layer with explicit channel-side boundaries, an agent-side boundary, and a governed canonical message path in the middle. Configuration supplies the runtime state that tells CAR which channel adapters are registered, which agents are available, how routing decisions should be made, and what global settings apply to the running system.
   </p>
+  <p>
+    The goal of configuration is not to redefine CAR as a broad control plane. It is to provide the concrete runtime inputs needed for the relay path to operate consistently.
+  </p>
+
+  <h2 id="runtime-state">Runtime state CAR stores</h2>
+  <table>
+    <thead>
+      <tr><th>Category</th><th>What it controls</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Channels</td><td>Which chat-platform boundaries are registered and how each one authenticates or connects</td></tr>
+      <tr><td>Agents</td><td>Which remote agents are available behind the agent-side boundary</td></tr>
+      <tr><td>Routes</td><td>How inbound turns are matched to the appropriate agent</td></tr>
+      <tr><td>Settings</td><td>Runtime-wide values such as database path, encryption material, and similar operational parameters</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="environment">Environment inputs</h2>
+  <p>The default runtime uses a small environment surface.</p>
   <table>
     <thead>
       <tr><th>Variable</th><th>Default</th><th>Description</th></tr>
     </thead>
     <tbody>
-      <tr><td><code>CAR_DB_PATH</code></td><td><code>./car.db</code></td><td>Path to the SQLite configuration database</td></tr>
-      <tr><td><code>CAR_ENCRYPTION_KEY</code></td><td><em>(unset)</em></td><td>Hex-encoded 256-bit key for AES-256-GCM encryption of sensitive fields (tokens, API keys)</td></tr>
+      <tr><td><code>CAR_DB_PATH</code></td><td><code>./car.db</code></td><td>Path to the SQLite database used by the default runtime configuration and storage setup</td></tr>
+      <tr><td><code>CAR_ENCRYPTION_KEY</code></td><td><em>(unset)</em></td><td>Hex-encoded 256-bit key used to encrypt sensitive configuration fields</td></tr>
     </tbody>
   </table>
 
   <div class="callout callout-info">
-    <strong>Dual-mode operation</strong>
-    When the server is <em>stopped</em>, the CLI writes directly to the SQLite database. When the server is <em>running</em>, the CLI calls the HTTP API instead, enabling hot-reload of channels and agents without restart.
-  </div>
-
-  <div class="callout callout-tip">
-    <strong>Interactive mode</strong>
-    If you omit required parameters, the CLI prompts for them interactively. For example, <code>car channel add my-slack --type=slack</code> will prompt for the bot token and app token.
+    <strong>Encrypted configuration</strong>
+    Sensitive values such as tokens and API keys are encrypted when <code>CAR_ENCRYPTION_KEY</code> is set.
   </div>
 
   <h2 id="car-start"><code>car start</code></h2>
-  <p>Start the Chat Agent Relay server. This reads the configuration database, initializes all registered channels and agents, sets up route rules, and begins listening for incoming messages.</p>
+  <p>Start the CAR runtime with the currently registered channels, agents, routes, and settings.</p>
   <pre><code>car start [--port=3000] [--host=0.0.0.0]</code></pre>
-  <p>The server exposes the HTTP API on the configured port. Use <code>Ctrl+C</code> or send <code>SIGTERM</code> for graceful shutdown.</p>
+  <p>
+    On startup, the runtime loads configuration, initializes registered channel adapters and agent connections, and begins serving the relay path.
+  </p>
 
-  <h2 id="car-channel"><code>car channel</code></h2>
-  <p>Manage channel adapters. All six types &mdash; <code>slack</code>, <code>discord</code>, <code>webchat</code>, <code>telegram</code>, <code>lark</code>, and <code>dingtalk</code> &mdash; are wired into the server runtime and registered via this CLI.</p>
+  <h2 id="channel-commands"><code>car channel</code></h2>
+  <p>Manage registered channel adapters at the chat-platform boundary.</p>
+  <pre><code>car channel add &lt;name&gt; --type=&lt;channel-type&gt; [options]
+car channel list
+car channel show &lt;name&gt;
+car channel enable &lt;name&gt;
+car channel disable &lt;name&gt;
+car channel remove &lt;name&gt;</code></pre>
+  <p>Use this command group to register and manage Slack, Discord, WebChat, Telegram, Lark, DingTalk, and other channel instances supported by the current runtime.</p>
 
-  <h3 id="channel-add"><code>car channel add</code></h3>
-  <pre><code>car channel add &lt;name&gt; --type=&lt;slack|discord|webchat|telegram|lark|dingtalk&gt; [options]
-
-# Examples
-car channel add my-slack --type=slack \
-  --bot-token=xoxb-... --app-token=xapp-...
-
-car channel add support-discord --type=discord \
-  --bot-token=MTIz... --app-id=123456
-
-car channel add web --type=webchat \
-  --allowed-origins=https://example.com</code></pre>
-  <p>Sensitive values like tokens are encrypted at rest when <code>CAR_ENCRYPTION_KEY</code> is set.</p>
-
-  <h3 id="channel-list"><code>car channel list</code></h3>
-  <pre><code>car channel list
-
-# Output:
-# NAME              TYPE      ENABLED
-# my-slack          slack     true
-# support-discord   discord   true
-# web               webchat   true</code></pre>
-
-  <h3 id="channel-show"><code>car channel show</code></h3>
-  <pre><code>car channel show &lt;name&gt;</code></pre>
-  <p>Displays full configuration for a channel. Sensitive fields are masked.</p>
-
-  <h3 id="channel-enable-disable"><code>car channel enable|disable</code></h3>
-  <pre><code>car channel enable &lt;name&gt;
-car channel disable &lt;name&gt;</code></pre>
-  <p>Toggle a channel on or off without removing its configuration.</p>
-
-  <h3 id="channel-remove"><code>car channel remove</code></h3>
-  <pre><code>car channel remove &lt;name&gt;</code></pre>
-
-  <h2 id="car-agent"><code>car agent</code></h2>
-  <p>Manage agent backends. All agents connect via the <strong>A2A protocol</strong> and are registered via this CLI.</p>
-
-  <h3 id="agent-add"><code>car agent add</code></h3>
+  <h2 id="agent-commands"><code>car agent</code></h2>
+  <p>Manage registered agents at the agent-side boundary.</p>
   <pre><code>car agent add &lt;name&gt; --endpoint=&lt;url&gt; [options]
+car agent list
+car agent show &lt;name&gt;
+car agent enable &lt;name&gt;
+car agent disable &lt;name&gt;
+car agent remove &lt;name&gt;</code></pre>
+  <p>
+    In the current repository, agents are registered as remote A2A endpoints behind the standard agent-side boundary.
+  </p>
 
-# Examples
-car agent add primary \
-  --endpoint=http://localhost:8080/a2a
-
-car agent add support \
-  --endpoint=http://agents.internal:9000</code></pre>
-
-  <h3 id="agent-list"><code>car agent list</code></h3>
-  <pre><code>car agent list
-
-# Output:
-# NAME       TYPE        ENABLED
-# primary    a2a         true
-# support    a2a         true</code></pre>
-
-  <h3 id="agent-show"><code>car agent show</code></h3>
-  <pre><code>car agent show &lt;name&gt;</code></pre>
-
-  <h3 id="agent-enable-disable"><code>car agent enable|disable</code></h3>
-  <pre><code>car agent enable &lt;name&gt;
-car agent disable &lt;name&gt;</code></pre>
-
-  <h3 id="agent-remove"><code>car agent remove</code></h3>
-  <pre><code>car agent remove &lt;name&gt;</code></pre>
-
-  <h2 id="car-route"><code>car route</code></h2>
-  <p>Manage routing rules that determine which agent handles each message.</p>
-
-  <h3 id="route-add"><code>car route add</code></h3>
+  <h2 id="route-commands"><code>car route</code></h2>
+  <p>Manage routing rules that determine which registered agent handles an inbound turn.</p>
   <pre><code>car route add --default --agent=&lt;name&gt;
 car route add --channel=&lt;channel-name&gt; --agent=&lt;name&gt;
 car route add --pattern="regex" --agent=&lt;name&gt;
+car route list
+car route remove &lt;id&gt;</code></pre>
+  <p>
+    See the <a href="/ChatAgentRelay/docs/configuration/routing.html">Routing</a> page for rule semantics and evaluation behavior.
+  </p>
 
-# Examples
-car route add --default --agent=primary
-car route add --channel=support-discord --agent=coder
-car route add --pattern="^/code" --agent=coder</code></pre>
-
-  <h3 id="route-list"><code>car route list</code></h3>
-  <pre><code>car route list
-
-# Output:
-# ID  TYPE      MATCH              AGENT
-# 1   channel   support-discord    coder
-# 2   pattern   ^/code             coder
-# 3   default   *                  primary</code></pre>
-
-  <h3 id="route-remove"><code>car route remove</code></h3>
-  <pre><code>car route remove &lt;id&gt;</code></pre>
-
-  <h2 id="car-config"><code>car config</code></h2>
-  <p>Manage key-value settings.</p>
-
-  <h3 id="config-set"><code>car config set</code></h3>
+  <h2 id="config-commands"><code>car config</code></h2>
+  <p>Manage key-value settings stored in the runtime configuration layer.</p>
   <pre><code>car config set &lt;key&gt; &lt;value&gt;
+car config get &lt;key&gt;
+car config list</code></pre>
 
-# Example
-car config set log_level debug</code></pre>
+  <h2 id="status-command"><code>car status</code></h2>
+  <p>Show a summary of the current registered runtime state.</p>
+  <pre><code>car status</code></pre>
 
-  <h3 id="config-get"><code>car config get</code></h3>
-  <pre><code>car config get &lt;key&gt;</code></pre>
-
-  <h3 id="config-list"><code>car config list</code></h3>
-  <pre><code>car config list
-
-# Output:
-# KEY          VALUE
-# log_level    debug</code></pre>
-
-  <h2 id="car-status"><code>car status</code></h2>
-  <p>Show a summary of the current configuration: registered channels, agents, routes, and whether the server is running.</p>
-  <pre><code>car status
-
-# Output:
-# Server:   running (pid 12345, port 3000)
-# Channels: 2 registered (2 enabled)
-# Agents:   3 registered (3 enabled)
-# Routes:   3 rules</code></pre>
+  <div class="callout callout-info">
+    <strong>Boundary discipline</strong>
+    The CLI and configuration layer exist to wire the relay runtime together. They do not change the architectural role of CAR: channel boundaries, canonical message path, A2A agent boundary, delivery, replay, and audit remain the core model.
+  </div>
 
   <!-- Pagination -->
   <div class="doc-pagination">
     <a href="/ChatAgentRelay/docs/agents/a2a.html" class="prev">
       <span class="label">Previous</span>
-      <span class="title">&larr; A2A Protocol</span>
+      <span class="title">&larr; A2A</span>
     </a>
     <a href="/ChatAgentRelay/docs/configuration/routing.html" class="next">
       <span class="label">Next</span>
-      <span class="title">Multi-Agent Routing &rarr;</span>
+      <span class="title">Routing &rarr;</span>
     </a>
   </div>
 </main>

@@ -4,19 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Pipeline — Chat Agent Relay</title>
-  <meta name="description" content="Chat Agent Relay pipeline: FirstExecutablePathPipeline orchestrates canonicalize, policy, route, agent invocation, and delivery. Streaming, error handling, and HITL flow.">
+  <meta name="description" content="Chat Agent Relay pipeline: the governed message path from canonical inbound events through routing, A2A invocation, delivery, and auditability.">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
   <meta property="og:title" content="Pipeline — Chat Agent Relay">
-  <meta property="og:description" content="FirstExecutablePathPipeline: the core orchestrator for policy, routing, agent invocation, streaming, error handling, and HITL.">
+  <meta property="og:description" content="The governed message path from canonical inbound events through routing, A2A invocation, delivery, and auditability.">
   <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/concepts/pipeline.html">
   <meta property="og:site_name" content="Chat Agent Relay">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Pipeline — Chat Agent Relay">
-  <meta name="twitter:description" content="Core pipeline orchestrator: policy, routing, agent invocation, streaming, error handling, and human-in-the-loop.">
+  <meta name="twitter:description" content="How CAR processes the canonical message path from governance through delivery.">
 
   <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
   <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
@@ -46,7 +46,7 @@
     "@context": "https://schema.org",
     "@type": "TechArticle",
     "headline": "Pipeline — Chat Agent Relay",
-    "description": "FirstExecutablePathPipeline orchestrates canonicalize, policy, route, agent invocation, and delivery with streaming and HITL support.",
+    "description": "The governed message path from canonical inbound events through routing, A2A invocation, delivery, and auditability.",
     "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/concepts/pipeline.html"
   }
   </script>
@@ -70,7 +70,7 @@
 <aside class="doc-sidebar">
   <div class="sidebar-group">
     <span class="sidebar-group-title">Getting Started</span>
-    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Quick Start</a>
+    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Overview</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Channels</span>
@@ -85,13 +85,13 @@
   <div class="sidebar-group">
     <span class="sidebar-group-title">Agents</span>
     <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
-    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A Protocol</a>
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Configuration</span>
     <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
-    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Multi-Agent Routing</a>
-    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage Backends</a>
+    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Routing</a>
+    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage</a>
   </div>
   <div class="sidebar-group">
     <span class="sidebar-group-title">Concepts</span>
@@ -108,92 +108,94 @@
 <!-- Content -->
 <main class="doc-content">
   <h1>Pipeline</h1>
-  <p class="subtitle">The <code>FirstExecutablePathPipeline</code> is the core orchestrator that ties together policy, routing, agent invocation, and delivery into a single coherent flow.</p>
+  <p class="subtitle">The pipeline is the governed canonical message path inside Chat Agent Relay. It starts after inbound traffic has been canonicalized and continues through governance, routing, A2A invocation, delivery, and append-only recording.</p>
 
   <h2 id="overview">Overview</h2>
   <p>
-    The pipeline receives a canonical <code>message.received</code> event and drives it through every stage: governance, routing, agent invocation, and delivery. Each stage emits events to the ledger, building the causal chain. If any stage fails or denies, the pipeline emits <code>event.blocked</code> and stops.
+    Channel adapters sit at the provider boundary and canonicalize inbound traffic into <code>message.received</code>. From that point onward, the pipeline operates on canonical events rather than provider-native payloads.
+  </p>
+  <p>
+    The pipeline exists to preserve one stable relay path regardless of channel or agent implementation details.
   </p>
 
-  <h2 id="flow">Pipeline Flow</h2>
+  <h2 id="core-path">Core message-path flow</h2>
   <pre><code>message.received
-  │
-  ├─▶ canonicalize     Convert platform message to canonical event
-  │
-  ├─▶ policy           Evaluate governance rules (policyFn)
-  │     ├─ allow ──▶ continue
-  │     └─ deny  ──▶ event.blocked → stop
-  │
-  ├─▶ route            Select agent (routeFn → resolveAgent)
-  │
-  ├─▶ agent            Invoke the selected agent
-  │     ├─ success ──▶ agent.response.completed
-  │     ├─ stream  ──▶ deltas → agent.response.completed
-  │     └─ error   ──▶ event.blocked → stop
-  │
-  └─▶ delivery         Send response via channel adapter (createSender)
-        ├─ success ──▶ message.sent
-        └─ exhaust ──▶ event.blocked (DeliveryExhaustedError)</code></pre>
+  → policy.decision.made
+  → route.decision.made
+  → agent.invocation.requested
+  → agent.response.completed
+  → message.send.requested
+  → message.sent</code></pre>
 
-  <h2 id="config">PipelineConfig</h2>
-  <p>The pipeline is configured with a <code>PipelineConfig</code> object that wires together all the components:</p>
+  <p>
+    If the path is denied, blocked, or fails terminally, CAR records <code>event.blocked</code> instead of silently dropping the outcome.
+  </p>
 
+  <h2 id="stages">Pipeline stages</h2>
   <table>
     <thead>
-      <tr><th>Property</th><th>Type</th><th>Description</th></tr>
+      <tr><th>Stage</th><th>Responsibility</th><th>Canonical outcome</th></tr>
     </thead>
     <tbody>
-      <tr><td><code>channelAdapter</code></td><td><code>ChannelAdapter</code></td><td>The channel adapter that canonicalizes input and creates senders for delivery</td></tr>
-      <tr><td><code>resolveAgent</code></td><td><code>(name: string) =&gt; AgentAdapter</code></td><td>Resolves an agent adapter by name from the registry</td></tr>
-      <tr><td><code>routeFn</code></td><td><code>(event) =&gt; string</code></td><td>Returns the agent name for a given event (from route rules)</td></tr>
-      <tr><td><code>policyFn</code></td><td><code>(event) =&gt; PolicyResult</code></td><td>Evaluates governance rules; returns allow or deny with reason</td></tr>
-      <tr><td><code>ledgerStore</code></td><td><code>LedgerStore</code></td><td>Where events are appended</td></tr>
-      <tr><td><code>streaming</code></td><td><code>boolean</code></td><td>Whether to use streaming invocation when the agent supports it</td></tr>
+      <tr><td>Inbound entry</td><td>Accept the canonical <code>message.received</code> event produced by the channel boundary</td><td><code>message.received</code></td></tr>
+      <tr><td>Inbound governance</td><td>Evaluate message-path policy before routing</td><td><code>policy.decision.made</code> or <code>event.blocked</code></td></tr>
+      <tr><td>Routing</td><td>Select which registered agent should handle the turn</td><td><code>route.decision.made</code></td></tr>
+      <tr><td>Agent invocation</td><td>Pass the turn to the agent-side boundary through A2A</td><td><code>agent.invocation.requested</code>, then <code>agent.response.completed</code> or <code>event.blocked</code></td></tr>
+      <tr><td>Outbound governance</td><td>Evaluate outbound content before delivery</td><td>continue or <code>event.blocked</code></td></tr>
+      <tr><td>Delivery</td><td>Translate canonical outbound intent into provider-native send behavior</td><td><code>message.send.requested</code>, then <code>message.sent</code> or <code>event.blocked</code></td></tr>
+      <tr><td>Ledger append</td><td>Preserve replayable, auditable history of the path</td><td>append-only record of all relevant outcomes</td></tr>
     </tbody>
   </table>
 
-  <h2 id="streaming">Streaming</h2>
+  <h2 id="sequence">Illustrative sequence</h2>
+  <pre><code>channel adapter
+  → message.received
+  → policy.decision.made
+  → route.decision.made
+  → agent.invocation.requested
+  → agent.response.completed
+  → message.send.requested
+  → message.sent</code></pre>
+
   <p>
-    When <code>streaming</code> is enabled and the agent adapter implements <code>stream()</code>, the pipeline receives incremental deltas as the agent generates its response. Each delta can be forwarded to the chat platform in real time (e.g., updating a Slack message progressively).
+    The important architectural point is that the pipeline processes canonical events. Provider-specific input handling belongs at the channel boundary, and runtime-specific execution behavior belongs behind the agent-side boundary.
   </p>
-  <p>The flow for streaming:</p>
-  <ol>
-    <li>Pipeline calls <code>agent.stream(context)</code></li>
-    <li>Agent yields <code>text_delta</code>, <code>status</code>, <code>input_required</code>, and <code>artifact</code> events via an async generator</li>
-    <li>Each event is forwarded to the channel adapter's update mechanism</li>
-    <li>When the generator returns, the full response is captured in <code>agent.response.completed</code></li>
-    <li>Delivery proceeds with the final message</li>
-  </ol>
 
-  <div class="callout callout-info">
-    <strong>Streaming support</strong>
-    The A2A adapter supports streaming natively via SSE using the <code>message/stream</code> JSON-RPC method. If an agent does not support streaming, the pipeline falls back to <code>invoke()</code> automatically.
-  </div>
-
-  <h2 id="error-handling">Error Handling</h2>
+  <h2 id="blocked-outcomes">Blocked and failed outcomes</h2>
   <p>
-    The pipeline catches errors at every stage and converts them into <code>event.blocked</code> events. This ensures the ledger always records what happened, even on failure:
+    The pipeline preserves blocked and terminal failure paths in auditable form.
   </p>
   <ul>
-    <li><strong>Policy deny</strong> &mdash; <code>policyFn</code> returns <code>{ allow: false, reason: "..." }</code>. An <code>event.blocked</code> is emitted with the deny reason.</li>
-    <li><strong>Agent error</strong> &mdash; The agent throws, times out, or returns an error. An <code>event.blocked</code> is emitted with the error details.</li>
-    <li><strong>Delivery exhaustion</strong> &mdash; The delivery orchestrator retries with exponential backoff. If all retries fail, a <code>DeliveryExhaustedError</code> triggers <code>event.blocked</code>.</li>
+    <li><strong>Inbound deny</strong> — policy rejects the message before routing.</li>
+    <li><strong>Invocation failure</strong> — the agent-side boundary returns a structured failure.</li>
+    <li><strong>Outbound deny</strong> — outbound governance blocks the response before delivery.</li>
+    <li><strong>Delivery exhaustion</strong> — delivery behavior fails terminally after retry handling where applicable.</li>
+  </ul>
+  <p>
+    In these cases, CAR records <code>event.blocked</code> so the message path remains explainable from the ledger.
+  </p>
+
+  <h2 id="streaming-and-resume">Streaming and resumable interaction</h2>
+  <p>
+    Streaming and resumable interaction are extension capabilities layered onto the same relay path. They do not replace the final canonical completion event.
+  </p>
+  <ul>
+    <li><strong>Streaming</strong> — if both the agent-side boundary and the channel-side delivery path support it, partial output can be surfaced progressively while still ending in a final <code>agent.response.completed</code>.</li>
+    <li><strong>Resumable interaction / HITL</strong> — if an agent requests additional human input, CAR can map that flow into canonical events such as <code>agent.input.requested</code> and <code>agent.input.provided</code>, then resume the interaction.</li>
   </ul>
 
-  <h2 id="hitl">Human-in-the-Loop (HITL)</h2>
+  <div class="callout callout-info">
+    <strong>Extension behavior</strong>
+    Streaming, status updates, resumable interaction, cancellation, and artifacts are useful relay extensions, but the core pipeline remains the canonical message path from <code>message.received</code> to either completion or <code>event.blocked</code>.
+  </div>
+
+  <h2 id="current-implementation">Current implementation</h2>
   <p>
-    Some agents need human input mid-conversation (e.g., approval, clarification). The pipeline supports this through two special events:
+    In the current repository, the main implementation of this flow lives in <code>FirstExecutablePathPipeline</code>. That class is an implementation detail of the current codebase, not the architectural definition of the pipeline itself.
   </p>
-  <ol>
-    <li>The agent emits <code>agent.input.requested</code> describing what input it needs.</li>
-    <li>The pipeline surfaces this to the user via the channel adapter.</li>
-    <li>When the user responds, an <code>agent.input.provided</code> event captures their input.</li>
-    <li>The pipeline resumes the agent with the provided input.</li>
-  </ol>
-  <pre><code>agent.invocation.requested
-  └─▶ agent.input.requested   ← agent pauses, asks for input
-        └─▶ agent.input.provided   ← user provides input
-              └─▶ agent.response.completed   ← agent resumes and completes</code></pre>
+  <p>
+    Other implementation details, such as route resolution callbacks, policy functions, and delivery orchestration helpers, exist to realize the same relay-centered message path described above.
+  </p>
 
   <!-- Pagination -->
   <div class="doc-pagination">
@@ -210,7 +212,6 @@
 
 </div>
 
-<!-- Mobile sidebar toggle -->
 <button class="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
 
 <!-- Footer -->

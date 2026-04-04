@@ -1,309 +1,248 @@
-# RFC: Chat Agent Relay Backend Agent Adapter Contract
+# RFC: Chat Agent Relay Agent-Side Adapter Contract
 
 | | |
 |---|---|
 | **Status** | Draft |
 | **Author** | Claude Code |
-| **Audience** | Backend runtime / workflow adapter implementers |
-| **Version** | v0.2 |
-| **Last Updated** | 2026-03-30 |
+| **Audience** | Agent-side adapter implementers |
+| **Version** | v0.3 |
+| **Last Updated** | 2026-04-02 |
 
 ## 1. Abstract
 
-This RFC defines the backend-facing contract that allows Chat Agent Relay (CAR) to integrate multiple agent and workflow runtimes without coupling the middleware core to a single framework.
+This RFC defines the agent-side contract that allows Chat Agent Relay (CAR) to invoke agents without coupling the relay core to agent-private runtime objects.
+
+CAR is a standard relay layer between chat platforms and agents. On the agent side, CAR uses **A2A** as the standard protocol boundary. This RFC defines the contract at that boundary and the responsibilities that remain on the CAR side versus the agent side.
+
+This document explicitly separates:
+- **Core** — the normative agent-side contract required for CAR's relay identity
+- **Extension** — optional but aligned agent-side capabilities
+- **Future Considerations** — non-normative directions that are not current conformance requirements
 
 ## 2. Purpose
 
-This RFC defines the stable boundary between middleware and arbitrary Agent / workflow runtimes.
+This RFC defines the stable boundary between the CAR message path and the agent-side integration boundary.
 
-## 3. Normative Language
+## 3. Product Boundary
 
-The key words **MUST**, **MUST NOT**, **SHOULD**, **SHOULD NOT**, and **MAY** are to be interpreted as described in RFC 2119.
+For this RFC, the agent-side adapter contract is responsible for:
+- receiving canonical invocation intent from CAR
+- invoking agents through the standard agent-side boundary
+- mapping agent outcomes back into canonical CAR semantics
+- preserving correlation, causation, and session continuity relevant to the relay path
 
-## 4. Minimum Kernel Scope
+For this RFC, the agent-side adapter contract is not:
+- a general-purpose runtime abstraction for arbitrary workflow engines
+- a platform for exposing framework-private execution objects
+- an agent-internal governance or tool-execution control plane
+- a replacement for CAR's canonical audit and replay model
 
-The minimum CAR kernel does not need every possible runtime abstraction. It MUST only support enough to prove the backend boundary is stable:
-- create or resume backend session mapping
-- handle one canonical invocation event
-- emit one completed response or structured error
-- propagate trace / correlation
+## 4. Layering Model
 
-Streaming, tool events, cancellation, and handoff signaling SHOULD be designed in from the start, but MAY arrive in phases.
+### 4.1 Core
 
-## 5. Goals
+Core semantics define the minimum stable agent-side contract that a conforming CAR implementation MUST preserve.
 
-- Support multiple backend runtimes
-- Isolate framework-specific objects
-- Preserve unified semantics for session / streaming / tool call / error / handoff
-- Ensure trace / correlation / idempotency can pass through on both sides of the boundary
+### 4.2 Extension
 
-## Non-Goals
+Extension semantics add useful but optional capabilities that fit CAR's relay model without redefining it.
 
-- Not require all backends to use the same runtime
-- Not require backends to expose the same internal memory / tool engine
-- Not require the platform core to understand backend-private objects
+### 4.3 Future Considerations
 
-## Required Operations
+Future considerations preserve direction for later exploration, but MUST NOT be interpreted as current conformance requirements.
 
-### `describeCapabilities()`
-Returns the capabilities supported by the backend adapter:
-- sync response
-- async callback
-- streaming
-- tool events
-- cancel
-- session resume
-- human handoff signaling
+## 5. Core Contract Statement
 
-### `createOrResumeSession(request)`
-Purpose:
-- Establish or resume a backend session in the backend runtime
-- Map platform conversation / session to backend session
+The CAR core message path reaches the agent side through one standard boundary:
 
-Rules:
-- Backend session and platform `conversation_id` / `session_id` MUST be kept distinct; they MUST NOT be conflated
-- The adapter is responsible for runtime mapping
-- The middleware core is responsible for canonical conversation identity
+`route.decision.made -> agent.invocation.requested -> A2A invocation -> agent.response.completed or event.blocked`
 
-### `handleEvent(event)`
-Receives a canonical event and processes it.
+A conforming CAR implementation MUST preserve this boundary as a relay contract rather than exposing framework-private runtime internals.
 
-Input:
-- canonical event envelope
-- optional invocation context
+## 6. Core Responsibilities
 
-Output:
-- sync response event(s)
-- or accepted async work handle
-- or structured error
+### 6.1 CAR Owns
 
-### `streamResponse(request)`
-Optional.
+CAR owns:
+- canonical conversation identity
+- governance on the message path
+- route decisions
+- delivery behavior
+- append-only recording, replay, and audit
 
-If supported, backend may emit:
-- `agent.response.delta`
-- `tool.call.requested`
-- `tool.result.received`
-- `agent.response.completed`
-- `error.occurred`
+### 6.2 Agent-Side Adapter Owns
 
-### `cancel(request)`
-Optional.
+The agent-side adapter owns:
+- speaking the A2A protocol to the remote agent
+- mapping CAR invocation context into the A2A request model
+- mapping A2A results back into canonical CAR events or structured failures
+- preserving runtime-specific session handles without redefining CAR's canonical session identity
 
-Used for:
-- user cancellation
-- route change
-- handoff to human
-- timeout enforcement
+### 6.3 Agent Runtime Owns
 
-### `healthCheck()`
-Used by control plane / gateway for readiness and routing safety.
+The remote agent runtime owns:
+- its internal execution model
+- its private memory and checkpoint model
+- its internal tool usage and framework-private runtime objects
 
-## Return Semantics
+The runtime MUST NOT become the sole source of truth for CAR audit or replay.
 
-Backend adapter must support at least one of:
-- synchronous request/response
-- asynchronous callback / event emission
-- streaming partial output
+## 7. Core Operations
 
-Recommended priority for v1:
-- sync + streaming
+### 7.1 describeCapabilities()
 
-## Event Mapping Rules
+The agent-side adapter MUST declare the capabilities it supports for the relay path.
 
-The following runtime outcomes must be represented as canonical events, not private callbacks:
-- model / agent reply
-- tool call intent
-- tool result
-- handoff request
-- escalation
-- structured error
+Core capability concerns include:
+- synchronous completion support
+- streaming support
+- resumable interaction support
+- cancellation support
+- artifact support where applicable
 
-## Structured Error Contract
+### 7.2 invoke(context)
 
-All errors must include:
-- `code`
-- `message`
-- `retryable`
-- `category`
-- optional `details`
-- `correlation_id`
-- optional `causation_id`
+The adapter MUST accept CAR invocation context and attempt one agent-side invocation through A2A.
 
-Suggested categories:
-- `invalid_request`
-- `timeout`
-- `dependency_failure`
-- `policy_denied`
-- `tool_failure`
-- `session_not_found`
-- `backend_unavailable`
+Core rules:
+- the input MUST be grounded in a canonical `agent.invocation.requested` event
+- the adapter MUST map the invocation into the A2A request model
+- the adapter MUST return a canonical success result or a structured failure
+- the adapter MUST NOT leak framework-private objects across the boundary
 
-## Trace and Correlation
+### 7.3 Success Mapping
 
-Backend adapter must preserve:
+On success, the adapter MUST return a schema-valid `agent.response.completed` canonical event.
+
+Required properties:
+- preserve `correlation_id`
+- set `causation_id` to the invocation event identifier
+- preserve the relay's canonical conversation/session scope
+- carry the agent's result as canonical payload content
+
+### 7.4 Failure Mapping
+
+On failure, the adapter MUST return a structured failure result rather than throwing framework-specific exceptions across the boundary.
+
+The failure MUST preserve:
+- error code
+- human-readable message
+- retryability
+- category
+- correlation identity
+
+## 8. Core Session Boundary
+
+### 8.1 CAR Session Identity
+
+CAR owns canonical session and conversation identity used for routing, governance, replay, and audit.
+
+### 8.2 Agent Runtime Session Identity
+
+The agent runtime MAY maintain runtime-specific session handles or task identifiers.
+
+These MUST remain distinct from CAR's canonical identifiers.
+
+### 8.3 Mapping Rule
+
+The adapter is responsible for mapping between CAR canonical session identity and runtime-specific session handles without conflating them.
+
+## 9. Core Correlation and Audit Rules
+
+The adapter MUST preserve:
 - `correlation_id`
 - `causation_id`
-- `trace_context`
-- adapter-specific request id in `provider_extensions` or runtime metadata
+- any relay-relevant trace context passed by CAR
+- adapter/request identifiers needed for explainability
 
-## Tool Events
+The adapter MUST NOT make CAR dependent on runtime-private state for understanding what happened on the message path.
 
-Two supported models:
-1. backend executes tools internally and emits canonical result events
-2. backend requests tool execution and platform or external orchestrator fulfills them
+## 10. Extension Capabilities
 
-In both cases, canonical events remain the public contract.
+The following capabilities are aligned with CAR but are not required for all conforming implementations.
 
-## Handoff Semantics
+### 10.1 Streaming
 
-Backend may request:
-- `handoff.requested`
+An adapter MAY support streaming partial output when the remote agent and channel path support it.
 
-Platform may then:
-- route to human queue
-- cancel backend stream
-- later resume automation with a new `agent.invocation.requested`
+Streaming is an extension of the relay path, not a replacement for the final canonical completion event.
 
-Handoff state is owned by platform event ledger and projections, not backend private memory.
+### 10.2 Resumable Interaction and HITL
 
-### Handoff State Machine
-```mermaid
-stateDiagram-v2
-    [*] --> automated
-    automated --> handoff_requested: handoff.requested
-    handoff_requested --> human_active: handoff.started
-    human_active --> automated: handoff.completed
-    handoff_requested --> automated: route back to automation
-```
+An adapter MAY support resumable flows where the agent requests additional user input and CAR later resumes the interaction.
 
-## Session Boundary
+This is acceptable when it remains within the relay boundary and maps back into canonical events such as:
+- `agent.input.requested`
+- `agent.input.provided`
+- `agent.status.changed`
 
-### Platform owns
-- `tenant_id`
-- `workspace_id`
-- `channel`
-- `channel_instance_id`
-- `conversation_id`
-- canonical `session_id`
-- route / policy / audit history
+### 10.3 Cancellation
 
-### Backend owns
-- runtime-specific session handles
-- internal memory checkpoints
-- framework-specific run ids
+An adapter MAY support cancellation when the remote agent and runtime model allow it.
 
-Adapter maps between them.
+### 10.4 Artifacts
 
-## Example Shape
+An adapter MAY support structured artifacts returned by the agent so long as they map back into CAR semantics without redefining CAR as an artifact-management system.
 
-```json
-{
-  "operation": "handleEvent",
-  "event": {
-    "event_id": "evt_103",
-    "event_type": "agent.invocation.requested",
-    "tenant_id": "tenant_acme",
-    "workspace_id": "ws_support",
-    "conversation_id": "conv_1",
-    "session_id": "sess_1",
-    "correlation_id": "corr_1",
-    "payload": {
-      "backend": "support-agent",
-      "input_event_id": "evt_100"
-    }
-  }
-}
-```
+## 11. Future Considerations
 
-## Ownership Boundary
+The following directions are intentionally non-normative in this RFC.
 
-- **backend adapter** is responsible for runtime invocation and runtime-object mapping
-- **middleware core** is responsible for canonical conversation identity, routing, governance, and recording
-- **backend runtime** MUST NOT be the sole source of truth for audit / replay
+### 11.1 Rich Runtime-Specific Lifecycle Modeling
 
-## 6. Versioning and Phases
+Examples:
+- detailed internal workflow graph states
+- framework-private checkpoint semantics
+- execution-engine-specific event families
 
-### Phase 0 / Prototype
-- one generic HTTP adapter
-- sync request/response only
-- minimal session mapping
+These are outside the current relay-centered contract.
 
-### Phase 1 / Minimum Kernel
-- sync + streaming response support
-- structured errors
-- correlation / trace propagation
-- handoff signaling shape reserved
+### 11.2 Agent-Internal Tool Governance
 
-### Phase 2 / Enterprise
-- richer tool event mapping
-- async callback mode
-- runtime health and policy-aware invocation
-- stronger cancellation semantics
+Examples:
+- tool approval frameworks
+- delegated authorization graphs
+- execution control planes inside the agent runtime
 
-### Phase 3 / Advanced Runtime Portability
-- multiple framework-specific adapters
-- richer checkpoint / resume semantics
-- optional execution isolation policy hooks
+These are not part of CAR's current core identity and MUST NOT be read into this contract by implication.
 
-## 7. Initial v1 Guidance
+### 11.3 Broad Multi-Protocol Runtime Abstraction
 
-v1 backend work should include at least one real adapter path that can validate the contract.
+Examples:
+- expanding CAR's core identity into a generic abstraction layer for many unrelated runtime protocols
+- treating framework-specific adapter proliferation as the defining agent-side architecture
 
-Whether to use generic binding, framework-specific binding, or a combination SHOULD be decided by a separate implementation decision, not prescribed by this RFC.
+Current CAR direction is to keep the agent-side standard boundary centered on A2A.
 
-The goal is first to validate:
-- sync + streaming response
-- session mapping
-- tool event mapping
-- handoff signaling
-- trace / correlation propagation
+## 12. Ownership Boundary
 
-## 8. Conformance
+- **CAR core** is responsible for govern / route / record / deliver on the message path
+- **agent-side adapter** is responsible for A2A invocation and result mapping
+- **remote agent runtime** is responsible for its internal execution mechanics
+- **canonical audit and replay truth** remains with CAR's append-only ledger, not runtime-private memory
 
-A conforming backend adapter MUST:
-- preserve the platform-owned conversation identity boundary
-- map runtime outputs into canonical events or structured errors
-- propagate trace and correlation identifiers
-- avoid leaking framework-private objects across the contract
+## 13. Conformance
 
-## 9. Security Considerations
+A conforming CAR agent-side adapter MUST:
+- invoke agents through the A2A protocol boundary
+- accept canonical CAR invocation context
+- return canonical CAR success or structured failure outcomes
+- preserve CAR-owned correlation and causation semantics
+- keep runtime-private state and objects outside the public relay contract
+- preserve the distinction between CAR canonical session identity and runtime-specific session handles
 
-Backend adapters SHOULD:
-- minimize exposure of runtime-private state to the middleware core
-- support tenant-scoped credentials and policy-aware invocation contexts
-- treat tool execution privileges as explicit runtime or platform policy, not ambient host access
+A conforming implementation is NOT required to implement every extension or future consideration in this RFC.
 
-## 10. Phase 1 Implementation Status
+## 14. Security Considerations
 
-Phase 1 (Minimum Kernel) is now complete. The following have been implemented and validated:
+Implementations SHOULD:
+- minimize exposure of runtime-private state to CAR core
+- keep runtime privileges explicit rather than ambient
+- avoid turning the adapter boundary into a hidden execution-governance layer
+- preserve auditability even when runtime behavior is more complex than the relay path records directly
 
-### Native AgentAdapter Implementations
+## 15. Open Questions
 
-- **A2A adapter** (`@chat-agent-relay/backend-a2a`) — native A2A protocol adapter with streaming, HITL signaling, and session management via A2A's task lifecycle.
-
-### HITL Signaling
-
-HITL is supported via three new canonical event types:
-- `agent.status.changed` — records task lifecycle transitions (submitted, working, input-required, completed, failed, cancelled)
-- `agent.input.requested` — agent signals that human input is required, with a prompt and optional metadata
-- `agent.input.provided` — human provides the requested input; pipeline resumes agent execution
-
-### Session Management
-
-Session continuity is maintained via `sessionHandle`:
-- Returned in `AgentSuccess.sessionHandle` after initial invocation
-- Passed to `resume()` / `resumeStream()` for HITL continuation
-- Maps to runtime-specific identifiers (e.g. A2A task ID)
-- Platform `conversation_id` and runtime `sessionHandle` remain distinct per the ownership boundary
-
-### Server Integration
-
-Agents are registered via the `car` CLI or HTTP API (`car agent add --type=a2a ...`). Supported agent types:
-- `a2a` — A2A protocol endpoint, native AgentAdapter
-
-## 11. Open Questions
-
-- Should execution isolation and sandbox policy be standardized in this RFC or in a future companion RFC?
-- Should async callback mode and streaming mode share one normative envelope or remain two bindings?
-- How should multi-agent fan-out interact with HITL signaling when multiple agents request input simultaneously?
+- Which extension capabilities should eventually move into their own dedicated RFCs?
+- How much resumable interaction semantics should remain in this contract versus a dedicated companion RFC?
+- Which agent-side metadata should be standardized more strongly for explainability without leaking runtime-private internals?

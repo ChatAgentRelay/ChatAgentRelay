@@ -3,21 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>A2A Protocol Agent — Chat Agent Relay</title>
-  <meta name="description" content="Connect A2A (Agent-to-Agent) protocol agents to Chat Agent Relay. Streaming, HITL, session management, and artifacts via Google's A2A standard.">
+  <title>A2A — Chat Agent Relay</title>
+  <meta name="description" content="A2A is the standard agent-side protocol boundary in Chat Agent Relay. This page explains how CAR uses A2A for invocation, streaming, resumable interaction, and structured agent responses.">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
-  <meta property="og:title" content="A2A Protocol Agent — Chat Agent Relay">
-  <meta property="og:description" content="Connect A2A protocol agents to Chat Agent Relay with streaming, HITL, session management, and artifact support.">
+  <meta property="og:title" content="A2A — Chat Agent Relay">
+  <meta property="og:description" content="How Chat Agent Relay uses A2A as the standard protocol boundary between the relay and remote agents.">
   <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/agents/a2a.html">
   <meta property="og:site_name" content="Chat Agent Relay">
   <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="A2A Protocol Agent — Chat Agent Relay">
-  <meta name="twitter:description" content="Connect A2A protocol agents to Chat Agent Relay with streaming, HITL, session management, and artifact support.">
+  <meta name="twitter:title" content="A2A — Chat Agent Relay">
+  <meta name="twitter:description" content="How Chat Agent Relay uses A2A as the standard protocol boundary between the relay and remote agents.">
   <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
 
   <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/agents/a2a.html">
@@ -45,8 +45,8 @@
   {
     "@context": "https://schema.org",
     "@type": "TechArticle",
-    "headline": "A2A Protocol Agent — Chat Agent Relay",
-    "description": "Connect A2A (Agent-to-Agent) protocol agents to Chat Agent Relay. Streaming, HITL, session management, and artifacts via Google's A2A standard.",
+    "headline": "A2A — Chat Agent Relay",
+    "description": "A2A is the standard agent-side protocol boundary in Chat Agent Relay. This page explains how CAR uses A2A for invocation, streaming, resumable interaction, and structured agent responses.",
     "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/agents/a2a.html"
   }
   </script>
@@ -71,7 +71,7 @@
   <aside class="doc-sidebar">
     <div class="sidebar-group">
       <span class="sidebar-group-title">Getting Started</span>
-      <a href="/ChatAgentRelay/docs/" class="sidebar-link">Quick Start</a>
+      <a href="/ChatAgentRelay/docs/" class="sidebar-link">Overview</a>
     </div>
     <div class="sidebar-group">
       <span class="sidebar-group-title">Channels</span>
@@ -86,13 +86,13 @@
     <div class="sidebar-group">
       <span class="sidebar-group-title">Agents</span>
       <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
-      <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link active">A2A Protocol</a>
+      <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link active">A2A</a>
     </div>
     <div class="sidebar-group">
       <span class="sidebar-group-title">Configuration</span>
       <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
-      <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Multi-Agent Routing</a>
-      <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage Backends</a>
+      <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Routing</a>
+      <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage</a>
     </div>
     <div class="sidebar-group">
       <span class="sidebar-group-title">Concepts</span>
@@ -108,160 +108,94 @@
 
   <!-- Content -->
   <main class="doc-content">
-    <h1>A2A Protocol Agent</h1>
-    <p class="subtitle">Connect agents that implement Google&rsquo;s <strong>Agent-to-Agent (A2A)</strong> protocol &mdash; the richest adapter in CAR with streaming, HITL, session management, and artifact support.</p>
+    <h1>A2A</h1>
+    <p class="subtitle">A2A is the standard protocol boundary between Chat Agent Relay and remote agents. CAR uses it to invoke agents, surface extension capabilities such as streaming or resumable interaction where supported, and map outcomes back onto the canonical relay path.</p>
 
-    <h2 id="what-is-a2a">What is A2A?</h2>
-    <p>A2A is an open protocol by Google for agent interoperability. It defines a standard HTTP+JSON interface for sending tasks to agents and receiving structured responses, including streaming updates, artifact delivery, and human-in-the-loop signaling.</p>
-    <p>Chat Agent Relay&rsquo;s <code>backend-a2a</code> package is a native <code>AgentAdapter</code> implementation. It speaks A2A directly and maps every protocol feature into CAR&rsquo;s canonical event model.</p>
+    <h2 id="what-a2a-means-in-car">What A2A means in CAR</h2>
+    <p>
+      CAR is a standard relay layer between chat platforms and agents. On the agent side, A2A is the protocol boundary CAR speaks once routing has selected the destination agent.
+    </p>
+    <p>
+      This keeps the relay path stable while allowing remote runtimes to keep ownership of their own execution internals.
+    </p>
+    <ul>
+      <li><strong>CAR owns</strong> canonical events, governance, routing, delivery orchestration, replay, and auditability.</li>
+      <li><strong>The remote agent runtime owns</strong> prompts, tools, memory, framework-specific state, and internal orchestration.</li>
+    </ul>
+
+    <h2 id="message-path">Where A2A appears on the message path</h2>
+    <pre><code>message.received
+  → policy.decision.made
+  → route.decision.made
+  → agent.invocation.requested
+  → A2A invocation
+  → agent.response.completed
+  → message.send.requested
+  → message.sent</code></pre>
+    <p>
+      If invocation fails terminally or the path is blocked, CAR records <code>event.blocked</code> so the outcome remains replayable and explainable.
+    </p>
+
+    <h2 id="current-implementation">Current implementation</h2>
+    <p>
+      In the current repository, the built-in agent-side adapter lives in <code>backend-a2a</code>. That package is an implementation detail of the current codebase; the architectural point is that CAR uses A2A as the standard agent-side boundary.
+    </p>
 
     <h2 id="register">Register an A2A agent</h2>
-    <p>Use the <code>car</code> CLI to add an A2A agent:</p>
-    <pre><code>car agent add my-a2a --type=a2a --endpoint=http://localhost:9000</code></pre>
-    <p>Then route messages to it:</p>
-    <pre><code>car route add --default --agent=my-a2a</code></pre>
+    <p>Use the <code>car</code> CLI to add a remote A2A endpoint, then route traffic to it.</p>
+    <pre><code>car agent add my-a2a --type=a2a --endpoint=http://localhost:9000
+car route add --default --agent=my-a2a</code></pre>
 
-    <h2 id="integration-catalog">Integration catalog</h2>
-    <p>CAR only needs one thing from an agent runtime: an A2A-speaking HTTP endpoint. How you get there depends on the framework or tool you start from. The sections below list the common paths.</p>
-
-    <h3 id="native-a2a-frameworks">Native A2A frameworks</h3>
+    <h2 id="configuration">Configuration</h2>
     <table>
       <thead>
-        <tr><th>Framework</th><th>Path</th><th>Notes</th></tr>
+        <tr><th>Option</th><th>Required</th><th>Description</th></tr>
       </thead>
       <tbody>
-        <tr><td><code>Google ADK</code></td><td>Use the framework&rsquo;s built-in A2A export path such as <code>to_a2a()</code>, then publish the resulting HTTP service.</td><td>Usually the cleanest path for Google-hosted or ADK-native agents.</td></tr>
-        <tr><td><code>AG2 / AutoGen</code></td><td>Run the agent behind AG2&rsquo;s A2A transport such as an <code>A2aAgentServer</code> or equivalent remote-agent surface.</td><td>CAR talks to the A2A service, not directly to the AG2 runtime internals.</td></tr>
-        <tr><td><code>CrewAI</code></td><td>Expose the crew through CrewAI&rsquo;s native A2A server support.</td><td>Good fit when the crew already supports streaming or approval flows.</td></tr>
-        <tr><td><code>Mastra</code></td><td>Enable Mastra&rsquo;s A2A server mode and register that URL in CAR.</td><td>Mastra becomes just another A2A backend from CAR&rsquo;s perspective.</td></tr>
-        <tr><td><code>Semantic Kernel / Microsoft Agent Framework</code></td><td>Publish the agent through the framework&rsquo;s A2A surface and hand CAR that endpoint.</td><td>Useful for teams standardizing on Microsoft&rsquo;s agent stack.</td></tr>
+        <tr><td><code>endpoint</code></td><td><strong>Yes</strong></td><td>Base URL of the remote A2A agent endpoint</td></tr>
+        <tr><td><code>timeoutMs</code></td><td>No</td><td>Request timeout for agent-side calls</td></tr>
+        <tr><td><code>headers</code></td><td>No</td><td>Additional HTTP headers such as authorization material</td></tr>
       </tbody>
     </table>
 
-    <h3 id="langgraph-langchain-path">LangGraph and LangChain</h3>
-    <p><code>LangGraph</code> is typically the direct integration point: deploy the graph behind an A2A-compatible endpoint and register that URL in CAR. For <code>LangChain</code>, the normal pattern is to put an A2A server or bridge in front of the LangChain application rather than trying to have CAR talk to LangChain directly. In practice, LangChain teams often route through LangGraph deployment infrastructure or a python-a2a-compatible wrapper.</p>
+    <h2 id="extension-capabilities">Extension capabilities over A2A</h2>
+    <p>
+      The minimum boundary is request/response invocation. Additional behaviors are extensions layered onto the same boundary when the remote agent supports them.
+    </p>
+    <table>
+      <thead><tr><th>Capability</th><th>Meaning in CAR</th></tr></thead>
+      <tbody>
+        <tr><td>Streaming</td><td>Partial output can be surfaced progressively before the final canonical completion event</td></tr>
+        <tr><td>HITL / resumable interaction</td><td>The agent can request human input and later continue the same interaction</td></tr>
+        <tr><td>Cancellation</td><td>CAR can request that an in-progress invocation stop</td></tr>
+        <tr><td>Artifacts</td><td>The agent can return structured outputs associated with the canonical path</td></tr>
+      </tbody>
+    </table>
+
+    <h2 id="capability-discovery">Capability discovery</h2>
+    <p>
+      The adapter can inspect agent metadata exposed by the remote endpoint and use that information to describe supported capabilities. If the endpoint does not expose enough capability detail, CAR still treats the remote service as an A2A boundary, but extension behavior depends on what the implementation can actually support.
+    </p>
+
+    <h2 id="streaming-and-hitl">Streaming and human input</h2>
+    <p>
+      Streaming and HITL do not redefine the relay architecture. They are extension behaviors carried through the same governed message path. When supported, CAR can surface partial output, emit canonical human-input request events, and resume the same interaction later.
+    </p>
+
     <div class="callout callout-info">
-      <strong>Recommended path</strong>
-      Prefer <code>LangGraph -&gt; A2A endpoint -&gt; CAR</code> when you already deploy LangGraph. For plain <code>LangChain</code>, prefer <code>LangChain app -&gt; A2A wrapper -&gt; CAR</code>. This keeps the protocol boundary explicit and avoids coupling CAR to framework-specific APIs.
+      <strong>Boundary discipline</strong>
+      CAR does not use A2A to become a general-purpose runtime abstraction layer. It uses A2A as a stable protocol boundary so the relay path remains consistent while runtime-private behavior stays behind the agent edge.
     </div>
-
-    <h3 id="sdk-and-workflow-bridges">SDK and workflow bridges</h3>
-    <p>SDK-oriented runtimes are usually libraries, not the boundary CAR should call directly. The recommended pattern is: build the agent with the SDK, deploy it behind an HTTP service that speaks A2A, and point CAR at that A2A service.</p>
-    <table>
-      <thead>
-        <tr><th>Runtime</th><th>Typical integration path</th><th>Why this shape exists</th></tr>
-      </thead>
-      <tbody>
-        <tr><td><code>OpenAI Agents SDK</code></td><td>Deploy the SDK behind an A2A-compatible HTTP wrapper, then register the wrapper URL.</td><td>The SDK is a build-time/runtime library, not the protocol boundary CAR should couple to.</td></tr>
-        <tr><td><code>Anthropic Agent SDK</code></td><td>Expose the agent through an A2A bridge or MCP-to-A2A relay.</td><td>Keeps CAR on the A2A boundary while letting the agent stay inside an Anthropic-oriented tool stack.</td></tr>
-        <tr><td><code>LlamaIndex</code></td><td>Wrap the workflow server in a small A2A-facing service.</td><td>Lets CAR use the same registration flow as for native A2A frameworks.</td></tr>
-        <tr><td><code>Flowise</code>, <code>Dify</code>, <code>n8n</code>, <code>Activepieces</code>, <code>Make</code>, <code>Zapier</code></td><td>Place an A2A wrapper in front of the workflow or webhook surface.</td><td>These systems usually expose HTTP/webhook execution first, so A2A is the compatibility layer in front.</td></tr>
-      </tbody>
-    </table>
-
-    <h3 id="coding-tools-and-bridges">Coding tools and local-agent bridges</h3>
-    <p>For coding tools, keep the editor or CLI protocol behind a bridge and let CAR talk only to the bridge&rsquo;s A2A endpoint. This keeps CAR transport-neutral and lets the bridge handle local tool permissions, subprocess lifecycle, and tool-specific session behavior.</p>
-    <table>
-      <thead>
-        <tr><th>Tool</th><th>Typical path</th><th>Notes</th></tr>
-      </thead>
-      <tbody>
-        <tr><td><code>Claude Code</code></td><td>Expose the runtime through an A2A bridge or MCP-to-A2A relay, then register that bridge in CAR.</td><td>This avoids coupling CAR to a local editor protocol while preserving A2A features.</td></tr>
-        <tr><td><code>OpenCode</code></td><td>Run an OpenCode-to-A2A bridge and point CAR at the published endpoint.</td><td>Useful when the coding agent is local-first but you want a network-visible A2A façade.</td></tr>
-        <tr><td><code>Gemini CLI</code></td><td>Put an A2A-capable wrapper or agent gateway in front of the CLI.</td><td>CAR only sees the A2A bridge.</td></tr>
-        <tr><td><code>GitHub Copilot</code> agents</td><td>Use a Copilot-to-A2A bridge or a hosting surface that can expose Copilot agents over A2A.</td><td>Again, the bridge is the protocol boundary CAR registers.</td></tr>
-        <tr><td><code>coder/agentapi</code> and similar gateways</td><td>Use the gateway as the stable A2A façade, with the coding tool behind it.</td><td>Good when you want one CAR-facing endpoint for several local agent tools.</td></tr>
-      </tbody>
-    </table>
-
-    <h2 id="config">Configuration options</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Option</th>
-          <th>Required</th>
-          <th>Default</th>
-          <th>Description</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><code>endpoint</code></td>
-          <td><strong>Yes</strong></td>
-          <td>&mdash;</td>
-          <td>Base URL of the A2A agent (e.g. <code>http://localhost:9000</code>).</td>
-        </tr>
-        <tr>
-          <td><code>timeoutMs</code></td>
-          <td>No</td>
-          <td><code>30000</code></td>
-          <td>Request timeout in milliseconds.</td>
-        </tr>
-        <tr>
-          <td><code>headers</code></td>
-          <td>No</td>
-          <td><code>{}</code></td>
-          <td>Custom HTTP headers sent with every request (e.g. <code>Authorization</code>).</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h2 id="agent-card">Agent Card Discovery</h2>
-    <p>On creation, the adapter attempts to fetch <code>/.well-known/agent.json</code> from the A2A endpoint. If found, the Agent Card&rsquo;s capability declarations (e.g. streaming support) are used to populate <code>describeCapabilities()</code>. If the card is unavailable, all capabilities default to <code>true</code>. The agent&rsquo;s name from the card is used as the <code>actor.id</code> in canonical events.</p>
-
-    <h2 id="streaming">Streaming</h2>
-    <p>A2A agents can stream responses via Server-Sent Events using the <code>message/stream</code> JSON-RPC method. The adapter&rsquo;s <code>stream()</code> async generator yields <code>text_delta</code>, <code>status</code>, <code>input_required</code>, and <code>artifact</code> events as they arrive. This enables real-time typing indicators and progressive message updates in channels that support editing (Slack, Discord).</p>
-
-    <h2 id="hitl">Human-in-the-loop (HITL)</h2>
-    <p>A2A natively supports HITL workflows. When an agent needs human input, it signals via the protocol and CAR emits an <code>agent.input.requested</code> event. The channel adapter presents this to the user and routes their response back as <code>agent.input.provided</code>.</p>
-    <p>This enables confirmation prompts, clarification questions, and approval workflows without custom code.</p>
-
-    <h2 id="sessions">Session management</h2>
-    <p>The A2A adapter uses <code>contextId</code> for session continuity. If a <code>sessionHandle</code> is provided it&rsquo;s used as the contextId; otherwise a new UUID is generated. The contextId returned by the agent is stored as the session handle for subsequent <code>resume()</code> and <code>resumeStream()</code> calls.</p>
-
-    <h2 id="resume-stream">Resume &amp; Resume Stream</h2>
-    <p>Both <code>resume()</code> and <code>resumeStream()</code> are supported. They send <code>message/send</code> and <code>message/stream</code> respectively with the same <code>contextId</code>, allowing the agent to continue from where it left off after an <code>input-required</code> state.</p>
-
-    <h2 id="cancel">Cancel</h2>
-    <p>The adapter supports <code>cancel(sessionHandle)</code> via the A2A <code>task/cancel</code> JSON-RPC method.</p>
-
-    <h2 id="capabilities">Capabilities</h2>
-    <table>
-      <thead><tr><th>Capability</th><th>Supported</th></tr></thead>
-      <tbody>
-        <tr><td>Streaming</td><td>Yes</td></tr>
-        <tr><td>HITL</td><td>Yes</td></tr>
-        <tr><td>Sessions</td><td>Yes (contextId-based)</td></tr>
-        <tr><td>Resume</td><td>Yes</td></tr>
-        <tr><td>Resume Stream</td><td>Yes</td></tr>
-        <tr><td>Cancel</td><td>Yes</td></tr>
-        <tr><td>Artifacts</td><td>Yes</td></tr>
-      </tbody>
-    </table>
-
-    <h2 id="example">Full example</h2>
-    <pre><code># Register the agent
-car agent add research-bot --type=a2a \
-  --endpoint=http://agents.internal:9000
-
-# Add custom auth header
-car config set agent.research-bot.headers.Authorization "Bearer sk-..."
-
-# Route all messages to it by default
-car route add --default --agent=research-bot
-
-# Start the relay
-car start</code></pre>
 
     <!-- Pagination -->
     <div class="doc-pagination">
       <a href="/ChatAgentRelay/docs/agents/" class="prev">
-        <span class="label">&larr; Previous</span>
-        <span class="title">Agents Overview</span>
+        <span class="label">Previous</span>
+        <span class="title">&larr; Agents</span>
       </a>
       <a href="/ChatAgentRelay/docs/configuration/" class="next">
-        <span class="label">Next &rarr;</span>
-        <span class="title">CLI &amp; Configuration</span>
+        <span class="label">Next</span>
+        <span class="title">CLI &amp; Config &rarr;</span>
       </a>
     </div>
   </main>
