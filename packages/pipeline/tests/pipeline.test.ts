@@ -35,6 +35,7 @@ function createMockAgent(text = "Your order shipped yesterday."): AgentAdapter {
   return {
     invoke: async (ctx: AgentInvocationContext): Promise<AgentResult> => ({
       ok: true,
+      requestId: `req_${crypto.randomUUID()}`,
       event: {
         event_id: `evt_${crypto.randomUUID()}`,
         schema_version: "v1alpha1",
@@ -42,7 +43,9 @@ function createMockAgent(text = "Your order shipped yesterday."): AgentAdapter {
         tenant_id: ctx.invocationEvent.tenant_id,
         workspace_id: ctx.invocationEvent.workspace_id,
         channel: ctx.invocationEvent.channel,
-        channel_instance_id: ctx.invocationEvent.channel_instance_id,
+        ...(ctx.invocationEvent.channel_instance_id !== undefined
+          ? { channel_instance_id: ctx.invocationEvent.channel_instance_id }
+          : {}),
         conversation_id: ctx.invocationEvent.conversation_id,
         session_id: ctx.invocationEvent.session_id,
         correlation_id: ctx.invocationEvent.correlation_id,
@@ -57,6 +60,9 @@ function createMockAgent(text = "Your order shipped yesterday."): AgentAdapter {
       streaming: false,
       multiTurn: false,
       resume: false,
+      hitl: false,
+      cancel: false,
+      artifacts: false,
     }),
   };
 }
@@ -65,9 +71,10 @@ function createFailingAgent(): AgentAdapter {
   return {
     invoke: async (): Promise<AgentResult> => ({
       ok: false,
-      error: { message: "Agent unreachable", retryable: true },
+      requestId: `req_${crypto.randomUUID()}`,
+      error: { code: "agent_unreachable", message: "Agent unreachable", retryable: true, category: "backend" },
     }),
-    describeCapabilities: () => ({ streaming: false, multiTurn: false, resume: false }),
+    describeCapabilities: () => ({ streaming: false, multiTurn: false, resume: false, hitl: false, cancel: false, artifacts: false }),
   };
 }
 

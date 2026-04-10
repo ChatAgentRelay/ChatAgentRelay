@@ -104,7 +104,7 @@ describe("Teams webhook verifier", () => {
   it("accepts a valid bearer token when jose verification succeeds", async () => {
     const verifier = new TeamsWebhookVerifier("app-id", {
       openIdConfigUrl: "https://login.example.test/openid",
-      fetchImpl: (async () => new Response(JSON.stringify({ issuer: "https://issuer.example.test", jwks_uri: "https://issuer.example.test/keys" }), { status: 200 })) as typeof fetch,
+      fetchImpl: (async () => new Response(JSON.stringify({ issuer: "https://issuer.example.test", jwks_uri: "https://issuer.example.test/keys" }), { status: 200 })) as unknown as typeof fetch,
       jwtVerifyFn: (async () => ({ payload: {}, protectedHeader: { alg: "RS256" } })) as unknown as typeof import("jose").jwtVerify,
     });
 
@@ -118,7 +118,7 @@ describe("Teams webhook verifier", () => {
   it("rejects missing or invalid bearer tokens", async () => {
     const verifier = new TeamsWebhookVerifier("app-id", {
       openIdConfigUrl: "https://login.example.test/openid",
-      fetchImpl: (async () => new Response(JSON.stringify({ issuer: "https://issuer.example.test", jwks_uri: "https://issuer.example.test/keys" }), { status: 200 })) as typeof fetch,
+      fetchImpl: (async () => new Response(JSON.stringify({ issuer: "https://issuer.example.test", jwks_uri: "https://issuer.example.test/keys" }), { status: 200 })) as unknown as typeof fetch,
     });
 
     const request = new Request("https://example.test/api/teams/messages", {

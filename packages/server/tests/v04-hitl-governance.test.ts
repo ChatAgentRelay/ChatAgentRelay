@@ -14,7 +14,7 @@ import type {
 } from "@chat-agent-relay/contract-harness";
 import { RouteEngine, SqliteConfigStore } from "@chat-agent-relay/config-store";
 import { InMemoryEventLedgerStore } from "@chat-agent-relay/event-ledger";
-import { createPolicyFn, loadPolicyFromFile, type PolicyConfig } from "@chat-agent-relay/middleware";
+import { createPolicyFn, loadPolicyFromFile, type PolicyConfig, type PolicyDecision, type PolicyFn } from "@chat-agent-relay/middleware";
 import type { Server } from "bun";
 import { AgentRegistry } from "../src/agent-registry";
 import { startApiServer } from "../src/api";
@@ -33,7 +33,6 @@ type PendingSession = {
   inputRequestedEventId?: string;
 };
 
-type PolicyDecision = { decision: "allow" | "deny"; reason?: string };
 
 type RuntimeState = {
   inboundPolicy?: (event: CanonicalEvent) => PolicyDecision;
@@ -111,6 +110,7 @@ function invocationEvent(channel: string, channelInstanceId: string, conversatio
 function successfulResponse(invocation: CanonicalEvent, text: string, options?: { sessionHandle?: string; inputRequired?: boolean }): AgentResult {
   return {
     ok: true,
+    requestId: `req_${crypto.randomUUID()}`,
     event: {
       event_id: `evt_${crypto.randomUUID()}`,
       schema_version: "v1alpha1",
@@ -118,7 +118,9 @@ function successfulResponse(invocation: CanonicalEvent, text: string, options?: 
       tenant_id: invocation.tenant_id,
       workspace_id: invocation.workspace_id,
       channel: invocation.channel,
-      channel_instance_id: invocation.channel_instance_id,
+      ...(invocation.channel_instance_id !== undefined
+        ? { channel_instance_id: invocation.channel_instance_id }
+        : {}),
       conversation_id: invocation.conversation_id,
       session_id: invocation.session_id,
       correlation_id: invocation.correlation_id,
@@ -230,6 +232,7 @@ class MockAgent implements AgentAdapter {
     if (!next) {
       return {
         ok: false,
+        requestId: `req_${crypto.randomUUID()}`,
         error: { code: "missing_resume", message: "No resume result configured", retryable: false, category: "user_error" },
       };
     }
@@ -242,6 +245,7 @@ class MockAgent implements AgentAdapter {
     if (!next) {
       return {
         ok: false,
+        requestId: `req_${crypto.randomUUID()}`,
         error: { code: "missing_resume_stream", message: "No resume stream result configured", retryable: false, category: "user_error" },
       };
     }
@@ -261,7 +265,9 @@ function rebindResult(result: AgentResult, invocation: CanonicalEvent): AgentRes
       tenant_id: invocation.tenant_id,
       workspace_id: invocation.workspace_id,
       channel: invocation.channel,
-      channel_instance_id: invocation.channel_instance_id,
+      ...(invocation.channel_instance_id !== undefined
+        ? { channel_instance_id: invocation.channel_instance_id }
+        : {}),
       conversation_id: invocation.conversation_id,
       session_id: invocation.session_id,
       correlation_id: invocation.correlation_id,
@@ -283,8 +289,8 @@ async function createRuntime(options: {
   const ledgerStore = new InMemoryEventLedgerStore();
   const pendingSessions = new Map<string, PendingSession>();
   const runtimeState: RuntimeState = {
-    inboundPolicy: options.initialInboundPolicy,
-    outboundPolicy: options.initialOutboundPolicy,
+    ...(options.initialInboundPolicy !== undefined ? { inboundPolicy: options.initialInboundPolicy } : {}),
+    ...(options.initialOutboundPolicy !== undefined ? { outboundPolicy: options.initialOutboundPolicy } : {}),
   };
   const sender = new MockTextSender();
   const adapter = new PassThroughAdapter(options.channelType, sender);
@@ -309,7 +315,7 @@ async function createRuntime(options: {
       tenant_id: source.tenant_id,
       workspace_id: source.workspace_id,
       channel: source.channel,
-      channel_instance_id: source.channel_instance_id,
+      ...(source.channel_instance_id !== undefined ? { channel_instance_id: source.channel_instance_id } : {}),
       conversation_id: source.conversation_id,
       session_id: source.session_id,
       correlation_id: source.correlation_id,
@@ -519,7 +525,7 @@ async function createRuntime(options: {
           const parsed = JSON.parse(value) as { rules?: Array<{ condition?: { type?: string; value?: string }; action?: "allow" | "deny"; reason?: string }> };
           const rule = parsed.rules?.[0];
           if (!rule) {
-            runtimeState.inboundPolicy = undefined;
+            delete runtimeState.inboundPolicy;
             return;
           }
           if (rule.condition?.type !== "channel" || !rule.condition.value || !rule.action) throw new Error("invalid");
@@ -536,7 +542,7 @@ async function createRuntime(options: {
           const parsed = JSON.parse(value) as { rules?: Array<{ condition?: { type?: string; pattern?: string }; action?: "allow" | "deny"; reason?: string }> };
           const rule = parsed.rules?.[0];
           if (!rule) {
-            runtimeState.outboundPolicy = undefined;
+            delete runtimeState.outboundPolicy;
             return;
           }
           if (rule.condition?.type !== "keyword" || !rule.condition.pattern || !rule.action) throw new Error("invalid");
@@ -946,7 +952,8 @@ describe("v0.4 governance API", () => {
       },
       watchFileImpl: ((filePath: string) => {
         watchCalls.push(filePath);
-      }) as typeof import("node:fs").watchFile,
+        return undefined as unknown as import("node:fs").StatWatcher;
+      }) as unknown as typeof import("node:fs").watchFile,
       unwatchFileImpl: (() => {}) as typeof import("node:fs").unwatchFile,
     });
 
@@ -973,16 +980,19 @@ describe("v0.4 governance API", () => {
         try {
           const parsed = loadPolicyFromFile(file) as PolicyConfig;
           const rule = parsed.rules[0];
-          runtimeState.inboundPolicy = rule
-            ? createPolicyFn(parsed)
-            : undefined;
+          if (rule) {
+            runtimeState.inboundPolicy = createPolicyFn(parsed);
+          } else {
+            delete runtimeState.inboundPolicy;
+          }
         } catch {
           console.error("preserving previous policy");
         }
       },
       watchFileImpl: ((filePath: string, _options: unknown, listener: typeof watched[number]["listener"]) => {
         watched.push({ filePath, listener });
-      }) as typeof import("node:fs").watchFile,
+        return undefined as unknown as import("node:fs").StatWatcher;
+      }) as unknown as typeof import("node:fs").watchFile,
       unwatchFileImpl: (() => {}) as typeof import("node:fs").unwatchFile,
     });
 
@@ -1029,14 +1039,15 @@ describe("v0.4 governance API", () => {
       reloadPolicyConfig: () => {
         try {
           const parsed = loadPolicyFromFile(file) as PolicyConfig;
-          runtimeState.outboundPolicy = createPolicyFn(parsed);
+          runtimeState.outboundPolicy = createPolicyFn(parsed) as PolicyFn;
         } catch {
           console.error("preserving previous outbound policy");
         }
       },
       watchFileImpl: ((_filePath: string, _options: unknown, listener: typeof watched[number]["listener"]) => {
         watched.push({ listener });
-      }) as typeof import("node:fs").watchFile,
+        return undefined as unknown as import("node:fs").StatWatcher;
+      }) as unknown as typeof import("node:fs").watchFile,
       unwatchFileImpl: (() => {}) as typeof import("node:fs").unwatchFile,
     });
 

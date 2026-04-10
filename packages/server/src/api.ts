@@ -189,14 +189,14 @@ function resolveChannelByType(registry: ChannelRegistry, type: string): ChannelC
 }
 
 async function verifyWebhookRequest(
-  req: Request,
-  verify: ((request: Request) => Promise<boolean>) | undefined,
-): Promise<{ ok: true; request: Request } | { ok: false; response: Response }> {
+  req: globalThis.Request,
+  verify: ((request: globalThis.Request) => Promise<boolean>) | undefined,
+): Promise<{ ok: true; request: globalThis.Request } | { ok: false; response: Response }> {
   if (!verify) {
     return { ok: true, request: req };
   }
 
-  const verified = await verify(req.clone());
+  const verified = await verify(req.clone() as unknown as globalThis.Request);
   if (!verified) {
     return { ok: false, response: errorResponse("Unauthorized webhook request", 401) };
   }
@@ -753,8 +753,8 @@ export function startApiServer(config: ApiConfig): ReturnType<typeof Bun.serve> 
                 conversation_id: result.conversationId,
                 correlation_id: result.correlationId,
                 reply: result.reply,
-                session_handle: result.sessionHandle,
-                hitl_pending: result.hitlPending,
+                ...(result.sessionHandle !== undefined ? { session_handle: result.sessionHandle } : {}),
+                ...(result.hitlPending !== undefined ? { hitl_pending: result.hitlPending } : {}),
               });
               close();
             })
@@ -803,7 +803,7 @@ export function startApiServer(config: ApiConfig): ReturnType<typeof Bun.serve> 
                 conversation_id: result.conversationId,
                 correlation_id: result.correlationId,
                 reply: result.reply,
-                session_handle: result.sessionHandle,
+                ...(result.sessionHandle !== undefined ? { session_handle: result.sessionHandle } : {}),
               });
               close();
             })

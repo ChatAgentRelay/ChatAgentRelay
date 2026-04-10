@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
-import { WhatsAppIngress } from "../../channel-whatsapp/src/whatsapp-ingress";
+import { WhatsAppIngress } from "@chat-agent-relay/channel-whatsapp";
 import type { AgentAdapter, AgentInvocationContext, AgentResult } from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { SqliteLedgerStore } from "@chat-agent-relay/event-ledger";
@@ -25,6 +25,7 @@ function createMockAgent(): AgentAdapter {
   return {
     invoke: async (ctx: AgentInvocationContext): Promise<AgentResult> => ({
       ok: true,
+      requestId: `req_${crypto.randomUUID()}`,
       event: {
         event_id: `evt_${crypto.randomUUID()}`,
         schema_version: "v1alpha1",
@@ -32,7 +33,9 @@ function createMockAgent(): AgentAdapter {
         tenant_id: ctx.invocationEvent.tenant_id,
         workspace_id: ctx.invocationEvent.workspace_id,
         channel: ctx.invocationEvent.channel,
-        channel_instance_id: ctx.invocationEvent.channel_instance_id,
+        ...(ctx.invocationEvent.channel_instance_id !== undefined
+          ? { channel_instance_id: ctx.invocationEvent.channel_instance_id }
+          : {}),
         conversation_id: ctx.invocationEvent.conversation_id,
         session_id: ctx.invocationEvent.session_id,
         correlation_id: ctx.invocationEvent.correlation_id,
@@ -113,7 +116,7 @@ describe("WhatsApp -> Pipeline -> Agent integration", () => {
         reason: "whatsapp_integration",
       }),
       channel: adapter,
-      ledgerStore,
+      ...(ledgerStore !== undefined ? { ledgerStore } : {}),
     };
 
     return FirstExecutablePathPipeline.create(config);

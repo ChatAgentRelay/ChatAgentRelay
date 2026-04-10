@@ -101,7 +101,7 @@ function runTenantScopeTests(name: string, createStore: () => { store: import(".
 
         expect(store.getAll()).toHaveLength(3);
         expect(store.getAll({})).toHaveLength(3);
-        expect(store.getAll({ tenantId: undefined })).toHaveLength(3);
+        expect(store.getAll({})).toHaveLength(3);
       } finally {
         cleanup();
       }

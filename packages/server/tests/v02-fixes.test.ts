@@ -7,6 +7,8 @@ import { startApiServer } from "../src/api";
 import { ChannelRegistry } from "../src/channel-registry";
 
 type BunServer = Server<unknown>;
+type NamedRecord = { name: string };
+type RouteRecord = { agent_name: string };
 
 // ── REQ-1: CLI/API Response Structure ────────────────────────────────────
 // Verifies that API returns raw arrays (not wrapped objects) for list endpoints.
@@ -36,28 +38,31 @@ describe("REQ-1: API returns raw arrays for list endpoints", () => {
   it("GET /api/agents returns a raw array", async () => {
     const res = await fetch(`${baseUrl}/api/agents`);
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await res.json() as unknown;
     expect(Array.isArray(body)).toBe(true);
-    expect(body.length).toBe(1);
-    expect(body[0].name).toBe("test-agent");
+    const agents = body as NamedRecord[];
+    expect(agents.length).toBe(1);
+    expect(agents[0]!.name).toBe("test-agent");
   });
 
   it("GET /api/channels returns a raw array", async () => {
     const res = await fetch(`${baseUrl}/api/channels`);
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await res.json() as unknown;
     expect(Array.isArray(body)).toBe(true);
-    expect(body.length).toBe(1);
-    expect(body[0].name).toBe("test-ch");
+    const channels = body as NamedRecord[];
+    expect(channels.length).toBe(1);
+    expect(channels[0]!.name).toBe("test-ch");
   });
 
   it("GET /api/routes returns a raw array", async () => {
     const res = await fetch(`${baseUrl}/api/routes`);
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await res.json() as unknown;
     expect(Array.isArray(body)).toBe(true);
-    expect(body.length).toBe(1);
-    expect(body[0].agent_name).toBe("test-agent");
+    const routes = body as RouteRecord[];
+    expect(routes.length).toBe(1);
+    expect(routes[0]!.agent_name).toBe("test-agent");
   });
 });
 
@@ -88,7 +93,7 @@ describe("REQ-2: API addChannel accepts all 6 channel types", () => {
       body: JSON.stringify({ name: "tg-ch", type: "telegram", config: { botToken: "fake" } }),
     });
     expect(res.status).toBe(201);
-    const body = await res.json();
+    const body = await res.json() as Record<string, unknown>;
     expect(body.type).toBe("telegram");
   });
 
@@ -99,7 +104,7 @@ describe("REQ-2: API addChannel accepts all 6 channel types", () => {
       body: JSON.stringify({ name: "lark-ch", type: "lark", config: { appId: "id", appSecret: "secret" } }),
     });
     expect(res.status).toBe(201);
-    const body = await res.json();
+    const body = await res.json() as Record<string, unknown>;
     expect(body.type).toBe("lark");
   });
 
@@ -110,7 +115,7 @@ describe("REQ-2: API addChannel accepts all 6 channel types", () => {
       body: JSON.stringify({ name: "dt-ch", type: "dingtalk", config: {} }),
     });
     expect(res.status).toBe(201);
-    const body = await res.json();
+    const body = await res.json() as Record<string, unknown>;
     expect(body.type).toBe("dingtalk");
   });
 
@@ -121,7 +126,7 @@ describe("REQ-2: API addChannel accepts all 6 channel types", () => {
       body: JSON.stringify({ name: "bad-ch", type: "invalid", config: {} }),
     });
     expect(res.status).toBe(400);
-    const body = await res.json();
+    const body = await res.json() as Record<string, unknown>;
     expect(body.error).toContain("Invalid channel type");
   });
 });

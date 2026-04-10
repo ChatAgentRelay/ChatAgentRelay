@@ -25,6 +25,7 @@ function createMockAgent(): AgentAdapter {
   return {
     invoke: async (ctx: AgentInvocationContext): Promise<AgentResult> => ({
       ok: true,
+      requestId: `req_${crypto.randomUUID()}`,
       event: {
         event_id: `evt_${crypto.randomUUID()}`,
         schema_version: "v1alpha1",
@@ -32,7 +33,9 @@ function createMockAgent(): AgentAdapter {
         tenant_id: ctx.invocationEvent.tenant_id,
         workspace_id: ctx.invocationEvent.workspace_id,
         channel: ctx.invocationEvent.channel,
-        channel_instance_id: ctx.invocationEvent.channel_instance_id,
+        ...(ctx.invocationEvent.channel_instance_id !== undefined
+          ? { channel_instance_id: ctx.invocationEvent.channel_instance_id }
+          : {}),
         conversation_id: ctx.invocationEvent.conversation_id,
         session_id: ctx.invocationEvent.session_id,
         correlation_id: ctx.invocationEvent.correlation_id,
@@ -43,7 +46,7 @@ function createMockAgent(): AgentAdapter {
         provider_extensions: { mock: { agent: "test" } },
       },
     }),
-    describeCapabilities: () => ({ streaming: false, multiTurn: false, resume: false }),
+    describeCapabilities: () => ({ streaming: false, multiTurn: false, resume: false, hitl: false, cancel: false, artifacts: false }),
   };
 }
 
@@ -94,7 +97,7 @@ describe("Teams -> Pipeline -> Agent integration", () => {
       if (url === "https://login.microsoftonline.com/teams-tenant/oauth2/v2.0/token") {
         return new Response(JSON.stringify({ access_token: "teams-token", expires_in: 3600 }), { status: 200 });
       }
-      return originalFetch(input as RequestInfo | URL, init);
+      return originalFetch(input as Request | URL, init);
     }) as typeof fetch;
 
     validators = await ContractHarnessValidators.create();
@@ -119,7 +122,7 @@ describe("Teams -> Pipeline -> Agent integration", () => {
         reason: "teams_integration",
       }),
       channel: adapter,
-      ledgerStore,
+      ...(ledgerStore !== undefined ? { ledgerStore } : {}),
     };
 
     return FirstExecutablePathPipeline.create(config);

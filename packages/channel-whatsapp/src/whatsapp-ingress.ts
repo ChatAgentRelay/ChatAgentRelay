@@ -44,7 +44,7 @@ export class WhatsAppIngress implements ChannelAdapter {
 
   createSender(event: CanonicalEvent): ChannelSender {
     const sender = createWhatsAppSender(this.phoneNumberId, this.accessToken, {
-      apiBase: this.apiBase,
+      ...(this.apiBase !== undefined ? { apiBase: this.apiBase } : {}),
       sessionTracker: this.sessionTracker,
     });
     return {

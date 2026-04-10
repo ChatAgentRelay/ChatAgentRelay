@@ -105,7 +105,7 @@ describe("CLI config operations (direct DB)", () => {
   it("adds routes with different match types", async () => {
     const db = createDb();
     await db.addAgent("bot-a", "a2a", { endpoint: "http://a" });
-    await db.addAgent("bot-b", "http", { endpoint: "http://b" });
+    await db.addAgent("bot-b", "a2a", { endpoint: "http://b" });
 
     db.addRoute("channel", "slack-main", "bot-a", 10);
     db.addRoute("pattern", "^/code", "bot-b", 20);

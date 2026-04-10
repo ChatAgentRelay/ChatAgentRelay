@@ -507,6 +507,9 @@ export async function main() {
       agentResult = await agent.resume(pending.sessionHandle, resumeInput);
     }
 
+    if (!("ok" in agentResult)) {
+      throw new Error("Agent resume returned a stream event instead of a final result");
+    }
     if (!agentResult.ok) {
       throw new Error(agentResult.error.message);
     }
@@ -552,7 +555,7 @@ export async function main() {
       reply: typeof agentResult.event.payload["text"] === "string" ? agentResult.event.payload["text"] : "",
       conversationId: userEvent.conversation_id,
       correlationId: userEvent.correlation_id,
-      sessionHandle: agentResult.sessionHandle,
+      ...(agentResult.sessionHandle !== undefined ? { sessionHandle: agentResult.sessionHandle } : {}),
       hitlPending: Boolean(prompt && agentResult.sessionHandle),
       ...(prompt ? { hitlPrompt: prompt } : {}),
     };
@@ -623,8 +626,8 @@ export async function main() {
       reply: result.explanation.backendResponse,
       conversationId: convId,
       correlationId: corrId,
-      sessionHandle: result.sessionHandle,
-      hitlPending: result.hitlPending,
+      ...(result.sessionHandle !== undefined ? { sessionHandle: result.sessionHandle } : {}),
+      ...(result.hitlPending !== undefined ? { hitlPending: result.hitlPending } : {}),
       ...(hitlPrompt ? { hitlPrompt } : {}),
     };
   }

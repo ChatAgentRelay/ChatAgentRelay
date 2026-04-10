@@ -220,7 +220,9 @@ describe("REQ-1b: Slack webhook verification", () => {
         connection: null,
       };
     });
-    await channelRegistry.register(await configDb.getChannel("slack-main")!);
+    const slackChannel = await configDb.getChannel("slack-main");
+    expect(slackChannel).toBeDefined();
+    await channelRegistry.register(slackChannel!);
 
     server = startApiServer({ port: 0, ledgerStore: store, configDb, agentRegistry, channelRegistry });
     baseUrl = `http://localhost:${server.port}`;
@@ -303,7 +305,9 @@ describe("REQ-1c: Teams webhook verification", () => {
         connection: null,
       };
     });
-    await channelRegistry.register(await configDb.getChannel("teams-main")!);
+    const teamsChannel = await configDb.getChannel("teams-main");
+    expect(teamsChannel).toBeDefined();
+    await channelRegistry.register(teamsChannel!);
 
     server = startApiServer({ port: 0, ledgerStore: store, configDb, agentRegistry, channelRegistry });
     baseUrl = `http://localhost:${server.port}`;
@@ -392,7 +396,9 @@ describe("REQ-1d: Telegram webhook verification", () => {
         connection: null,
       };
     });
-    await channelRegistry.register(await configDb.getChannel("telegram-main")!);
+    const telegramChannel = await configDb.getChannel("telegram-main");
+    expect(telegramChannel).toBeDefined();
+    await channelRegistry.register(telegramChannel!);
 
     server = startApiServer({ port: 0, ledgerStore: store, configDb, agentRegistry, channelRegistry });
     baseUrl = `http://localhost:${server.port}`;
@@ -492,7 +498,9 @@ describe("REQ-1e: Lark webhook verification", () => {
         connection: null,
       };
     });
-    await channelRegistry.register(await configDb.getChannel("lark-main")!);
+    const larkChannel = await configDb.getChannel("lark-main");
+    expect(larkChannel).toBeDefined();
+    await channelRegistry.register(larkChannel!);
 
     server = startApiServer({ port: 0, ledgerStore: store, configDb, agentRegistry, channelRegistry });
     baseUrl = `http://localhost:${server.port}`;
@@ -600,7 +608,9 @@ describe("REQ-1f: DingTalk webhook verification", () => {
         connection: null,
       };
     });
-    await channelRegistry.register(await configDb.getChannel("dingtalk-main")!);
+    const dingtalkChannel = await configDb.getChannel("dingtalk-main");
+    expect(dingtalkChannel).toBeDefined();
+    await channelRegistry.register(dingtalkChannel!);
 
     server = startApiServer({ port: 0, ledgerStore: store, configDb, agentRegistry, channelRegistry });
     baseUrl = `http://localhost:${server.port}`;
@@ -682,7 +692,9 @@ describe("REQ-1g: WhatsApp webhook verification", () => {
       const { WhatsAppIngress } = await import("@chat-agent-relay/channel-whatsapp");
       return { adapter: await WhatsAppIngress.create("phone_123", "wa-access-token"), connection: null };
     });
-    await channelRegistry.register(await configDb.getChannel("whatsapp-main")!);
+    const whatsappChannel = await configDb.getChannel("whatsapp-main");
+    expect(whatsappChannel).toBeDefined();
+    await channelRegistry.register(whatsappChannel!);
 
     server = startApiServer({ port: 0, ledgerStore: store, configDb, agentRegistry, channelRegistry });
     baseUrl = `http://localhost:${server.port}`;
