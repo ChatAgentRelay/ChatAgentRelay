@@ -7,16 +7,18 @@ export type RichMessage = { blocks: RichBlock[]; fallbackText: string };
 
 export function richMessageToDiscordEmbed(msg: RichMessage): Record<string, unknown> {
   const description = msg.blocks
-    .map((block) => {
+    .map((block): string => {
       switch (block.type) {
         case "text":
           return block.text;
         case "code":
-          return "```" + (block.language ?? "") + "\n" + block.text + "\n```";
+          return `\`\`\`${block.language ?? ""}\n${block.text}\n\`\`\``;
         case "header":
           return `**${block.text}**`;
         case "divider":
           return "---";
+        default:
+          return "";
       }
     })
     .join("\n\n");

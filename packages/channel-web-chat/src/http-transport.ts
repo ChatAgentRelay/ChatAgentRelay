@@ -21,9 +21,7 @@ export type WebChatResponse = {
   error?: string;
 };
 
-export type WebChatPipelineFn = (
-  raw: unknown,
-) => Promise<WebChatPipelineResult>;
+export type WebChatPipelineFn = (raw: unknown) => Promise<WebChatPipelineResult>;
 
 export type WebChatHttpConfig = {
   port: number;
@@ -91,11 +89,7 @@ const BUILT_IN_COMMANDS: Record<string, (sessionStore: SessionStore, conversatio
   },
 };
 
-function tryHandleCommand(
-  text: string,
-  sessionStore: SessionStore,
-  conversationId?: string,
-): WebChatResponse | null {
+function tryHandleCommand(text: string, sessionStore: SessionStore, conversationId?: string): WebChatResponse | null {
   if (!text.startsWith("/")) return null;
   const cmd = text.split(" ")[0]!.toLowerCase();
   const handler = BUILT_IN_COMMANDS[cmd];
@@ -130,12 +124,16 @@ function sseResponse(
       const send = (event: WebChatStreamEvent) => {
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
-        } catch { /* stream closed */ }
+        } catch {
+          /* stream closed */
+        }
       };
       const close = () => {
         try {
           controller.close();
-        } catch { /* already closed */ }
+        } catch {
+          /* already closed */
+        }
       };
       handler(send, close);
     },
@@ -154,15 +152,7 @@ function sseResponse(
 // ── Server ──────────────────────────────────────────────────────────────
 
 export function startWebChatServer(config: WebChatHttpConfig) {
-  const {
-    ingress,
-    pipelineFn,
-    streamingPipelineFn,
-    resumeFn,
-    resumeStreamingFn,
-    port,
-    corsOrigin = "*",
-  } = config;
+  const { ingress, pipelineFn, streamingPipelineFn, resumeFn, resumeStreamingFn, port, corsOrigin = "*" } = config;
 
   const sessionStore = new SessionStore();
 
@@ -213,7 +203,7 @@ export function startWebChatServer(config: WebChatHttpConfig) {
         }
 
         const cmdResult = tryHandleCommand(
-          (body as Record<string, unknown>)["text"] as string ?? "",
+          ((body as Record<string, unknown>)["text"] as string) ?? "",
           sessionStore,
           (body as Record<string, unknown>)["conversation_id"] as string,
         );
@@ -221,7 +211,11 @@ export function startWebChatServer(config: WebChatHttpConfig) {
 
         const canonResult: CanonicalizationResult = ingress.canonicalize(body);
         if (!canonResult.ok) {
-          return jsonResponse({ ok: false, error: canonResult.error.message } satisfies WebChatResponse, 400, corsOrigin);
+          return jsonResponse(
+            { ok: false, error: canonResult.error.message } satisfies WebChatResponse,
+            400,
+            corsOrigin,
+          );
         }
 
         try {
@@ -239,7 +233,11 @@ export function startWebChatServer(config: WebChatHttpConfig) {
       // ── POST /api/chat/stream — SSE streaming ──────────────────────
       if (path === "/api/chat/stream" && req.method === "POST") {
         if (!streamingPipelineFn) {
-          return jsonResponse({ ok: false, error: "Streaming not configured" } satisfies WebChatResponse, 501, corsOrigin);
+          return jsonResponse(
+            { ok: false, error: "Streaming not configured" } satisfies WebChatResponse,
+            501,
+            corsOrigin,
+          );
         }
 
         const body = await readBody(req);
@@ -248,7 +246,7 @@ export function startWebChatServer(config: WebChatHttpConfig) {
         }
 
         const cmdResult = tryHandleCommand(
-          (body as Record<string, unknown>)["text"] as string ?? "",
+          ((body as Record<string, unknown>)["text"] as string) ?? "",
           sessionStore,
           (body as Record<string, unknown>)["conversation_id"] as string,
         );
@@ -256,7 +254,11 @@ export function startWebChatServer(config: WebChatHttpConfig) {
 
         const canonResult: CanonicalizationResult = ingress.canonicalize(body);
         if (!canonResult.ok) {
-          return jsonResponse({ ok: false, error: canonResult.error.message } satisfies WebChatResponse, 400, corsOrigin);
+          return jsonResponse(
+            { ok: false, error: canonResult.error.message } satisfies WebChatResponse,
+            400,
+            corsOrigin,
+          );
         }
 
         return sseResponse((send, close) => {
@@ -288,7 +290,7 @@ export function startWebChatServer(config: WebChatHttpConfig) {
           return jsonResponse({ ok: false, error: "Resume not configured" } satisfies WebChatResponse, 501, corsOrigin);
         }
 
-        const body = await readBody(req) as Record<string, unknown> | null;
+        const body = (await readBody(req)) as Record<string, unknown> | null;
         if (!body) {
           return jsonResponse({ ok: false, error: "Invalid JSON body" } satisfies WebChatResponse, 400, corsOrigin);
         }
@@ -318,10 +320,14 @@ export function startWebChatServer(config: WebChatHttpConfig) {
       // ── POST /api/chat/resume/stream — HITL resume (SSE) ───────────
       if (path === "/api/chat/resume/stream" && req.method === "POST") {
         if (!resumeStreamingFn) {
-          return jsonResponse({ ok: false, error: "Resume streaming not configured" } satisfies WebChatResponse, 501, corsOrigin);
+          return jsonResponse(
+            { ok: false, error: "Resume streaming not configured" } satisfies WebChatResponse,
+            501,
+            corsOrigin,
+          );
         }
 
-        const body = await readBody(req) as Record<string, unknown> | null;
+        const body = (await readBody(req)) as Record<string, unknown> | null;
         if (!body) {
           return jsonResponse({ ok: false, error: "Invalid JSON body" } satisfies WebChatResponse, 400, corsOrigin);
         }
@@ -367,12 +373,16 @@ export function startWebChatServer(config: WebChatHttpConfig) {
         if (!info) {
           return jsonResponse({ ok: false, error: "Session not found" }, 404, corsOrigin);
         }
-        return jsonResponse({
-          ok: true,
-          conversation_id: conversationId,
-          session_handle: info.sessionHandle,
-          last_active: new Date(info.lastActive).toISOString(),
-        }, 200, corsOrigin);
+        return jsonResponse(
+          {
+            ok: true,
+            conversation_id: conversationId,
+            session_handle: info.sessionHandle,
+            last_active: new Date(info.lastActive).toISOString(),
+          },
+          200,
+          corsOrigin,
+        );
       }
 
       return jsonResponse({ ok: false, error: "Not found" }, 404, corsOrigin);

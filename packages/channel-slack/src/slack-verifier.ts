@@ -5,7 +5,10 @@ const VERSION_PREFIX = "v0";
 const MAX_AGE_SECONDS = 60 * 5;
 
 export class SlackWebhookVerifier implements WebhookVerifier {
-  constructor(private readonly signingSecret: string, private readonly now = () => Date.now()) {}
+  constructor(
+    private readonly signingSecret: string,
+    private readonly now = () => Date.now(),
+  ) {}
 
   async verify(request: Request): Promise<boolean> {
     const timestamp = request.headers.get("x-slack-request-timestamp");

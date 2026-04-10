@@ -1,4 +1,10 @@
-import type { CanonicalEvent, ChannelAdapter, ChannelCapabilities, ChannelSender, ValidationResult } from "@chat-agent-relay/contract-harness";
+import type {
+  CanonicalEvent,
+  ChannelAdapter,
+  ChannelCapabilities,
+  ChannelSender,
+  ValidationResult,
+} from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { createDingTalkSender } from "./dingtalk-sender";
 import type { CanonicalizationResult, DingTalkRobotCallback, IngressError } from "./types";
@@ -96,9 +102,7 @@ export class DingTalkIngress implements ChannelAdapter {
   }
 }
 
-type CallbackValidation =
-  | { ok: true; callback: DingTalkRobotCallback }
-  | { ok: false; error: IngressError };
+type CallbackValidation = { ok: true; callback: DingTalkRobotCallback } | { ok: false; error: IngressError };
 
 function validateCallback(raw: unknown): CallbackValidation {
   if (raw === null || typeof raw !== "object") {
@@ -110,32 +114,60 @@ function validateCallback(raw: unknown): CallbackValidation {
   if (body["msgtype"] !== "text") {
     return {
       ok: false,
-      error: { code: "unsupported_msgtype", message: `Only msgtype "text" is supported, got "${String(body["msgtype"])}"`, field: "msgtype" },
+      error: {
+        code: "unsupported_msgtype",
+        message: `Only msgtype "text" is supported, got "${String(body["msgtype"])}"`,
+        field: "msgtype",
+      },
     };
   }
 
   const text = body["text"];
   if (text === null || typeof text !== "object" || typeof (text as Record<string, unknown>)["content"] !== "string") {
-    return { ok: false, error: { code: "missing_field", message: "Missing or invalid text.content", field: "text.content" } };
+    return {
+      ok: false,
+      error: { code: "missing_field", message: "Missing or invalid text.content", field: "text.content" },
+    };
   }
 
   const content = (text as Record<string, unknown>)["content"] as string;
   if (content.trim().length === 0) {
-    return { ok: false, error: { code: "empty_content", message: "text.content must not be empty", field: "text.content" } };
+    return {
+      ok: false,
+      error: { code: "empty_content", message: "text.content must not be empty", field: "text.content" },
+    };
   }
 
-  for (const field of ["msgId", "senderId", "senderNick", "conversationId", "conversationType", "chatbotUserId", "sessionWebhook"] as const) {
+  for (const field of [
+    "msgId",
+    "senderId",
+    "senderNick",
+    "conversationId",
+    "conversationType",
+    "chatbotUserId",
+    "sessionWebhook",
+  ] as const) {
     if (typeof body[field] !== "string") {
       return { ok: false, error: { code: "missing_field", message: `Missing required field: ${field}`, field } };
     }
   }
 
   if (typeof body["createAt"] !== "number") {
-    return { ok: false, error: { code: "missing_field", message: "Missing required field: createAt", field: "createAt" } };
+    return {
+      ok: false,
+      error: { code: "missing_field", message: "Missing required field: createAt", field: "createAt" },
+    };
   }
 
   if (typeof body["sessionWebhookExpiredTime"] !== "number") {
-    return { ok: false, error: { code: "missing_field", message: "Missing required field: sessionWebhookExpiredTime", field: "sessionWebhookExpiredTime" } };
+    return {
+      ok: false,
+      error: {
+        code: "missing_field",
+        message: "Missing required field: sessionWebhookExpiredTime",
+        field: "sessionWebhookExpiredTime",
+      },
+    };
   }
 
   return { ok: true, callback: raw as DingTalkRobotCallback };

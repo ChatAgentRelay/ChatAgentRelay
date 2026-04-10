@@ -1,6 +1,6 @@
+import type { ChannelRecord } from "@chat-agent-relay/config-store";
 import type { ChannelAdapter } from "@chat-agent-relay/contract-harness";
 import { isDisconnectable } from "@chat-agent-relay/contract-harness";
-import type { ChannelRecord } from "@chat-agent-relay/config-store";
 import { logger } from "./logger";
 
 export type ChannelFactoryResult = {
@@ -25,11 +25,7 @@ export type ChannelConnection = {
   onMessage: (event: unknown) => Promise<void>;
 };
 
-export type MessageHandler = (
-  channelName: string,
-  adapter: ChannelAdapter,
-  rawEvent: unknown,
-) => Promise<void>;
+export type MessageHandler = (channelName: string, adapter: ChannelAdapter, rawEvent: unknown) => Promise<void>;
 
 export type ChannelRegistryOptions = {
   tenantId?: string;

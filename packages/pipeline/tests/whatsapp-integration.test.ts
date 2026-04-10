@@ -46,30 +46,43 @@ function createMockAgent(): AgentAdapter {
         provider_extensions: { mock: { agent: "test" } },
       },
     }),
-    describeCapabilities: () => ({ streaming: false, multiTurn: false, resume: false, hitl: false, cancel: false, artifacts: false }),
+    describeCapabilities: () => ({
+      streaming: false,
+      multiTurn: false,
+      resume: false,
+      hitl: false,
+      cancel: false,
+      artifacts: false,
+    }),
   };
 }
 
 function sampleWhatsAppMessage() {
   return {
     object: "whatsapp_business_account",
-    entry: [{
-      id: "business_123",
-      changes: [{
-        field: "messages",
-        value: {
-          messaging_product: "whatsapp",
-          metadata: { phone_number_id: "phone_123", display_phone_number: "+15550001111" },
-          messages: [{
-            from: "15551234567",
-            id: "wamid.001",
-            timestamp: "1710756000",
-            type: "text",
-            text: { body: "Hello from WhatsApp" },
-          }],
-        },
-      }],
-    }],
+    entry: [
+      {
+        id: "business_123",
+        changes: [
+          {
+            field: "messages",
+            value: {
+              messaging_product: "whatsapp",
+              metadata: { phone_number_id: "phone_123", display_phone_number: "+15550001111" },
+              messages: [
+                {
+                  from: "15551234567",
+                  id: "wamid.001",
+                  timestamp: "1710756000",
+                  type: "text",
+                  text: { body: "Hello from WhatsApp" },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
   };
 }
 

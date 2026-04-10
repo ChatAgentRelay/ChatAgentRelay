@@ -1,7 +1,7 @@
 export { TelegramIngress } from "./telegram-ingress";
+export type { TelegramSender } from "./telegram-sender";
 export { createTelegramSender } from "./telegram-sender";
 export { TelegramWebhookVerifier } from "./telegram-verifier";
-export type { TelegramSender } from "./telegram-sender";
 export type {
   CanonicalizationFailure,
   CanonicalizationResult,

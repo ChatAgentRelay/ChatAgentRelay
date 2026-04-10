@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { DiscordIngress } from "@chat-agent-relay/channel-discord";
-import type { AgentAdapter, AgentResult, AgentInvocationContext } from "@chat-agent-relay/contract-harness";
+import type { AgentAdapter, AgentInvocationContext, AgentResult } from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { SqliteLedgerStore } from "@chat-agent-relay/event-ledger";
 import type { Server } from "bun";
@@ -46,7 +46,14 @@ function createMockAgent(): AgentAdapter {
         provider_extensions: { mock: { agent: "test" } },
       },
     }),
-    describeCapabilities: () => ({ streaming: false, multiTurn: false, resume: false, hitl: false, cancel: false, artifacts: false }),
+    describeCapabilities: () => ({
+      streaming: false,
+      multiTurn: false,
+      resume: false,
+      hitl: false,
+      cancel: false,
+      artifacts: false,
+    }),
   };
 }
 

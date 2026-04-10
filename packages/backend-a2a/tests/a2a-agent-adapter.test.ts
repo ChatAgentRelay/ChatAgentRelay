@@ -185,9 +185,7 @@ describe("A2AAgentAdapter", () => {
         return Response.json(AGENT_CARD);
       }
       const body = (await req.json()) as Record<string, unknown>;
-      return Response.json(
-        inputRequiredTaskResponse(body["id"] as string, "Please provide your order number"),
-      );
+      return Response.json(inputRequiredTaskResponse(body["id"] as string, "Please provide your order number"));
     });
 
     const adapter = await A2AAgentAdapter.create({
@@ -280,7 +278,12 @@ describe("A2AAgentAdapter", () => {
         contextId: "ctx_1",
         status: {
           state: "input-required",
-          message: { kind: "message", messageId: "msg_2", role: "agent", parts: [{ kind: "text", text: "What is your order number?" }] },
+          message: {
+            kind: "message",
+            messageId: "msg_2",
+            role: "agent",
+            parts: [{ kind: "text", text: "What is your order number?" }],
+          },
           timestamp: new Date().toISOString(),
         },
         final: true,
@@ -325,9 +328,7 @@ describe("A2AAgentAdapter", () => {
 
     const inputEvent = events.find((e) => e.type === "input_required");
     expect(inputEvent).toBeDefined();
-    expect((inputEvent as { type: "input_required"; prompt: string }).prompt).toBe(
-      "What is your order number?",
-    );
+    expect((inputEvent as { type: "input_required"; prompt: string }).prompt).toBe("What is your order number?");
 
     expect(finalResult.ok).toBe(true);
     if (!finalResult.ok) return;

@@ -164,9 +164,10 @@ function validateRule(rawRule: unknown, index: number): PolicyRule {
   return {
     id,
     priority: typeof priority === "number" ? priority : 0,
-    condition: "condition" in rule
-      ? validateCondition(rule["condition"], `Rule ${index} condition`)
-      : validateLegacyCondition(rule, index),
+    condition:
+      "condition" in rule
+        ? validateCondition(rule["condition"], `Rule ${index} condition`)
+        : validateLegacyCondition(rule, index),
     action: (action as PolicyAction | undefined) ?? "deny",
     mandatory: rule["mandatory"] === true,
     reason: typeof rule["reason"] === "string" ? rule["reason"] : undefined,
@@ -201,30 +202,39 @@ function validateCondition(raw: unknown, path: string): PolicyCondition {
     case "keyword":
     case "regex": {
       const pattern = condition["pattern"];
-      if (typeof pattern !== "string" || pattern.length === 0) throw new Error(`${path} must have a non-empty 'pattern' string`);
+      if (typeof pattern !== "string" || pattern.length === 0)
+        throw new Error(`${path} must have a non-empty 'pattern' string`);
       if (type === "regex") {
-        try { new RegExp(pattern); } catch { throw new Error(`${path} has invalid regex pattern: ${pattern}`); }
+        try {
+          new RegExp(pattern);
+        } catch {
+          throw new Error(`${path} has invalid regex pattern: ${pattern}`);
+        }
       }
       return { type, pattern };
     }
     case "sender":
     case "channel": {
       const value = condition["value"];
-      if (typeof value !== "string" || value.length === 0) throw new Error(`${path} must have a non-empty 'value' string`);
+      if (typeof value !== "string" || value.length === 0)
+        throw new Error(`${path} must have a non-empty 'value' string`);
       return { type, value };
     }
     case "content_length": {
       const min = condition["min"];
       const max = condition["max"];
-      if (min !== undefined && (!Number.isInteger(min) || (min as number) < 0)) throw new Error(`${path} 'min' must be a non-negative integer`);
-      if (max !== undefined && (!Number.isInteger(max) || (max as number) < 0)) throw new Error(`${path} 'max' must be a non-negative integer`);
+      if (min !== undefined && (!Number.isInteger(min) || (min as number) < 0))
+        throw new Error(`${path} 'min' must be a non-negative integer`);
+      if (max !== undefined && (!Number.isInteger(max) || (max as number) < 0))
+        throw new Error(`${path} 'max' must be a non-negative integer`);
       if (min === undefined && max === undefined) throw new Error(`${path} requires 'min' or 'max'`);
       return { type, ...(typeof min === "number" ? { min } : {}), ...(typeof max === "number" ? { max } : {}) };
     }
     case "time_window": {
       const start = condition["start"];
       const end = condition["end"];
-      if (typeof start !== "string" || typeof end !== "string") throw new Error(`${path} requires string 'start' and 'end'`);
+      if (typeof start !== "string" || typeof end !== "string")
+        throw new Error(`${path} requires string 'start' and 'end'`);
       minutesSinceMidnight(start);
       minutesSinceMidnight(end);
       return { type, start, end };
@@ -232,8 +242,12 @@ function validateCondition(raw: unknown, path: string): PolicyCondition {
     case "and":
     case "or": {
       const conditions = condition["conditions"];
-      if (!Array.isArray(conditions) || conditions.length === 0) throw new Error(`${path} requires a non-empty 'conditions' array`);
-      return { type, conditions: conditions.map((child, index) => validateCondition(child, `${path}.conditions[${index}]`)) };
+      if (!Array.isArray(conditions) || conditions.length === 0)
+        throw new Error(`${path} requires a non-empty 'conditions' array`);
+      return {
+        type,
+        conditions: conditions.map((child, index) => validateCondition(child, `${path}.conditions[${index}]`)),
+      };
     }
     case "not": {
       if (!("condition" in condition)) throw new Error(`${path} requires 'condition'`);

@@ -1,9 +1,9 @@
-import { createHmac } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { createHmac } from "node:crypto";
 import { SlackWebhookVerifier } from "@chat-agent-relay/channel-slack";
 import { TeamsWebhookVerifier } from "@chat-agent-relay/channel-teams";
 import { TelegramWebhookVerifier } from "@chat-agent-relay/channel-telegram";
-import { SqliteConfigStore, RouteEngine } from "@chat-agent-relay/config-store";
+import { RouteEngine, SqliteConfigStore } from "@chat-agent-relay/config-store";
 import { InMemoryEventLedgerStore } from "@chat-agent-relay/event-ledger";
 import type { Server } from "bun";
 import { AgentRegistry } from "../src/agent-registry";
@@ -99,7 +99,7 @@ describe("REQ-1: API Authentication — key set", () => {
   it("GET /api/agents without header returns 401", async () => {
     const res = await fetch(`${baseUrl}/api/agents`);
     expect(res.status).toBe(401);
-    const body = await res.json() as { error: string };
+    const body = (await res.json()) as { error: string };
     expect(body.error).toBe("Unauthorized");
   });
 
@@ -202,7 +202,9 @@ describe("REQ-1b: Slack webhook verification", () => {
     callCount = 0;
     const store = new InMemoryEventLedgerStore();
     const agentRegistry = new AgentRegistry();
-    const channelRegistry = new ChannelRegistry(async () => { callCount++; });
+    const channelRegistry = new ChannelRegistry(async () => {
+      callCount++;
+    });
     channelRegistry.registerFactory("slack", async () => {
       return {
         adapter: {
@@ -287,7 +289,9 @@ describe("REQ-1c: Teams webhook verification", () => {
     callCount = 0;
     const store = new InMemoryEventLedgerStore();
     const agentRegistry = new AgentRegistry();
-    const channelRegistry = new ChannelRegistry(async () => { callCount++; });
+    const channelRegistry = new ChannelRegistry(async () => {
+      callCount++;
+    });
     channelRegistry.registerFactory("teams", async () => {
       return {
         adapter: {
@@ -378,7 +382,9 @@ describe("REQ-1d: Telegram webhook verification", () => {
     callCount = 0;
     const store = new InMemoryEventLedgerStore();
     const agentRegistry = new AgentRegistry();
-    const channelRegistry = new ChannelRegistry(async () => { callCount++; });
+    const channelRegistry = new ChannelRegistry(async () => {
+      callCount++;
+    });
     channelRegistry.registerFactory("telegram", async () => {
       return {
         adapter: {
@@ -464,9 +470,7 @@ describe("REQ-1e: Lark webhook verification", () => {
   let callCount: number;
 
   function sign(timestamp: string, nonce: string, body: string): string {
-    return createHmac("sha256", "lark-encrypt-key")
-      .update(`${timestamp}${nonce}${body}`)
-      .digest("base64");
+    return createHmac("sha256", "lark-encrypt-key").update(`${timestamp}${nonce}${body}`).digest("base64");
   }
 
   beforeAll(async () => {
@@ -480,7 +484,9 @@ describe("REQ-1e: Lark webhook verification", () => {
     callCount = 0;
     const store = new InMemoryEventLedgerStore();
     const agentRegistry = new AgentRegistry();
-    const channelRegistry = new ChannelRegistry(async () => { callCount++; });
+    const channelRegistry = new ChannelRegistry(async () => {
+      callCount++;
+    });
     channelRegistry.registerFactory("lark", async () => {
       return {
         adapter: {
@@ -576,9 +582,7 @@ describe("REQ-1f: DingTalk webhook verification", () => {
   let callCount: number;
 
   function sign(timestamp: string): string {
-    return createHmac("sha256", "dingtalk-secret")
-      .update(`${timestamp}\n${"dingtalk-secret"}`)
-      .digest("base64");
+    return createHmac("sha256", "dingtalk-secret").update(`${timestamp}\n${"dingtalk-secret"}`).digest("base64");
   }
 
   beforeAll(async () => {
@@ -590,7 +594,9 @@ describe("REQ-1f: DingTalk webhook verification", () => {
     callCount = 0;
     const store = new InMemoryEventLedgerStore();
     const agentRegistry = new AgentRegistry();
-    const channelRegistry = new ChannelRegistry(async () => { callCount++; });
+    const channelRegistry = new ChannelRegistry(async () => {
+      callCount++;
+    });
     channelRegistry.registerFactory("dingtalk", async () => {
       return {
         adapter: {
@@ -623,23 +629,26 @@ describe("REQ-1f: DingTalk webhook verification", () => {
 
   it("accepts a valid DingTalk-signed webhook request", async () => {
     const timestamp = "1710756000000";
-    const res = await fetch(`${baseUrl}/api/dingtalk/webhook?timestamp=${timestamp}&sign=${encodeURIComponent(sign(timestamp))}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        msgtype: "text",
-        text: { content: "hi" },
-        msgId: "msg_abc123",
-        createAt: 1700000000000,
-        conversationType: "2",
-        conversationId: "cidXYZ",
-        senderId: "user_001",
-        senderNick: "Alice",
-        chatbotUserId: "bot_001",
-        sessionWebhook: "https://oapi.dingtalk.com/robot/sendBySession?session=abc",
-        sessionWebhookExpiredTime: 1700003600000,
-      }),
-    });
+    const res = await fetch(
+      `${baseUrl}/api/dingtalk/webhook?timestamp=${timestamp}&sign=${encodeURIComponent(sign(timestamp))}`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          msgtype: "text",
+          text: { content: "hi" },
+          msgId: "msg_abc123",
+          createAt: 1700000000000,
+          conversationType: "2",
+          conversationId: "cidXYZ",
+          senderId: "user_001",
+          senderNick: "Alice",
+          chatbotUserId: "bot_001",
+          sessionWebhook: "https://oapi.dingtalk.com/robot/sendBySession?session=abc",
+          sessionWebhookExpiredTime: 1700003600000,
+        }),
+      },
+    );
 
     expect(res.status).toBe(200);
     expect(callCount).toBe(1);
@@ -706,7 +715,9 @@ describe("REQ-1g: WhatsApp webhook verification", () => {
   });
 
   it("accepts webhook challenge with matching verify token", async () => {
-    const res = await fetch(`${baseUrl}/api/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=wa-verify-token&hub.challenge=test-challenge`);
+    const res = await fetch(
+      `${baseUrl}/api/whatsapp/webhook?hub.mode=subscribe&hub.verify_token=wa-verify-token&hub.challenge=test-challenge`,
+    );
     expect(res.status).toBe(200);
     expect(await res.text()).toBe("test-challenge");
   });
@@ -714,17 +725,23 @@ describe("REQ-1g: WhatsApp webhook verification", () => {
   it("accepts a valid WhatsApp-signed webhook request", async () => {
     const body = JSON.stringify({
       object: "whatsapp_business_account",
-      entry: [{
-        id: "business_123",
-        changes: [{
-          field: "messages",
-          value: {
-            messaging_product: "whatsapp",
-            metadata: { phone_number_id: "phone_123", display_phone_number: "+15550001111" },
-            messages: [{ from: "15551234567", id: "wamid.001", timestamp: "1710756000", type: "text", text: { body: "hi" } }],
-          },
-        }],
-      }],
+      entry: [
+        {
+          id: "business_123",
+          changes: [
+            {
+              field: "messages",
+              value: {
+                messaging_product: "whatsapp",
+                metadata: { phone_number_id: "phone_123", display_phone_number: "+15550001111" },
+                messages: [
+                  { from: "15551234567", id: "wamid.001", timestamp: "1710756000", type: "text", text: { body: "hi" } },
+                ],
+              },
+            },
+          ],
+        },
+      ],
     });
 
     const res = await fetch(`${baseUrl}/api/whatsapp/webhook`, {
@@ -759,17 +776,23 @@ describe("REQ-1g: WhatsApp webhook verification", () => {
     const before = callCount;
     const body = JSON.stringify({
       object: "whatsapp_business_account",
-      entry: [{
-        id: "business_123",
-        changes: [{
-          field: "messages",
-          value: {
-            messaging_product: "whatsapp",
-            metadata: { phone_number_id: "phone_123", display_phone_number: "+15550001111" },
-            statuses: [{ id: "wamid.status001", status: "delivered", timestamp: "1710756060", recipient_id: "15551234567" }],
-          },
-        }],
-      }],
+      entry: [
+        {
+          id: "business_123",
+          changes: [
+            {
+              field: "messages",
+              value: {
+                messaging_product: "whatsapp",
+                metadata: { phone_number_id: "phone_123", display_phone_number: "+15550001111" },
+                statuses: [
+                  { id: "wamid.status001", status: "delivered", timestamp: "1710756060", recipient_id: "15551234567" },
+                ],
+              },
+            },
+          ],
+        },
+      ],
     });
 
     const res = await fetch(`${baseUrl}/api/whatsapp/webhook`, {
@@ -838,11 +861,7 @@ describe("REQ-2/3/4: audit surfaces new blocked stages", () => {
   it("GET /api/conversations/:id/audit includes access_control, rate_limit, and outbound_governance", async () => {
     const res = await fetch(`${baseUrl}/api/conversations/conv_security_audit/audit`);
     expect(res.status).toBe(200);
-    const body = await res.json() as { turns: Array<{ block_stage?: string }> };
-    expect(body.turns.map((turn) => turn.block_stage)).toEqual([
-      "access_control",
-      "rate_limit",
-      "outbound_governance",
-    ]);
+    const body = (await res.json()) as { turns: Array<{ block_stage?: string }> };
+    expect(body.turns.map((turn) => turn.block_stage)).toEqual(["access_control", "rate_limit", "outbound_governance"]);
   });
 });

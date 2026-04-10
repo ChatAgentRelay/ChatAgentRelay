@@ -1,16 +1,13 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { describe, expect, it } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
 import type { PolicyConfig } from "../src/policy-engine";
 import { createPolicyFn, loadPolicyConfig } from "../src/policy-engine";
 import { loadPolicyFromFile, loadPolicyWithOverride } from "../src/policy-loader";
 
-function makeEvent(
-  text: string,
-  overrides: Partial<CanonicalEvent> = {},
-): CanonicalEvent {
+function makeEvent(text: string, overrides: Partial<CanonicalEvent> = {}): CanonicalEvent {
   return {
     event_id: "evt_test",
     schema_version: "v1alpha1",
@@ -32,17 +29,21 @@ function makeEvent(
 
 describe("createPolicyFn", () => {
   it("preserves legacy keyword rules", () => {
-    const config = loadPolicyConfig(JSON.stringify({
-      rules: [{ id: "r1", type: "keyword", pattern: "spam", action: "deny", reason: "spam_blocked" }],
-    }));
+    const config = loadPolicyConfig(
+      JSON.stringify({
+        rules: [{ id: "r1", type: "keyword", pattern: "spam", action: "deny", reason: "spam_blocked" }],
+      }),
+    );
     const result = createPolicyFn(config)(makeEvent("This is SPAM content"));
     expect(result).toEqual({ decision: "deny", reason: "spam_blocked" });
   });
 
   it("preserves legacy regex rules", () => {
-    const config = loadPolicyConfig(JSON.stringify({
-      rules: [{ id: "r1", type: "regex", pattern: "\\b\\d{16}\\b", action: "deny" }],
-    }));
+    const config = loadPolicyConfig(
+      JSON.stringify({
+        rules: [{ id: "r1", type: "regex", pattern: "\\b\\d{16}\\b", action: "deny" }],
+      }),
+    );
     const result = createPolicyFn(config)(makeEvent("card 1234567890123456"));
     expect(result.decision).toBe("deny");
     expect(result.reason).toBe("matched_rule:r1");
@@ -121,7 +122,8 @@ describe("createPolicyFn", () => {
 
     expect(createPolicyFn(config)(makeEvent("refund please")).decision).toBe("deny");
     expect(
-      createPolicyFn(config)(makeEvent("refund please", { actor: { id: "vip-user" } as Record<string, unknown> })).decision,
+      createPolicyFn(config)(makeEvent("refund please", { actor: { id: "vip-user" } as Record<string, unknown> }))
+        .decision,
     ).toBe("allow");
   });
 
@@ -152,9 +154,27 @@ describe("createPolicyFn", () => {
   it("applies ascending priority with stable first-match semantics", () => {
     const config: PolicyConfig = {
       rules: [
-        { id: "later", priority: 20, condition: { type: "keyword", pattern: "hello" }, action: "deny", reason: "later" },
-        { id: "first", priority: 10, condition: { type: "keyword", pattern: "hello" }, action: "deny", reason: "first" },
-        { id: "first-stable", priority: 10, condition: { type: "keyword", pattern: "hello" }, action: "deny", reason: "stable" },
+        {
+          id: "later",
+          priority: 20,
+          condition: { type: "keyword", pattern: "hello" },
+          action: "deny",
+          reason: "later",
+        },
+        {
+          id: "first",
+          priority: 10,
+          condition: { type: "keyword", pattern: "hello" },
+          action: "deny",
+          reason: "first",
+        },
+        {
+          id: "first-stable",
+          priority: 10,
+          condition: { type: "keyword", pattern: "hello" },
+          action: "deny",
+          reason: "stable",
+        },
       ],
     };
 
@@ -173,7 +193,10 @@ describe("loadPolicyFromFile", () => {
     const dir = mkdtempSync(join(tmpdir(), "car-policy-"));
     const file = join(dir, "policy.yaml");
     try {
-      writeFileSync(file, `version: "1"\ndefaultDecision: deny\nrules:\n  - id: block-spam\n    priority: 1\n    action: deny\n    reason: spam\n    condition:\n      type: keyword\n      pattern: spam\n`);
+      writeFileSync(
+        file,
+        `version: "1"\ndefaultDecision: deny\nrules:\n  - id: block-spam\n    priority: 1\n    action: deny\n    reason: spam\n    condition:\n      type: keyword\n      pattern: spam\n`,
+      );
       const config = loadPolicyFromFile(file);
       expect(config.defaultDecision).toBe("deny");
       expect(config.rules[0]?.id).toBe("block-spam");
@@ -187,7 +210,10 @@ describe("loadPolicyFromFile", () => {
     const dir = mkdtempSync(join(tmpdir(), "car-policy-"));
     const file = join(dir, "policy.yaml");
     try {
-      writeFileSync(file, `defaultDecision: allow\nrules:\n  - id: nested-rule\n    action: deny\n    reason: |\n      Manual review required\n      for suspicious sender and content.\n    condition:\n      type: and\n      conditions:\n        - type: sender\n          value: user-7 # sender under review\n        - type: or\n          conditions: [ { type: channel, value: slack }, { type: channel, value: teams } ]\n        - type: not\n          condition:\n            type: keyword\n            pattern: allowlist\n`);
+      writeFileSync(
+        file,
+        `defaultDecision: allow\nrules:\n  - id: nested-rule\n    action: deny\n    reason: |\n      Manual review required\n      for suspicious sender and content.\n    condition:\n      type: and\n      conditions:\n        - type: sender\n          value: user-7 # sender under review\n        - type: or\n          conditions: [ { type: channel, value: slack }, { type: channel, value: teams } ]\n        - type: not\n          condition:\n            type: keyword\n            pattern: allowlist\n`,
+      );
       const config = loadPolicyFromFile(file);
       expect(config.rules[0]?.reason).toBe("Manual review required\nfor suspicious sender and content.\n");
       expect(config.rules[0]?.condition).toEqual({
@@ -216,7 +242,10 @@ describe("loadPolicyFromFile", () => {
     const dir = mkdtempSync(join(tmpdir(), "car-policy-"));
     const file = join(dir, "policy.yaml");
     try {
-      writeFileSync(file, `sharedCondition: &shared\n  type: keyword\n  pattern: refund\nrules:\n  - id: refund-block\n    action: deny\n    reason: anchored\n    condition: *shared\n`);
+      writeFileSync(
+        file,
+        `sharedCondition: &shared\n  type: keyword\n  pattern: refund\nrules:\n  - id: refund-block\n    action: deny\n    reason: anchored\n    condition: *shared\n`,
+      );
       const config = loadPolicyFromFile(file);
       expect(config.rules[0]?.condition).toEqual({ type: "keyword", pattern: "refund" });
     } finally {
@@ -228,7 +257,10 @@ describe("loadPolicyFromFile", () => {
     const dir = mkdtempSync(join(tmpdir(), "car-policy-"));
     const file = join(dir, "policy.json");
     try {
-      writeFileSync(file, JSON.stringify({ rules: [{ id: "json-rule", type: "keyword", pattern: "spam", action: "deny" }] }));
+      writeFileSync(
+        file,
+        JSON.stringify({ rules: [{ id: "json-rule", type: "keyword", pattern: "spam", action: "deny" }] }),
+      );
       const config = loadPolicyFromFile(file);
       expect(config.rules[0]?.id).toBe("json-rule");
       expect(config.rules[0]?.condition).toEqual({ type: "keyword", pattern: "spam" });
@@ -241,7 +273,10 @@ describe("loadPolicyFromFile", () => {
     const dir = mkdtempSync(join(tmpdir(), "car-policy-"));
     const file = join(dir, "policy.json");
     try {
-      writeFileSync(file, JSON.stringify({ rules: [{ id: "file-rule", type: "keyword", pattern: "spam", action: "deny" }] }));
+      writeFileSync(
+        file,
+        JSON.stringify({ rules: [{ id: "file-rule", type: "keyword", pattern: "spam", action: "deny" }] }),
+      );
       const config = loadPolicyWithOverride(
         file,
         JSON.stringify({ rules: [{ id: "inline-rule", type: "keyword", pattern: "ham", action: "deny" }] }),
@@ -272,15 +307,19 @@ describe("loadPolicyConfig", () => {
   });
 
   it("normalizes new-style rules", () => {
-    const config = loadPolicyConfig(JSON.stringify({
-      rules: [{
-        id: "r1",
-        priority: 5,
-        mandatory: true,
-        condition: { type: "sender", value: "user-1" },
-        action: "deny",
-      }],
-    }));
+    const config = loadPolicyConfig(
+      JSON.stringify({
+        rules: [
+          {
+            id: "r1",
+            priority: 5,
+            mandatory: true,
+            condition: { type: "sender", value: "user-1" },
+            action: "deny",
+          },
+        ],
+      }),
+    );
 
     expect(config.rules[0]).toEqual({
       id: "r1",
@@ -293,7 +332,9 @@ describe("loadPolicyConfig", () => {
   });
 
   it("normalizes legacy rules into conditions", () => {
-    const config = loadPolicyConfig('{"rules": [{"id": "r1", "type": "keyword", "pattern": "spam", "action": "deny"}]}');
+    const config = loadPolicyConfig(
+      '{"rules": [{"id": "r1", "type": "keyword", "pattern": "spam", "action": "deny"}]}',
+    );
     expect(config.rules[0]!.condition).toEqual({ type: "keyword", pattern: "spam" });
     expect(config.rules[0]!.priority).toBe(0);
   });
@@ -307,20 +348,32 @@ describe("loadPolicyConfig", () => {
   });
 
   it("throws on unknown condition types", () => {
-    expect(() => loadPolicyConfig(JSON.stringify({
-      rules: [{ id: "r1", condition: { type: "mystery" }, action: "deny" }],
-    }))).toThrow("unknown condition type");
+    expect(() =>
+      loadPolicyConfig(
+        JSON.stringify({
+          rules: [{ id: "r1", condition: { type: "mystery" }, action: "deny" }],
+        }),
+      ),
+    ).toThrow("unknown condition type");
   });
 
   it("throws on invalid regex pattern", () => {
-    expect(() => loadPolicyConfig(JSON.stringify({
-      rules: [{ id: "r1", condition: { type: "regex", pattern: "[invalid" }, action: "deny" }],
-    }))).toThrow("invalid regex");
+    expect(() =>
+      loadPolicyConfig(
+        JSON.stringify({
+          rules: [{ id: "r1", condition: { type: "regex", pattern: "[invalid" }, action: "deny" }],
+        }),
+      ),
+    ).toThrow("invalid regex");
   });
 
   it("throws on invalid time window", () => {
-    expect(() => loadPolicyConfig(JSON.stringify({
-      rules: [{ id: "r1", condition: { type: "time_window", start: "25:00", end: "10:00" }, action: "deny" }],
-    }))).toThrow("Invalid time value");
+    expect(() =>
+      loadPolicyConfig(
+        JSON.stringify({
+          rules: [{ id: "r1", condition: { type: "time_window", start: "25:00", end: "10:00" }, action: "deny" }],
+        }),
+      ),
+    ).toThrow("Invalid time value");
   });
 });

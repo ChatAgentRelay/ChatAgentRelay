@@ -1,4 +1,10 @@
-import type { CanonicalEvent, ChannelAdapter, ChannelCapabilities, ChannelSender, ValidationResult } from "@chat-agent-relay/contract-harness";
+import type {
+  CanonicalEvent,
+  ChannelAdapter,
+  ChannelCapabilities,
+  ChannelSender,
+  ValidationResult,
+} from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { createTelegramSender } from "./telegram-sender";
 import type { CanonicalizationResult, IngressError, TelegramMessage, TelegramUpdate } from "./types";
@@ -42,7 +48,8 @@ export class TelegramIngress implements ChannelAdapter {
       this.apiBase !== undefined ? { apiBase: this.apiBase } : undefined,
     );
     return {
-      send: (text: string) => sender.sendMessage(chatId, text).then(r => ({ providerMessageId: String(r.messageId) })),
+      send: (text: string) =>
+        sender.sendMessage(chatId, text).then((r) => ({ providerMessageId: String(r.messageId) })),
       edit: (providerMessageId: string, text: string) => sender.editMessage(chatId, Number(providerMessageId), text),
     };
   }
@@ -140,7 +147,10 @@ function validateTelegramUpdate(raw: unknown): UpdateValidationSuccess | UpdateV
   const obj = raw as Record<string, unknown>;
 
   if (typeof obj["update_id"] !== "number") {
-    return { ok: false, error: { code: "missing_field", message: "update_id is required and must be a number", field: "update_id" } };
+    return {
+      ok: false,
+      error: { code: "missing_field", message: "update_id is required and must be a number", field: "update_id" },
+    };
   }
 
   const msg = obj["message"];
@@ -151,7 +161,10 @@ function validateTelegramUpdate(raw: unknown): UpdateValidationSuccess | UpdateV
   const m = msg as Record<string, unknown>;
 
   if (typeof m["message_id"] !== "number") {
-    return { ok: false, error: { code: "missing_field", message: "message.message_id is required", field: "message.message_id" } };
+    return {
+      ok: false,
+      error: { code: "missing_field", message: "message.message_id is required", field: "message.message_id" },
+    };
   }
 
   const from = m["from"];
@@ -161,7 +174,10 @@ function validateTelegramUpdate(raw: unknown): UpdateValidationSuccess | UpdateV
 
   const f = from as Record<string, unknown>;
   if (typeof f["id"] !== "number") {
-    return { ok: false, error: { code: "missing_field", message: "message.from.id is required", field: "message.from.id" } };
+    return {
+      ok: false,
+      error: { code: "missing_field", message: "message.from.id is required", field: "message.from.id" },
+    };
   }
 
   const chat = m["chat"];
@@ -171,11 +187,21 @@ function validateTelegramUpdate(raw: unknown): UpdateValidationSuccess | UpdateV
 
   const c = chat as Record<string, unknown>;
   if (typeof c["id"] !== "number") {
-    return { ok: false, error: { code: "missing_field", message: "message.chat.id is required", field: "message.chat.id" } };
+    return {
+      ok: false,
+      error: { code: "missing_field", message: "message.chat.id is required", field: "message.chat.id" },
+    };
   }
 
   if (typeof m["text"] !== "string" || (m["text"] as string).length === 0) {
-    return { ok: false, error: { code: "missing_field", message: "message.text is required and must be non-empty", field: "message.text" } };
+    return {
+      ok: false,
+      error: {
+        code: "missing_field",
+        message: "message.text is required and must be non-empty",
+        field: "message.text",
+      },
+    };
   }
 
   if (typeof m["date"] !== "number") {

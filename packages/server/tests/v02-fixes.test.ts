@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { SqliteConfigStore, RouteEngine } from "@chat-agent-relay/config-store";
+import { RouteEngine, SqliteConfigStore } from "@chat-agent-relay/config-store";
 import { InMemoryEventLedgerStore } from "@chat-agent-relay/event-ledger";
 import type { Server } from "bun";
 import { AgentRegistry } from "../src/agent-registry";
@@ -38,7 +38,7 @@ describe("REQ-1: API returns raw arrays for list endpoints", () => {
   it("GET /api/agents returns a raw array", async () => {
     const res = await fetch(`${baseUrl}/api/agents`);
     expect(res.status).toBe(200);
-    const body = await res.json() as unknown;
+    const body = (await res.json()) as unknown;
     expect(Array.isArray(body)).toBe(true);
     const agents = body as NamedRecord[];
     expect(agents.length).toBe(1);
@@ -48,7 +48,7 @@ describe("REQ-1: API returns raw arrays for list endpoints", () => {
   it("GET /api/channels returns a raw array", async () => {
     const res = await fetch(`${baseUrl}/api/channels`);
     expect(res.status).toBe(200);
-    const body = await res.json() as unknown;
+    const body = (await res.json()) as unknown;
     expect(Array.isArray(body)).toBe(true);
     const channels = body as NamedRecord[];
     expect(channels.length).toBe(1);
@@ -58,7 +58,7 @@ describe("REQ-1: API returns raw arrays for list endpoints", () => {
   it("GET /api/routes returns a raw array", async () => {
     const res = await fetch(`${baseUrl}/api/routes`);
     expect(res.status).toBe(200);
-    const body = await res.json() as unknown;
+    const body = (await res.json()) as unknown;
     expect(Array.isArray(body)).toBe(true);
     const routes = body as RouteRecord[];
     expect(routes.length).toBe(1);
@@ -93,7 +93,7 @@ describe("REQ-2: API addChannel accepts all 6 channel types", () => {
       body: JSON.stringify({ name: "tg-ch", type: "telegram", config: { botToken: "fake" } }),
     });
     expect(res.status).toBe(201);
-    const body = await res.json() as Record<string, unknown>;
+    const body = (await res.json()) as Record<string, unknown>;
     expect(body.type).toBe("telegram");
   });
 
@@ -104,7 +104,7 @@ describe("REQ-2: API addChannel accepts all 6 channel types", () => {
       body: JSON.stringify({ name: "lark-ch", type: "lark", config: { appId: "id", appSecret: "secret" } }),
     });
     expect(res.status).toBe(201);
-    const body = await res.json() as Record<string, unknown>;
+    const body = (await res.json()) as Record<string, unknown>;
     expect(body.type).toBe("lark");
   });
 
@@ -115,7 +115,7 @@ describe("REQ-2: API addChannel accepts all 6 channel types", () => {
       body: JSON.stringify({ name: "dt-ch", type: "dingtalk", config: {} }),
     });
     expect(res.status).toBe(201);
-    const body = await res.json() as Record<string, unknown>;
+    const body = (await res.json()) as Record<string, unknown>;
     expect(body.type).toBe("dingtalk");
   });
 
@@ -126,7 +126,7 @@ describe("REQ-2: API addChannel accepts all 6 channel types", () => {
       body: JSON.stringify({ name: "bad-ch", type: "invalid", config: {} }),
     });
     expect(res.status).toBe(400);
-    const body = await res.json() as Record<string, unknown>;
+    const body = (await res.json()) as Record<string, unknown>;
     expect(body.error).toContain("Invalid channel type");
   });
 });

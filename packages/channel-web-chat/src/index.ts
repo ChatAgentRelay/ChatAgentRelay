@@ -1,8 +1,8 @@
 export { WebChatIngress } from "./canonicalize";
-export { startWebChatServer, SessionStore } from "./http-transport";
-export { buildWebChatStreaming } from "./streaming";
 export type { WebChatHttpConfig, WebChatPipelineFn, WebChatResponse } from "./http-transport";
+export { SessionStore, startWebChatServer } from "./http-transport";
 export { deriveIdempotencyKey } from "./idempotency";
+export { buildWebChatStreaming } from "./streaming";
 export type {
   CanonicalizationFailure,
   CanonicalizationResult,
@@ -10,9 +10,9 @@ export type {
   InboundWebChatRequest,
   IngressError,
   WebChatPipelineResult,
-  WebChatStreamEvent,
-  WebChatStreamingPipelineFn,
   WebChatResumeFn,
   WebChatResumeStreamingFn,
+  WebChatStreamEvent,
+  WebChatStreamingPipelineFn,
 } from "./types";
 export { validateInboundInput } from "./validate-input";

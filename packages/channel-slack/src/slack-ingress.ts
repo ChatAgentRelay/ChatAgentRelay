@@ -66,14 +66,15 @@ export class SlackIngress implements ChannelAdapter {
 
   createSender(event: CanonicalEvent): ChannelSender {
     const slack = event.provider_extensions?.["slack"] as Record<string, unknown> | undefined;
-    const channel =
-      (typeof slack?.["channel_id"] === "string"
+    const channel = (
+      typeof slack?.["channel_id"] === "string"
         ? slack["channel_id"]
         : typeof slack?.["channel"] === "string"
           ? slack["channel"]
           : typeof event.channel_instance_id === "string"
             ? event.channel_instance_id.replace(/^slack_/, "")
-            : "") as string;
+            : ""
+    ) as string;
     const threadTs = typeof slack?.["thread_ts"] === "string" ? slack["thread_ts"] : undefined;
     return {
       send: (text: string) => this.sender.send(channel, text, threadTs),
@@ -100,7 +101,10 @@ export class SlackIngress implements ChannelAdapter {
       if (subtype === "message_changed") return this.canonicalizeMessageUpdate(inner);
       if (subtype === "message_deleted") return this.canonicalizeMessageDelete(inner);
       if (subtype !== undefined) {
-        return { ok: false, error: { code: "unsupported_subtype", message: `Unsupported message subtype: ${subtype}` } };
+        return {
+          ok: false,
+          error: { code: "unsupported_subtype", message: `Unsupported message subtype: ${subtype}` },
+        };
       }
       if ((inner as Record<string, unknown>)["bot_id"] !== undefined) {
         return { ok: false, error: { code: "bot_message", message: "Ignoring bot message" } };
@@ -121,7 +125,8 @@ export class SlackIngress implements ChannelAdapter {
 
     const channelInstanceId = `slack_${raw.channel}`;
     const idempotencyKey = `slack:${this.tenantId}:${channelInstanceId}:${raw.ts}`;
-    const threadTs = raw.type === "message" ? (raw as SlackMessageEvent).thread_ts : (raw as SlackAppMentionEvent).thread_ts;
+    const threadTs =
+      raw.type === "message" ? (raw as SlackMessageEvent).thread_ts : (raw as SlackAppMentionEvent).thread_ts;
     const conversationId = threadTs ? `slack_thread_${threadTs}` : `slack_${raw.channel}_${raw.ts}`;
 
     const event: CanonicalEvent = {
@@ -144,8 +149,14 @@ export class SlackIngress implements ChannelAdapter {
         slack: {
           channel_id: raw.channel,
           ts: raw.ts,
-          team_id: raw.type === "message" ? ((raw as SlackMessageEvent).team ?? "") : ((raw as SlackAppMentionEvent).team ?? ""),
-          channel_type: raw.type === "message" ? ((raw as SlackMessageEvent).channel_type ?? "unknown") : ((raw as SlackAppMentionEvent).channel_type ?? "unknown"),
+          team_id:
+            raw.type === "message"
+              ? ((raw as SlackMessageEvent).team ?? "")
+              : ((raw as SlackAppMentionEvent).team ?? ""),
+          channel_type:
+            raw.type === "message"
+              ? ((raw as SlackMessageEvent).channel_type ?? "unknown")
+              : ((raw as SlackAppMentionEvent).channel_type ?? "unknown"),
           event_type: raw.type,
           ...(threadTs !== undefined ? { thread_ts: threadTs } : {}),
         },
@@ -168,7 +179,10 @@ export class SlackIngress implements ChannelAdapter {
 
   canonicalizeMessageUpdate(raw: unknown): SlackCanonicalizationResult {
     if (!isSlackMessageChangedEvent(raw)) {
-      return { ok: false, error: { code: "invalid_message_changed", message: "Not a valid Slack message_changed event" } };
+      return {
+        ok: false,
+        error: { code: "invalid_message_changed", message: "Not a valid Slack message_changed event" },
+      };
     }
 
     const channelInstanceId = `slack_${raw.channel}`;
@@ -221,7 +235,10 @@ export class SlackIngress implements ChannelAdapter {
 
   canonicalizeMessageDelete(raw: unknown): SlackCanonicalizationResult {
     if (!isSlackMessageDeletedEvent(raw)) {
-      return { ok: false, error: { code: "invalid_message_deleted", message: "Not a valid Slack message_deleted event" } };
+      return {
+        ok: false,
+        error: { code: "invalid_message_deleted", message: "Not a valid Slack message_deleted event" },
+      };
     }
 
     const channelInstanceId = `slack_${raw.channel}`;
@@ -323,7 +340,10 @@ export class SlackIngress implements ChannelAdapter {
 
   canonicalizeCommand(raw: unknown): SlackCanonicalizationResult {
     if (!isSlackSlashCommandPayload(raw)) {
-      return { ok: false, error: { code: "invalid_slash_command", message: "Not a valid Slack slash command payload" } };
+      return {
+        ok: false,
+        error: { code: "invalid_slash_command", message: "Not a valid Slack slash command payload" },
+      };
     }
 
     const commandName = raw.command.startsWith("/") ? raw.command.slice(1) : raw.command;

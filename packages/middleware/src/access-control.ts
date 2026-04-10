@@ -14,12 +14,8 @@ export function checkAccess(config: AccessControlConfig, senderId: string): Acce
   const match = config.senders.includes(senderId);
 
   if (config.mode === "allowlist") {
-    return match
-      ? { allowed: true }
-      : { allowed: false, reason: `sender ${senderId} not in allowlist` };
+    return match ? { allowed: true } : { allowed: false, reason: `sender ${senderId} not in allowlist` };
   }
 
-  return match
-    ? { allowed: false, reason: `sender ${senderId} is blocklisted` }
-    : { allowed: true };
+  return match ? { allowed: false, reason: `sender ${senderId} is blocklisted` } : { allowed: true };
 }

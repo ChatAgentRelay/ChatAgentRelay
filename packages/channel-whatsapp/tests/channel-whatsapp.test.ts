@@ -1,7 +1,7 @@
-import { createHmac } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
+import { createHmac } from "node:crypto";
 import { testChannelAdapter } from "@chat-agent-relay/adapter-conformance";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import type { Server } from "bun";
 import { createWhatsAppSessionTracker } from "../src/session-tracker";
 import { WhatsAppIngress } from "../src/whatsapp-ingress";
@@ -13,23 +13,29 @@ type BunServer = Server<unknown>;
 function samplePayload(overrides: Record<string, unknown> = {}) {
   return {
     object: "whatsapp_business_account",
-    entry: [{
-      id: "business_123",
-      changes: [{
-        field: "messages",
-        value: {
-          messaging_product: "whatsapp",
-          metadata: { phone_number_id: "phone_123", display_phone_number: "+15550001111" },
-          messages: [{
-            from: "15551234567",
-            id: "wamid.001",
-            timestamp: "1710756000",
-            type: "text",
-            text: { body: "Hello from WhatsApp" },
-          }],
-        },
-      }],
-    }],
+    entry: [
+      {
+        id: "business_123",
+        changes: [
+          {
+            field: "messages",
+            value: {
+              messaging_product: "whatsapp",
+              metadata: { phone_number_id: "phone_123", display_phone_number: "+15550001111" },
+              messages: [
+                {
+                  from: "15551234567",
+                  id: "wamid.001",
+                  timestamp: "1710756000",
+                  type: "text",
+                  text: { body: "Hello from WhatsApp" },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    ],
     ...overrides,
   };
 }
@@ -60,17 +66,23 @@ describe("WhatsApp ingress", () => {
   it("canonicalizes statuses into agent.status.changed", () => {
     const result = ingress.canonicalize({
       object: "whatsapp_business_account",
-      entry: [{
-        id: "business_123",
-        changes: [{
-          field: "messages",
-          value: {
-            messaging_product: "whatsapp",
-            metadata: { phone_number_id: "phone_123", display_phone_number: "+15550001111" },
-            statuses: [{ id: "wamid.001", status: "delivered", timestamp: "1710756060", recipient_id: "15551234567" }],
-          },
-        }],
-      }],
+      entry: [
+        {
+          id: "business_123",
+          changes: [
+            {
+              field: "messages",
+              value: {
+                messaging_product: "whatsapp",
+                metadata: { phone_number_id: "phone_123", display_phone_number: "+15550001111" },
+                statuses: [
+                  { id: "wamid.001", status: "delivered", timestamp: "1710756060", recipient_id: "15551234567" },
+                ],
+              },
+            },
+          ],
+        },
+      ],
     });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -82,7 +94,10 @@ describe("WhatsApp ingress", () => {
   });
 
   it("rejects unsupported payloads", () => {
-    const result = ingress.canonicalize({ object: "whatsapp_business_account", entry: [{ id: "business_123", changes: [{ field: "messages", value: { messaging_product: "whatsapp" } }] }] });
+    const result = ingress.canonicalize({
+      object: "whatsapp_business_account",
+      entry: [{ id: "business_123", changes: [{ field: "messages", value: { messaging_product: "whatsapp" } }] }],
+    });
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.code).toBe("unsupported_payload");
@@ -105,7 +120,11 @@ testChannelAdapter({
   },
   invalidInputs: [
     { label: "non-object", input: "bad", expectedCode: "invalid_payload" },
-    { label: "unsupported", input: { object: "whatsapp_business_account", entry: [] }, expectedCode: "invalid_payload" },
+    {
+      label: "unsupported",
+      input: { object: "whatsapp_business_account", entry: [] },
+      expectedCode: "invalid_payload",
+    },
   ],
   expectedChannel: "whatsapp",
 });
@@ -152,7 +171,7 @@ describe("WhatsApp sender", () => {
       port: 0,
       async fetch(req) {
         expect(req.headers.get("Authorization")).toBe("Bearer access-token");
-        const body = await req.json() as Record<string, unknown>;
+        const body = (await req.json()) as Record<string, unknown>;
         sendBodies.push(body);
         expect(body["to"]).toBe("15551234567");
         expect(body["type"]).toBe("text");
@@ -160,7 +179,9 @@ describe("WhatsApp sender", () => {
       },
     });
 
-    const sender = createWhatsAppSender("phone_123", "access-token", { apiBase: `http://localhost:${mockServer.port}` });
+    const sender = createWhatsAppSender("phone_123", "access-token", {
+      apiBase: `http://localhost:${mockServer.port}`,
+    });
     const result = await sender.sendMessage("15551234567", "Hello back");
     expect(result.messageId).toBe("wamid.reply001");
   });

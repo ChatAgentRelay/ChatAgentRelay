@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import type { Server } from "bun";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
+import type { Server } from "bun";
 import { DiscordIngress } from "../src/discord-ingress";
 import { DiscordSender } from "../src/discord-sender";
 import type { DiscordInteraction } from "../src/types";
@@ -33,9 +33,7 @@ function sampleGuildInteraction(): DiscordInteraction {
       id: "cmd_001",
       name: "ask",
       type: 1,
-      options: [
-        { name: "question", type: 3, value: "what is the weather" },
-      ],
+      options: [{ name: "question", type: 3, value: "what is the weather" }],
     },
     guild_id: "guild_001",
     channel_id: "channel_001",

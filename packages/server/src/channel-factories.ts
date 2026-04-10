@@ -1,13 +1,13 @@
-import { DEFAULT_INTENTS, DiscordGatewayConnection, DiscordIngress } from "@chat-agent-relay/channel-discord";
 import { DingTalkIngress } from "@chat-agent-relay/channel-dingtalk";
+import { DEFAULT_INTENTS, DiscordGatewayConnection, DiscordIngress } from "@chat-agent-relay/channel-discord";
 import { LarkIngress } from "@chat-agent-relay/channel-lark";
 import { SlackIngress, SlackSocketConnection } from "@chat-agent-relay/channel-slack";
-import { TelegramIngress } from "@chat-agent-relay/channel-telegram";
 import { TeamsIngress } from "@chat-agent-relay/channel-teams";
-import { WhatsAppIngress } from "@chat-agent-relay/channel-whatsapp";
+import { TelegramIngress } from "@chat-agent-relay/channel-telegram";
 import { WebChatIngress } from "@chat-agent-relay/channel-web-chat";
+import { WhatsAppIngress } from "@chat-agent-relay/channel-whatsapp";
 import type { ChannelFactory } from "./channel-registry";
-import { pickString, pickNumber } from "./config-helpers";
+import { pickNumber, pickString } from "./config-helpers";
 import { logger } from "./logger";
 
 export function createSlackFactory(): ChannelFactory {
@@ -57,11 +57,21 @@ export function createDiscordFactory(): ChannelFactory {
     const gateway = new DiscordGatewayConnection({
       token: botToken,
       intents,
-      onMessage: async (event) => { await onMessage(event); },
-      onMessageUpdate: async (event) => { await onMessage(event); },
-      onMessageDelete: async (event) => { await onMessage(event); },
-      onReaction: async (event) => { await onMessage(event); },
-      onInteraction: async (interaction) => { await onMessage(interaction); },
+      onMessage: async (event) => {
+        await onMessage(event);
+      },
+      onMessageUpdate: async (event) => {
+        await onMessage(event);
+      },
+      onMessageDelete: async (event) => {
+        await onMessage(event);
+      },
+      onReaction: async (event) => {
+        await onMessage(event);
+      },
+      onInteraction: async (interaction) => {
+        await onMessage(interaction);
+      },
       onError: (error: Error) => {
         logger.error("Discord gateway error", { error_message: error.message });
       },

@@ -100,9 +100,7 @@ beforeAll(async () => {
               parts: [{ kind: "text", text: "A2A response" }],
             },
           },
-          artifacts: [
-            { artifactId: "a1", parts: [{ kind: "text", text: "A2A response" }] },
-          ],
+          artifacts: [{ artifactId: "a1", parts: [{ kind: "text", text: "A2A response" }] }],
         },
       });
     },
@@ -243,7 +241,13 @@ testChannelAdapter({
       label: "empty text",
       input: {
         update_id: 1,
-        message: { message_id: 1, from: { id: 1, is_bot: false, first_name: "A" }, chat: { id: 1, type: "private" }, date: 1, text: "" },
+        message: {
+          message_id: 1,
+          from: { id: 1, is_bot: false, first_name: "A" },
+          chat: { id: 1, type: "private" },
+          date: 1,
+          text: "",
+        },
       },
       expectedCode: "missing_field",
     },
@@ -278,8 +282,41 @@ testChannelAdapter({
     },
   },
   invalidInputs: [
-    { label: "wrong event type", input: { schema: "2.0", header: { event_id: "e1", event_type: "im.chat.disbanded_v1", create_time: "1", token: "t", app_id: "a", tenant_key: "k" }, event: {} }, expectedCode: "unsupported_event_type" },
-    { label: "non-text message", input: { schema: "2.0", header: { event_id: "e1", event_type: "im.message.receive_v1", create_time: "1", token: "t", app_id: "a", tenant_key: "k" }, event: { sender: { sender_id: { open_id: "u1" }, sender_type: "user" }, message: { message_id: "m1", chat_id: "c1", chat_type: "p2p", message_type: "image", content: "{}" } } }, expectedCode: "unsupported_message_type" },
+    {
+      label: "wrong event type",
+      input: {
+        schema: "2.0",
+        header: {
+          event_id: "e1",
+          event_type: "im.chat.disbanded_v1",
+          create_time: "1",
+          token: "t",
+          app_id: "a",
+          tenant_key: "k",
+        },
+        event: {},
+      },
+      expectedCode: "unsupported_event_type",
+    },
+    {
+      label: "non-text message",
+      input: {
+        schema: "2.0",
+        header: {
+          event_id: "e1",
+          event_type: "im.message.receive_v1",
+          create_time: "1",
+          token: "t",
+          app_id: "a",
+          tenant_key: "k",
+        },
+        event: {
+          sender: { sender_id: { open_id: "u1" }, sender_type: "user" },
+          message: { message_id: "m1", chat_id: "c1", chat_type: "p2p", message_type: "image", content: "{}" },
+        },
+      },
+      expectedCode: "unsupported_message_type",
+    },
   ],
 });
 
@@ -306,7 +343,23 @@ testChannelAdapter({
   },
   invalidInputs: [
     { label: "unsupported msgtype", input: { msgtype: "link" }, expectedCode: "unsupported_msgtype" },
-    { label: "empty content", input: { msgtype: "text", text: { content: "  " }, msgId: "m1", createAt: 1, conversationType: "1", conversationId: "c1", senderId: "s1", senderNick: "n", chatbotUserId: "b1", sessionWebhook: "https://x", sessionWebhookExpiredTime: 1 }, expectedCode: "empty_content" },
+    {
+      label: "empty content",
+      input: {
+        msgtype: "text",
+        text: { content: "  " },
+        msgId: "m1",
+        createAt: 1,
+        conversationType: "1",
+        conversationId: "c1",
+        senderId: "s1",
+        senderNick: "n",
+        chatbotUserId: "b1",
+        sessionWebhook: "https://x",
+        sessionWebhookExpiredTime: 1,
+      },
+      expectedCode: "empty_content",
+    },
   ],
 });
 

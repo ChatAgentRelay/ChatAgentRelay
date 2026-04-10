@@ -31,7 +31,11 @@ describe("TelegramIngress", () => {
       { label: "null body", input: null, expectedCode: "invalid_payload" },
       { label: "missing update_id", input: { message: {} }, expectedCode: "missing_field" },
       { label: "missing message", input: { update_id: 1 }, expectedCode: "missing_field" },
-      { label: "empty text", input: { ...VALID_UPDATE, message: { ...VALID_UPDATE.message, text: "" } }, expectedCode: "missing_field" },
+      {
+        label: "empty text",
+        input: { ...VALID_UPDATE, message: { ...VALID_UPDATE.message, text: "" } },
+        expectedCode: "missing_field",
+      },
     ],
     expectedChannel: "telegram",
   });

@@ -44,21 +44,18 @@ export function createLarkSender(appId: string, appSecret: string, options?: { a
 
   async function sendMessage(chatId: string, text: string): Promise<{ messageId: string }> {
     const token = await getAccessToken();
-    const response = await fetch(
-      `${apiBase}/im/v1/messages?receive_id_type=chat_id`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          receive_id: chatId,
-          msg_type: "text",
-          content: JSON.stringify({ text }),
-        }),
+    const response = await fetch(`${apiBase}/im/v1/messages?receive_id_type=chat_id`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-    );
+      body: JSON.stringify({
+        receive_id: chatId,
+        msg_type: "text",
+        content: JSON.stringify({ text }),
+      }),
+    });
 
     const body = (await response.json()) as LarkSendMessageResponse;
     if (body.code !== 0) {
@@ -70,20 +67,17 @@ export function createLarkSender(appId: string, appSecret: string, options?: { a
 
   async function editMessage(messageId: string, text: string): Promise<void> {
     const token = await getAccessToken();
-    const response = await fetch(
-      `${apiBase}/im/v1/messages/${messageId}`,
-      {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          msg_type: "text",
-          content: JSON.stringify({ text }),
-        }),
+    const response = await fetch(`${apiBase}/im/v1/messages/${messageId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-    );
+      body: JSON.stringify({
+        msg_type: "text",
+        content: JSON.stringify({ text }),
+      }),
+    });
 
     const body = (await response.json()) as LarkSendMessageResponse;
     if (body.code !== 0) {

@@ -13,13 +13,7 @@ export type AgentCapabilities = {
 
 // ─── Agent Task Status (A2A Task Lifecycle) ───────────────────────────────
 
-export type AgentTaskStatus =
-  | "submitted"
-  | "working"
-  | "input-required"
-  | "completed"
-  | "failed"
-  | "cancelled";
+export type AgentTaskStatus = "submitted" | "working" | "input-required" | "completed" | "failed" | "cancelled";
 
 // ─── Content Parts (A2A Part model) ───────────────────────────────────────
 
@@ -48,11 +42,7 @@ export type AgentInputRequiredEvent = {
   metadata?: Record<string, unknown>;
 };
 
-export type AgentEvent =
-  | AgentStatusEvent
-  | AgentTextDeltaEvent
-  | AgentArtifactEvent
-  | AgentInputRequiredEvent;
+export type AgentEvent = AgentStatusEvent | AgentTextDeltaEvent | AgentArtifactEvent | AgentInputRequiredEvent;
 
 // ─── Conversation Turn ───────────────────────────────────────────────────
 
@@ -119,10 +109,7 @@ export interface AgentAdapter {
 
   resume?(sessionHandle: string, input: AgentResumeInput): Promise<AgentResult>;
 
-  resumeStream?(
-    sessionHandle: string,
-    input: AgentResumeInput,
-  ): AsyncGenerator<AgentEvent, AgentResult>;
+  resumeStream?(sessionHandle: string, input: AgentResumeInput): AsyncGenerator<AgentEvent, AgentResult>;
 
   cancel?(sessionHandle: string): Promise<void>;
 }

@@ -1,12 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import type { Server } from "bun";
-import { DiscordGatewayConnection, DEFAULT_INTENTS } from "../src/discord-gateway";
-import type { DiscordMessageEvent, DiscordGatewayPayload } from "../src/types";
+import { DEFAULT_INTENTS, DiscordGatewayConnection } from "../src/discord-gateway";
+import type { DiscordGatewayPayload, DiscordMessageEvent } from "../src/types";
 
-function createMockGatewayServer(options?: {
-  heartbeatInterval?: number;
-  sendMessageCreate?: boolean;
-}): { server: Server<undefined>; port: number; getConnections: () => number } {
+function createMockGatewayServer(options?: { heartbeatInterval?: number; sendMessageCreate?: boolean }): {
+  server: Server<undefined>;
+  port: number;
+  getConnections: () => number;
+} {
   let connectionCount = 0;
   const heartbeatInterval = options?.heartbeatInterval ?? 45000;
   const sendMessageCreate = options?.sendMessageCreate ?? false;

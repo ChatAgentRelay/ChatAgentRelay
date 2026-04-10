@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { richMessageToSlackBlocks } from "../src/rich-message";
 import type { RichMessage } from "../src/rich-message";
+import { richMessageToSlackBlocks } from "../src/rich-message";
 
 describe("richMessageToSlackBlocks", () => {
   it("converts a text block to a section with mrkdwn", () => {

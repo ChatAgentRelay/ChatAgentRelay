@@ -9,7 +9,12 @@ import { ChannelRegistry } from "../src/channel-registry";
 
 type BunServer = Server<unknown>;
 
-function makeEvent(tenantId: string, conversationId: string, correlationId: string, eventType = "message.received"): StoredCanonicalEvent {
+function makeEvent(
+  tenantId: string,
+  conversationId: string,
+  correlationId: string,
+  eventType = "message.received",
+): StoredCanonicalEvent {
   return {
     event_id: `evt_${crypto.randomUUID()}`,
     schema_version: "v1alpha1",
@@ -70,7 +75,7 @@ describe("Tenant isolation enabled", () => {
       headers: { "X-Tenant-ID": "tenant_A" },
     });
     expect(res.status).toBe(200);
-    const body = await res.json() as { events: StoredCanonicalEvent[]; count: number };
+    const body = (await res.json()) as { events: StoredCanonicalEvent[]; count: number };
     expect(body.count).toBe(2);
     expect(body.events.every((e) => e.tenant_id === "tenant_A")).toBe(true);
   });
@@ -79,7 +84,7 @@ describe("Tenant isolation enabled", () => {
     const res = await fetch(`${baseUrl}/api/conversations/conv_shared/events`, {
       headers: { "X-Tenant-ID": "tenant_B" },
     });
-    const body = await res.json() as { events: StoredCanonicalEvent[]; count: number };
+    const body = (await res.json()) as { events: StoredCanonicalEvent[]; count: number };
     expect(body.count).toBe(1);
     expect(body.events[0]!.tenant_id).toBe("tenant_B");
   });
@@ -88,7 +93,7 @@ describe("Tenant isolation enabled", () => {
     const res = await fetch(`${baseUrl}/api/correlations/corr_A/events`, {
       headers: { "X-Tenant-ID": "tenant_A" },
     });
-    const body = await res.json() as { events: StoredCanonicalEvent[]; count: number };
+    const body = (await res.json()) as { events: StoredCanonicalEvent[]; count: number };
     expect(body.count).toBe(2);
   });
 
@@ -96,7 +101,7 @@ describe("Tenant isolation enabled", () => {
     const res = await fetch(`${baseUrl}/api/correlations/corr_A/events`, {
       headers: { "X-Tenant-ID": "tenant_B" },
     });
-    const body = await res.json() as { events: StoredCanonicalEvent[]; count: number };
+    const body = (await res.json()) as { events: StoredCanonicalEvent[]; count: number };
     expect(body.count).toBe(0);
   });
 
@@ -112,7 +117,7 @@ describe("Tenant isolation enabled", () => {
       headers: { "X-Tenant-ID": "tenant_A" },
     });
     expect(res.status).toBe(200);
-    const body = await res.json() as StoredCanonicalEvent;
+    const body = (await res.json()) as StoredCanonicalEvent;
     expect(body.tenant_id).toBe("tenant_A");
   });
 
@@ -121,13 +126,13 @@ describe("Tenant isolation enabled", () => {
       headers: { "X-Tenant-ID": "tenant_A" },
     });
     expect(res.status).toBe(200);
-    const body = await res.json() as { total_events: number };
+    const body = (await res.json()) as { total_events: number };
     expect(body.total_events).toBe(2);
   });
 
   it("no X-Tenant-ID header returns all events (unscoped)", async () => {
     const res = await fetch(`${baseUrl}/api/conversations/conv_shared/events`);
-    const body = await res.json() as { count: number };
+    const body = (await res.json()) as { count: number };
     expect(body.count).toBe(3);
   });
 });
@@ -163,7 +168,7 @@ describe("Tenant isolation disabled (default)", () => {
     const res = await fetch(`${baseUrl}/api/conversations/conv_1/events`, {
       headers: { "X-Tenant-ID": "tenant_A" },
     });
-    const body = await res.json() as { count: number };
+    const body = (await res.json()) as { count: number };
     expect(body.count).toBe(2);
   });
 });

@@ -55,8 +55,6 @@ describe("EncryptionEngine", () => {
     const engineB = new EncryptionEngine("key-B-wrong-key-1234567890");
     const encrypted = await engineA.encrypt("secret-data");
 
-    await expect(engineB.decrypt(encrypted)).rejects.toThrow(
-      /CAR_ENCRYPTION_KEY does not match/,
-    );
+    await expect(engineB.decrypt(encrypted)).rejects.toThrow(/CAR_ENCRYPTION_KEY does not match/);
   });
 });

@@ -1,7 +1,6 @@
 export { TeamsIngress } from "./teams-ingress";
 export { createTeamsSender } from "./teams-sender";
 export { createTeamsTokenManager } from "./token-manager";
-export { TeamsWebhookVerifier } from "./verify-jwt";
 export type {
   CanonicalizationFailure,
   CanonicalizationResult,
@@ -17,3 +16,4 @@ export type {
   TeamsTokenManager,
   TeamsTokenResponse,
 } from "./types";
+export { TeamsWebhookVerifier } from "./verify-jwt";

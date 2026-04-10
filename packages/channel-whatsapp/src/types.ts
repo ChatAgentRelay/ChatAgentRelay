@@ -31,10 +31,12 @@ export type WhatsAppStatus = {
 
 export type WhatsAppChangeValue = {
   messaging_product: string;
-  metadata?: {
-    phone_number_id?: string | undefined;
-    display_phone_number?: string | undefined;
-  } | undefined;
+  metadata?:
+    | {
+        phone_number_id?: string | undefined;
+        display_phone_number?: string | undefined;
+      }
+    | undefined;
   messages?: WhatsAppTextMessage[] | undefined;
   statuses?: WhatsAppStatus[] | undefined;
 };

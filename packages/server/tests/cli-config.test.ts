@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
-import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { Server } from "bun";
+import { join } from "node:path";
 import { SqliteConfigStore } from "@chat-agent-relay/config-store";
 import { InMemoryEventLedgerStore } from "@chat-agent-relay/event-ledger";
+import type { Server } from "bun";
 import { AgentRegistry } from "../src/agent-registry";
 import { startApiServer } from "../src/api";
 import { createTeamsFactory } from "../src/channel-factories";
@@ -19,7 +19,10 @@ describe("CLI config operations (direct DB)", () => {
     dbs.push(db);
     return db;
   }
-  afterEach(() => { for (const db of dbs) db.close(); dbs.length = 0; });
+  afterEach(() => {
+    for (const db of dbs) db.close();
+    dbs.length = 0;
+  });
 
   it("adds and lists a channel", async () => {
     const db = createDb();
@@ -186,7 +189,10 @@ describe("CLI config operations (running API)", () => {
     return db;
   }
 
-  async function runCli(args: string[], env: Record<string, string>): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  async function runCli(
+    args: string[],
+    env: Record<string, string>,
+  ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
     const proc = Bun.spawn(["bun", "run", join(import.meta.dir, "..", "src", "cli.ts"), ...args], {
       cwd: join(import.meta.dir, ".."),
       env: { ...process.env, ...env },
@@ -308,7 +314,7 @@ describe("CLI config operations (running API)", () => {
     });
 
     expect(response.status).toBe(201);
-    const body = await response.json() as { type: string; config: Record<string, unknown> };
+    const body = (await response.json()) as { type: string; config: Record<string, unknown> };
     expect(body.type).toBe("teams");
     expect(body.config["appId"]).toBe("teams-app-id");
     expect(body.config["tenantId"]).toBe("tenant-123");

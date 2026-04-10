@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import type { Server } from "bun";
 import { WebChatIngress } from "../src/canonicalize";
-import type { WebChatResponse, SessionStore } from "../src/http-transport";
+import type { SessionStore, WebChatResponse } from "../src/http-transport";
 import { startWebChatServer } from "../src/http-transport";
 import type { WebChatPipelineResult, WebChatStreamEvent } from "../src/types";
 

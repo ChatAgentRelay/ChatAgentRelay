@@ -40,10 +40,12 @@ INSERT OR IGNORE INTO canonical_events (
 )`;
 
 const SELECT_BY_ID = "SELECT event_json FROM canonical_events WHERE event_id = $event_id";
-const SELECT_BY_ID_TENANT = "SELECT event_json FROM canonical_events WHERE event_id = $event_id AND tenant_id = $tenant_id";
+const SELECT_BY_ID_TENANT =
+  "SELECT event_json FROM canonical_events WHERE event_id = $event_id AND tenant_id = $tenant_id";
 
 const SELECT_ALL = "SELECT event_json FROM canonical_events ORDER BY occurred_at ASC, rowid ASC";
-const SELECT_ALL_TENANT = "SELECT event_json FROM canonical_events WHERE tenant_id = $tenant_id ORDER BY occurred_at ASC, rowid ASC";
+const SELECT_ALL_TENANT =
+  "SELECT event_json FROM canonical_events WHERE tenant_id = $tenant_id ORDER BY occurred_at ASC, rowid ASC";
 
 const SELECT_BY_CONVERSATION =
   "SELECT event_json FROM canonical_events WHERE conversation_id = $conversation_id ORDER BY occurred_at ASC, rowid ASC";
@@ -116,30 +118,36 @@ export class SqliteLedgerStore implements LedgerStore {
 
   getById(eventId: string, scope?: TenantScope): StoredCanonicalEvent | undefined {
     const row = scope?.tenantId
-      ? this.selectByIdTenantStmt.get({ $event_id: eventId, $tenant_id: scope.tenantId }) as EventRow | null
-      : this.selectByIdStmt.get({ $event_id: eventId }) as EventRow | null;
+      ? (this.selectByIdTenantStmt.get({ $event_id: eventId, $tenant_id: scope.tenantId }) as EventRow | null)
+      : (this.selectByIdStmt.get({ $event_id: eventId }) as EventRow | null);
     if (!row) return undefined;
     return JSON.parse(row.event_json) as StoredCanonicalEvent;
   }
 
   getAll(scope?: TenantScope): StoredCanonicalEvent[] {
     const rows = scope?.tenantId
-      ? this.selectAllTenantStmt.all({ $tenant_id: scope.tenantId }) as EventRow[]
-      : this.selectAllStmt.all() as EventRow[];
+      ? (this.selectAllTenantStmt.all({ $tenant_id: scope.tenantId }) as EventRow[])
+      : (this.selectAllStmt.all() as EventRow[]);
     return rows.map((row) => JSON.parse(row.event_json) as StoredCanonicalEvent);
   }
 
   getByConversationId(conversationId: string, scope?: TenantScope): StoredCanonicalEvent[] {
     const rows = scope?.tenantId
-      ? this.selectByConversationTenantStmt.all({ $conversation_id: conversationId, $tenant_id: scope.tenantId }) as EventRow[]
-      : this.selectByConversationStmt.all({ $conversation_id: conversationId }) as EventRow[];
+      ? (this.selectByConversationTenantStmt.all({
+          $conversation_id: conversationId,
+          $tenant_id: scope.tenantId,
+        }) as EventRow[])
+      : (this.selectByConversationStmt.all({ $conversation_id: conversationId }) as EventRow[]);
     return rows.map((row) => JSON.parse(row.event_json) as StoredCanonicalEvent);
   }
 
   getByCorrelationId(correlationId: string, scope?: TenantScope): StoredCanonicalEvent[] {
     const rows = scope?.tenantId
-      ? this.selectByCorrelationTenantStmt.all({ $correlation_id: correlationId, $tenant_id: scope.tenantId }) as EventRow[]
-      : this.selectByCorrelationStmt.all({ $correlation_id: correlationId }) as EventRow[];
+      ? (this.selectByCorrelationTenantStmt.all({
+          $correlation_id: correlationId,
+          $tenant_id: scope.tenantId,
+        }) as EventRow[])
+      : (this.selectByCorrelationStmt.all({ $correlation_id: correlationId }) as EventRow[]);
     return rows.map((row) => JSON.parse(row.event_json) as StoredCanonicalEvent);
   }
 

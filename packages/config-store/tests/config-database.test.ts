@@ -8,7 +8,10 @@ describe("SqliteConfigStore", () => {
     dbs.push(db);
     return db;
   }
-  afterEach(() => { for (const db of dbs) db.close(); dbs.length = 0; });
+  afterEach(() => {
+    for (const db of dbs) db.close();
+    dbs.length = 0;
+  });
 
   describe("channels", () => {
     it("adds and retrieves a channel", async () => {
@@ -156,7 +159,9 @@ describe("SqliteConfigStore", () => {
         await expect(dbB.verifyEncryptionKey()).rejects.toThrow(/CAR_ENCRYPTION_KEY does not match/);
       } finally {
         dbB.close();
-        try { require("node:fs").unlinkSync("/tmp/car-verify-key-test.db"); } catch {}
+        try {
+          require("node:fs").unlinkSync("/tmp/car-verify-key-test.db");
+        } catch {}
       }
     });
 

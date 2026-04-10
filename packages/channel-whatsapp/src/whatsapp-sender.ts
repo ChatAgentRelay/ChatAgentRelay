@@ -12,7 +12,12 @@ export type WhatsAppSender = {
 export function createWhatsAppSender(
   phoneNumberId: string,
   accessToken: string,
-  options?: { apiBase?: string; sessionTracker?: WhatsAppSessionTracker; now?: () => Date; warn?: (message: string) => void },
+  options?: {
+    apiBase?: string;
+    sessionTracker?: WhatsAppSessionTracker;
+    now?: () => Date;
+    warn?: (message: string) => void;
+  },
 ): WhatsAppSender {
   const root = (options?.apiBase ?? DEFAULT_WHATSAPP_API_BASE).replace(/\/$/, "");
   const sessionTracker = options?.sessionTracker;
@@ -52,7 +57,9 @@ export function createWhatsAppSender(
 
     const session = sessionTracker.get(to);
     if (!session) {
-      warn(`WhatsApp send to ${to} has no active inbound session; delivery may require a template message outside the 24-hour window.`);
+      warn(
+        `WhatsApp send to ${to} has no active inbound session; delivery may require a template message outside the 24-hour window.`,
+      );
       return;
     }
 
@@ -69,18 +76,21 @@ export function createWhatsAppSender(
     }
 
     if (remainingMs < SESSION_WARNING_THRESHOLD_MS) {
-      warn(`WhatsApp send to ${to} is nearing the end of the 24-hour session window (expires at ${session.expiresAt}).`);
+      warn(
+        `WhatsApp send to ${to} is nearing the end of the 24-hour session window (expires at ${session.expiresAt}).`,
+      );
     }
   }
 
   async function sendFn(event: CanonicalEvent): Promise<void> {
     const wa = event.provider_extensions?.["whatsapp"] as Record<string, unknown> | undefined;
     const to = wa?.["from"];
-    const text = typeof event.payload["text"] === "string"
-      ? event.payload["text"]
-      : typeof event.payload["reply"] === "string"
-        ? event.payload["reply"]
-        : undefined;
+    const text =
+      typeof event.payload["text"] === "string"
+        ? event.payload["text"]
+        : typeof event.payload["reply"] === "string"
+          ? event.payload["reply"]
+          : undefined;
     if (typeof to !== "string" || !to) throw new Error("Cannot send reply: no provider_extensions.whatsapp.from");
     if (!text) throw new Error("Cannot send reply: missing text payload");
     await sendMessage(to, text);

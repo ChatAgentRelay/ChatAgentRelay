@@ -2,7 +2,9 @@ import { describe, expect, it } from "bun:test";
 import { RouteEngine } from "../src/route-engine";
 import type { RouteRecord } from "../src/types";
 
-function route(overrides: Partial<RouteRecord> & { match_type: RouteRecord["match_type"]; agent_name: string }): RouteRecord {
+function route(
+  overrides: Partial<RouteRecord> & { match_type: RouteRecord["match_type"]; agent_name: string },
+): RouteRecord {
   return {
     id: 1,
     priority: 0,

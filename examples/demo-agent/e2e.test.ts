@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { unlinkSync } from "node:fs";
 
 /**
@@ -13,21 +13,24 @@ const DB_PATH = "/tmp/car-e2e-demo-test.db";
 
 let mockLLM: ReturnType<typeof Bun.serve>;
 let agentProc: import("bun").Subprocess;
-let carProcs: import("bun").Subprocess[] = [];
+const carProcs: import("bun").Subprocess[] = [];
 
 function waitForPort(port: number, maxMs = 8000): Promise<void> {
   const start = Date.now();
-  return new Promise<void>(async (resolve, reject) => {
-    while (Date.now() - start < maxMs) {
-      try {
-        const res = await fetch(`http://localhost:${port}`);
-        await res.text();
-        return resolve();
-      } catch {
-        await Bun.sleep(150);
+  return new Promise<void>((resolve, reject) => {
+    void (async () => {
+      while (Date.now() - start < maxMs) {
+        try {
+          const res = await fetch(`http://localhost:${port}`);
+          await res.text();
+          resolve();
+          return;
+        } catch {
+          await Bun.sleep(150);
+        }
       }
-    }
-    reject(new Error(`port ${port} did not respond within ${maxMs}ms`));
+      reject(new Error(`port ${port} did not respond within ${maxMs}ms`));
+    })();
   });
 }
 
@@ -55,7 +58,9 @@ async function runCarAndWait(...args: string[]): Promise<string> {
 }
 
 beforeAll(async () => {
-  try { unlinkSync(DB_PATH); } catch {}
+  try {
+    unlinkSync(DB_PATH);
+  } catch {}
 
   // 1. Start mock LLM (OpenAI-compatible)
   mockLLM = Bun.serve({
@@ -87,7 +92,7 @@ beforeAll(async () => {
   await runCarAndWait("route", "add", "--agent=demo", "--default");
 
   // 4. Start CAR server
-  const carServer = runCar("start");
+  runCar("start");
 
   // Wait for CAR to be ready
   const startTime = Date.now();
@@ -102,11 +107,19 @@ beforeAll(async () => {
 
 afterAll(async () => {
   for (const p of carProcs) {
-    try { p.kill(); } catch {}
+    try {
+      p.kill();
+    } catch {}
   }
-  try { agentProc?.kill(); } catch {}
-  try { mockLLM?.stop(true); } catch {}
-  try { unlinkSync(DB_PATH); } catch {}
+  try {
+    agentProc?.kill();
+  } catch {}
+  try {
+    mockLLM?.stop(true);
+  } catch {}
+  try {
+    unlinkSync(DB_PATH);
+  } catch {}
 });
 
 describe("demo-agent e2e with CAR server", () => {
@@ -125,7 +138,7 @@ describe("demo-agent e2e with CAR server", () => {
     });
 
     expect(res.ok).toBe(true);
-    const data = await res.json() as Record<string, unknown>;
+    const data = (await res.json()) as Record<string, unknown>;
     expect(data.reply).toBe("Hello from the demo agent through CAR!");
     expect(data.conversation_id).toBeDefined();
   });

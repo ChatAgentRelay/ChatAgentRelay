@@ -1,8 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
-import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
-import { testChannelAdapter } from "@chat-agent-relay/adapter-conformance";
-import type { Server } from "bun";
 import { createHmac } from "node:crypto";
+import { testChannelAdapter } from "@chat-agent-relay/adapter-conformance";
+import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
+import type { Server } from "bun";
 import { LarkIngress } from "../src/lark-ingress";
 import { createLarkSender } from "../src/lark-sender";
 import { LarkWebhookVerifier } from "../src/lark-verifier";
@@ -330,9 +330,7 @@ describe("LarkWebhookVerifier", () => {
   const encryptKey = "lark-encrypt-key";
 
   function sign(timestamp: string, nonce: string, body: string): string {
-    return createHmac("sha256", encryptKey)
-      .update(`${timestamp}${nonce}${body}`)
-      .digest("base64");
+    return createHmac("sha256", encryptKey).update(`${timestamp}${nonce}${body}`).digest("base64");
   }
 
   it("accepts a matching Lark signature", async () => {

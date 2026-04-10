@@ -30,17 +30,21 @@ export function richMessageToSlackBlocks(msg: RichMessage): unknown[] {
     switch (block.type) {
       case "text":
         return { type: "section", text: { type: "mrkdwn", text: block.text } };
-      case "code":
+      case "code": {
+        const languagePrefix = block.language ? `${block.language}\n` : "\n";
         return {
           type: "section",
           text: {
             type: "mrkdwn",
-            text: "```" + (block.language ? block.language + "\n" : "\n") + block.text + "\n```",
+            text: `\`\`\`${languagePrefix}${block.text}\n\`\`\``,
           },
         };
+      }
       case "header":
         return { type: "header", text: { type: "plain_text", text: block.text } };
       case "divider":
+        return { type: "divider" };
+      default:
         return { type: "divider" };
     }
   });

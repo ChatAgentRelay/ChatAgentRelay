@@ -46,7 +46,14 @@ function createMockAgent(): AgentAdapter {
         provider_extensions: { mock: { agent: "test" } },
       },
     }),
-    describeCapabilities: () => ({ streaming: false, multiTurn: false, resume: false, hitl: false, cancel: false, artifacts: false }),
+    describeCapabilities: () => ({
+      streaming: false,
+      multiTurn: false,
+      resume: false,
+      hitl: false,
+      cancel: false,
+      artifacts: false,
+    }),
   };
 }
 
@@ -70,7 +77,12 @@ describe("Teams -> Pipeline -> Agent integration", () => {
   let mockTeamsPort: number;
   let validators: ContractHarnessValidators;
   let originalFetch: typeof globalThis.fetch;
-  let teamsSendCalls: Array<{ url: string; method: string; authorization: string | null; body: Record<string, unknown> }>;
+  let teamsSendCalls: Array<{
+    url: string;
+    method: string;
+    authorization: string | null;
+    body: Record<string, unknown>;
+  }>;
 
   beforeAll(async () => {
     mkdirSync(TEST_DB_DIR, { recursive: true });

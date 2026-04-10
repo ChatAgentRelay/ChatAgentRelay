@@ -53,10 +53,7 @@ export type WebChatStreamingPipelineFn = (
   onEvent: (event: WebChatStreamEvent) => void,
 ) => Promise<WebChatPipelineResult>;
 
-export type WebChatResumeFn = (
-  sessionHandle: string,
-  text: string,
-) => Promise<WebChatPipelineResult>;
+export type WebChatResumeFn = (sessionHandle: string, text: string) => Promise<WebChatPipelineResult>;
 
 export type WebChatResumeStreamingFn = (
   sessionHandle: string,

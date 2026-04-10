@@ -1,5 +1,5 @@
-import { createHmac } from "node:crypto";
 import { beforeAll, describe, expect, it } from "bun:test";
+import { createHmac } from "node:crypto";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { DingTalkIngress } from "../src/dingtalk-ingress";
 import { DingTalkWebhookVerifier } from "../src/dingtalk-verifier";
@@ -27,18 +27,19 @@ describe("DingTalkWebhookVerifier", () => {
   const secret = "dingtalk-secret";
 
   function sign(timestamp: string): string {
-    return createHmac("sha256", secret)
-      .update(`${timestamp}\n${secret}`)
-      .digest("base64");
+    return createHmac("sha256", secret).update(`${timestamp}\n${secret}`).digest("base64");
   }
 
   it("accepts a matching DingTalk sign query", async () => {
     const timestamp = "1710756000000";
     const verifier = new DingTalkWebhookVerifier(secret);
-    const request = new Request(`https://example.test/api/dingtalk/webhook?timestamp=${timestamp}&sign=${encodeURIComponent(sign(timestamp))}`, {
-      method: "POST",
-      body: JSON.stringify(makeCallback()),
-    });
+    const request = new Request(
+      `https://example.test/api/dingtalk/webhook?timestamp=${timestamp}&sign=${encodeURIComponent(sign(timestamp))}`,
+      {
+        method: "POST",
+        body: JSON.stringify(makeCallback()),
+      },
+    );
 
     await expect(verifier.verify(request)).resolves.toBe(true);
   });
@@ -55,10 +56,13 @@ describe("DingTalkWebhookVerifier", () => {
 
   it("rejects a mismatched DingTalk sign query", async () => {
     const verifier = new DingTalkWebhookVerifier(secret);
-    const request = new Request("https://example.test/api/dingtalk/webhook?timestamp=1710756000000&sign=invalid-signature", {
-      method: "POST",
-      body: JSON.stringify(makeCallback()),
-    });
+    const request = new Request(
+      "https://example.test/api/dingtalk/webhook?timestamp=1710756000000&sign=invalid-signature",
+      {
+        method: "POST",
+        body: JSON.stringify(makeCallback()),
+      },
+    );
 
     await expect(verifier.verify(request)).resolves.toBe(false);
   });
@@ -131,9 +135,7 @@ describe("DingTalk ingress", () => {
     expect(ext["dingtalk"]!["msg_id"]).toBe("msg_abc123");
     expect(ext["dingtalk"]!["conversation_type"]).toBe("2");
     expect(ext["dingtalk"]!["conversation_title"]).toBe("Test Group");
-    expect(ext["dingtalk"]!["session_webhook"]).toBe(
-      "https://oapi.dingtalk.com/robot/sendBySession?session=abc",
-    );
+    expect(ext["dingtalk"]!["session_webhook"]).toBe("https://oapi.dingtalk.com/robot/sendBySession?session=abc");
     expect(ext["dingtalk"]!["chatbot_user_id"]).toBe("bot_001");
     expect(ext["dingtalk"]!["sender_staff_id"]).toBe("staff_001");
   });
@@ -226,7 +228,15 @@ describe("DingTalk ingress", () => {
   });
 
   it("rejects missing required string fields", () => {
-    for (const field of ["msgId", "senderId", "senderNick", "conversationId", "conversationType", "chatbotUserId", "sessionWebhook"]) {
+    for (const field of [
+      "msgId",
+      "senderId",
+      "senderNick",
+      "conversationId",
+      "conversationType",
+      "chatbotUserId",
+      "sessionWebhook",
+    ]) {
       const result = ingress.canonicalize(makeCallback({ [field]: undefined }));
       expect(result.ok).toBe(false);
       if (result.ok) return;

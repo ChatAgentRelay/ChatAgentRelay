@@ -1,9 +1,14 @@
-import type { AgentAdapter, CanonicalEvent, CanonicalizationResult, ChannelAdapter } from "@chat-agent-relay/contract-harness";
+import type {
+  AgentAdapter,
+  CanonicalEvent,
+  CanonicalizationResult,
+  ChannelAdapter,
+} from "@chat-agent-relay/contract-harness";
 import type { RetryConfig } from "@chat-agent-relay/delivery";
 import type { LedgerStore } from "@chat-agent-relay/event-ledger";
 import type { AccessControlConfig, RateLimiter } from "@chat-agent-relay/middleware";
 
-export type { ChannelAdapter, CanonicalizationResult };
+export type { CanonicalizationResult, ChannelAdapter };
 
 export type StreamingUpdateFn = (text: string) => Promise<void>;
 

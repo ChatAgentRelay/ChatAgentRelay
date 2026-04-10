@@ -12,7 +12,7 @@ import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { DeliveryOrchestrator } from "@chat-agent-relay/delivery";
 import type { LedgerStore } from "@chat-agent-relay/event-ledger";
 import { EventLedgerAppender, EventLedgerReader, InMemoryEventLedgerStore } from "@chat-agent-relay/event-ledger";
-import { checkAccess, type AccessControlConfig, type RateLimiter } from "@chat-agent-relay/middleware";
+import { type AccessControlConfig, checkAccess, type RateLimiter } from "@chat-agent-relay/middleware";
 import type { PipelineConfig, PipelineResult, RouteFn, StreamingOptions } from "./types";
 
 function deriveEvent(
@@ -72,7 +72,9 @@ export class FirstExecutablePathPipeline {
     private readonly policyId: string,
     private readonly policyFn: ((event: CanonicalEvent) => { decision: "allow" | "deny"; reason?: string }) | undefined,
     private readonly outboundPolicyId: string,
-    private readonly outboundPolicyFn: ((event: CanonicalEvent) => { decision: "allow" | "deny"; reason?: string }) | undefined,
+    private readonly outboundPolicyFn:
+      | ((event: CanonicalEvent) => { decision: "allow" | "deny"; reason?: string })
+      | undefined,
     private readonly accessControl: AccessControlConfig | undefined,
     private readonly rateLimiter: RateLimiter | undefined,
     private readonly delivery: DeliveryOrchestrator,
@@ -234,9 +236,7 @@ export class FirstExecutablePathPipeline {
       }
     }
 
-    const policyDecision = this.policyFn
-      ? this.policyFn(messageReceived)
-      : { decision: "allow" as const };
+    const policyDecision = this.policyFn ? this.policyFn(messageReceived) : { decision: "allow" as const };
 
     const policyEvent = deriveEvent(messageReceived, messageReceived.event_id, "policy.decision.made", {
       policy: this.policyId,
@@ -291,8 +291,7 @@ export class FirstExecutablePathPipeline {
       };
     }
 
-    const routeReason =
-      routeDecision.reason.trim() || routeDecision.matchType.trim() || "route";
+    const routeReason = routeDecision.reason.trim() || routeDecision.matchType.trim() || "route";
     const routeEvent = deriveEvent(messageReceived, policyEvent.event_id, "route.decision.made", {
       route: routeDecision.agentName,
       reason: routeReason,
@@ -403,7 +402,15 @@ export class FirstExecutablePathPipeline {
         this.validateAndAppend(blocked);
 
         return {
-          events: [messageReceived, policyEvent, routeEvent, invocationEvent, agentResponse, outboundPolicyEvent, blocked],
+          events: [
+            messageReceived,
+            policyEvent,
+            routeEvent,
+            invocationEvent,
+            agentResponse,
+            outboundPolicyEvent,
+            blocked,
+          ],
           blocked: true,
           blockReason: outboundDecision.reason ?? "outbound_policy_deny",
           ...(agentResult.sessionHandle ? { sessionHandle: agentResult.sessionHandle } : {}),

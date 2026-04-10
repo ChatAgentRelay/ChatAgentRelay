@@ -1,11 +1,9 @@
+import type { AgentRecord } from "@chat-agent-relay/config-store";
 import type { AgentAdapter } from "@chat-agent-relay/contract-harness";
 import { isShutdownable } from "@chat-agent-relay/contract-harness";
-import type { AgentRecord } from "@chat-agent-relay/config-store";
 import { logger } from "./logger";
 
-export type AgentFactory = (
-  config: Record<string, unknown>,
-) => Promise<AgentAdapter>;
+export type AgentFactory = (config: Record<string, unknown>) => Promise<AgentAdapter>;
 
 export class AgentRegistry {
   private adapters = new Map<string, AgentAdapter>();

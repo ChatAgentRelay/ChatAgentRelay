@@ -66,7 +66,8 @@ export function createTeamsSender(
 function extractConversationReference(event: CanonicalEvent): TeamsConversationReference {
   const teams = event.provider_extensions?.["teams"] as Record<string, unknown> | undefined;
   const serviceUrl = typeof teams?.["service_url"] === "string" ? teams["service_url"] : undefined;
-  const conversationId = typeof teams?.["conversation_id"] === "string" ? teams["conversation_id"] : event.conversation_id;
+  const conversationId =
+    typeof teams?.["conversation_id"] === "string" ? teams["conversation_id"] : event.conversation_id;
   const tenantId = typeof teams?.["tenant_id"] === "string" ? teams["tenant_id"] : undefined;
   const activityId = typeof teams?.["activity_id"] === "string" ? teams["activity_id"] : undefined;
 

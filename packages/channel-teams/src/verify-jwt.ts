@@ -1,5 +1,5 @@
-import { createRemoteJWKSet, jwtVerify } from "jose";
 import type { WebhookVerifier } from "@chat-agent-relay/contract-harness";
+import { createRemoteJWKSet, jwtVerify } from "jose";
 
 const DEFAULT_OPENID_CONFIG_URL = "https://login.botframework.com/v1/.well-known/openidconfiguration";
 
@@ -63,7 +63,7 @@ export class TeamsWebhookVerifier implements WebhookVerifier {
       throw new Error(`Failed to fetch Teams OpenID configuration: ${response.status}`);
     }
 
-    const body = await response.json() as Partial<OpenIdConfiguration>;
+    const body = (await response.json()) as Partial<OpenIdConfiguration>;
     if (typeof body.issuer !== "string" || typeof body.jwks_uri !== "string") {
       throw new Error("Invalid Teams OpenID configuration");
     }

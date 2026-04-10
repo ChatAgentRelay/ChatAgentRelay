@@ -21,7 +21,10 @@ function makeEvent(tenantId: string, conversationId: string, correlationId: stri
   };
 }
 
-function runTenantScopeTests(name: string, createStore: () => { store: import("../src/types").LedgerStore; cleanup: () => void }) {
+function runTenantScopeTests(
+  name: string,
+  createStore: () => { store: import("../src/types").LedgerStore; cleanup: () => void },
+) {
   describe(`${name} tenant scope`, () => {
     it("getAll with tenantId returns only that tenant's events", () => {
       const { store, cleanup } = createStore();

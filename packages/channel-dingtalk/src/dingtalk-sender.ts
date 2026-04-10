@@ -20,9 +20,7 @@ export function createDingTalkSender() {
   }
 
   async function sendFn(event: CanonicalEvent): Promise<void> {
-    const extensions = event.provider_extensions as
-      | { dingtalk?: { session_webhook?: string } }
-      | undefined;
+    const extensions = event.provider_extensions as { dingtalk?: { session_webhook?: string } } | undefined;
     const sessionWebhook = extensions?.dingtalk?.session_webhook;
 
     if (typeof sessionWebhook !== "string" || sessionWebhook.length === 0) {

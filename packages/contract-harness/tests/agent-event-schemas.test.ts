@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { ContractHarnessValidators, loadSpecializedSchemas } from "../src";
 import type { CanonicalEvent } from "../src";
+import { ContractHarnessValidators, loadSpecializedSchemas } from "../src";
 
 function baseEvent(overrides: Partial<CanonicalEvent> & { event_type: string }): CanonicalEvent {
   return {

@@ -1,4 +1,13 @@
 export { chunkText } from "./chunk-text";
+export type {
+  RichBlock,
+  RichCodeBlock,
+  RichDividerBlock,
+  RichHeaderBlock,
+  RichMessage,
+  RichTextBlock,
+} from "./rich-message";
+export { richMessageToSlackBlocks } from "./rich-message";
 export type { SlackCanonicalizationResult } from "./slack-ingress";
 export { SlackIngress } from "./slack-ingress";
 export type { SlackSenderConfig } from "./slack-sender";
@@ -18,5 +27,3 @@ export type {
   SlackSlashCommandSocketEvent,
   SlackSocketEvent,
 } from "./types";
-export type { RichBlock, RichCodeBlock, RichDividerBlock, RichHeaderBlock, RichMessage, RichTextBlock } from "./rich-message";
-export { richMessageToSlackBlocks } from "./rich-message";

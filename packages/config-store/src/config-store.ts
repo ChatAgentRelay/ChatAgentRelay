@@ -13,14 +13,20 @@ export interface ConfigStore {
   addChannel(name: string, type: ChannelType, config: Record<string, unknown>): Promise<ChannelRecord>;
   getChannel(name: string): Promise<ChannelRecord | undefined>;
   listChannels(): Promise<ChannelRecord[]>;
-  updateChannel(name: string, updates: { config?: Record<string, unknown>; enabled?: boolean }): Promise<ChannelRecord | undefined>;
+  updateChannel(
+    name: string,
+    updates: { config?: Record<string, unknown>; enabled?: boolean },
+  ): Promise<ChannelRecord | undefined>;
   removeChannel(name: string): boolean;
 
   // ── Agents ─────────────────────────────────────────────────────────
   addAgent(name: string, type: AgentType, config: Record<string, unknown>): Promise<AgentRecord>;
   getAgent(name: string): Promise<AgentRecord | undefined>;
   listAgents(): Promise<AgentRecord[]>;
-  updateAgent(name: string, updates: { config?: Record<string, unknown>; enabled?: boolean }): Promise<AgentRecord | undefined>;
+  updateAgent(
+    name: string,
+    updates: { config?: Record<string, unknown>; enabled?: boolean },
+  ): Promise<AgentRecord | undefined>;
   removeAgent(name: string): boolean;
 
   // ── Routes ─────────────────────────────────────────────────────────

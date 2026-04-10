@@ -1,19 +1,40 @@
-import { watchFile, unwatchFile, type Stats } from "node:fs";
-import type { AgentAdapter, AgentEvent, CanonicalEvent, ChannelAdapter, ChannelSender } from "@chat-agent-relay/contract-harness";
+import { type Stats, unwatchFile, watchFile } from "node:fs";
+import type { WebChatPipelineResult, WebChatStreamEvent } from "@chat-agent-relay/channel-web-chat";
+import { buildWebChatStreaming, SessionStore as WebChatSessionStore } from "@chat-agent-relay/channel-web-chat";
+import { RouteEngine, SqliteConfigStore } from "@chat-agent-relay/config-store";
+import type {
+  AgentAdapter,
+  AgentEvent,
+  CanonicalEvent,
+  ChannelAdapter,
+  ChannelSender,
+} from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { DeliveryOrchestrator } from "@chat-agent-relay/delivery";
-import { buildWebChatStreaming, SessionStore as WebChatSessionStore } from "@chat-agent-relay/channel-web-chat";
-import type { WebChatPipelineResult, WebChatStreamEvent } from "@chat-agent-relay/channel-web-chat";
-import { SqliteConfigStore, RouteEngine } from "@chat-agent-relay/config-store";
 import { SqliteLedgerStore } from "@chat-agent-relay/event-ledger";
-import { createPolicyFn, IdempotencyStore, loadPolicyWithOverride, RateLimiter, type AccessControlConfig, type RateLimitScope } from "@chat-agent-relay/middleware";
+import {
+  type AccessControlConfig,
+  createPolicyFn,
+  IdempotencyStore,
+  loadPolicyWithOverride,
+  RateLimiter,
+  type RateLimitScope,
+} from "@chat-agent-relay/middleware";
+import type { PipelineConfig, StreamingOptions } from "@chat-agent-relay/pipeline";
 import { FirstExecutablePathPipeline } from "@chat-agent-relay/pipeline";
-import type { PipelineConfig } from "@chat-agent-relay/pipeline";
-import type { StreamingOptions } from "@chat-agent-relay/pipeline";
 import { createA2AFactory } from "./agent-factories";
 import { AgentRegistry } from "./agent-registry";
 import { startApiServer } from "./api";
-import { createSlackFactory, createDiscordFactory, createWebChatFactory, createTelegramFactory, createLarkFactory, createDingTalkFactory, createTeamsFactory, createWhatsAppFactory } from "./channel-factories";
+import {
+  createDingTalkFactory,
+  createDiscordFactory,
+  createLarkFactory,
+  createSlackFactory,
+  createTeamsFactory,
+  createTelegramFactory,
+  createWebChatFactory,
+  createWhatsAppFactory,
+} from "./channel-factories";
 import { ChannelRegistry } from "./channel-registry";
 import { logger } from "./logger";
 
@@ -111,16 +132,12 @@ export async function main() {
     const msg = error instanceof Error ? error.message : String(error);
     throw new Error(
       `Startup aborted — encryption key verification failed.\n${msg}\n` +
-      `Hint: CAR_ENCRYPTION_KEY must match the key used when channels/agents were registered. ` +
-      `If the key is lost, delete ${dbPath} and re-register.`,
+        `Hint: CAR_ENCRYPTION_KEY must match the key used when channels/agents were registered. ` +
+        `If the key is lost, delete ${dbPath} and re-register.`,
     );
   }
 
-  const apiPort = Number(
-    process.env["CAR_API_PORT"]
-    ?? configDb.getSetting("api.port")
-    ?? "3000"
-  );
+  const apiPort = Number(process.env["CAR_API_PORT"] ?? configDb.getSetting("api.port") ?? "3000");
   const streamingEnabled = configDb.getSetting("streaming.enabled") !== "false";
   const streamingIntervalMs = Number(configDb.getSetting("streaming.interval_ms") ?? "800");
 
@@ -143,20 +160,22 @@ export async function main() {
   function reloadPolicyConfig(key: string, value?: string): void {
     const isOutbound = key === "policy.outbound.config";
     try {
-      const policyConfig = resolvePolicyConfig(
-        isOutbound ? "policy.outbound.config" : "policy.config",
-        value,
-      );
-      const policyFn = policyConfig.rules.length > 0
-        ? createPolicyFn(policyConfig) as PipelineConfig["policyFn"]
-        : undefined;
+      const policyConfig = resolvePolicyConfig(isOutbound ? "policy.outbound.config" : "policy.config", value);
+      const policyFn =
+        policyConfig.rules.length > 0 ? (createPolicyFn(policyConfig) as PipelineConfig["policyFn"]) : undefined;
 
       if (isOutbound) {
         runtimePolicies.outbound = policyFn as PipelineConfig["outboundPolicyFn"];
-        logger.info("Outbound policy engine loaded", { rule_count: policyConfig.rules.length, source: process.env["CAR_OUTBOUND_POLICY_FILE"] ? "file" : "config" });
+        logger.info("Outbound policy engine loaded", {
+          rule_count: policyConfig.rules.length,
+          source: process.env["CAR_OUTBOUND_POLICY_FILE"] ? "file" : "config",
+        });
       } else {
         runtimePolicies.inbound = policyFn as PipelineConfig["policyFn"];
-        logger.info("Policy engine loaded", { rule_count: policyConfig.rules.length, source: process.env["CAR_POLICY_FILE"] ? "file" : "config" });
+        logger.info("Policy engine loaded", {
+          rule_count: policyConfig.rules.length,
+          source: process.env["CAR_POLICY_FILE"] ? "file" : "config",
+        });
       }
     } catch (error) {
       logger.error("Failed to reload policy config; preserving previous policy", {
@@ -166,15 +185,16 @@ export async function main() {
     }
   }
 
-
   reloadPolicyConfig("policy.config", configDb.getSetting("policy.config"));
   reloadPolicyConfig("policy.outbound.config", configDb.getSetting("policy.outbound.config"));
 
-  policyWatchStops.push(...setupPolicyFileWatchers({
-    inboundPath: process.env["CAR_POLICY_FILE"],
-    outboundPath: process.env["CAR_OUTBOUND_POLICY_FILE"],
-    reloadPolicyConfig,
-  }));
+  policyWatchStops.push(
+    ...setupPolicyFileWatchers({
+      inboundPath: process.env["CAR_POLICY_FILE"],
+      outboundPath: process.env["CAR_OUTBOUND_POLICY_FILE"],
+      reloadPolicyConfig,
+    }),
+  );
 
   const accessControlMode = configDb.getSetting("access_control.mode");
   const accessControlSenders = configDb.getSetting("access_control.senders");
@@ -186,7 +206,10 @@ export async function main() {
         const senders = parsed.filter((value): value is string => typeof value === "string" && value.length > 0);
         if (senders.length > 0) {
           accessControl = { mode: accessControlMode, senders };
-          logger.info("Access control loaded", { mode: accessControl.mode, sender_count: accessControl.senders.length });
+          logger.info("Access control loaded", {
+            mode: accessControl.mode,
+            sender_count: accessControl.senders.length,
+          });
         }
       }
     } catch (error) {
@@ -199,7 +222,10 @@ export async function main() {
   const rateLimitMax = configDb.getSetting("rate_limit.max_per_minute");
   const rateLimitScope = configDb.getSetting("rate_limit.scope");
   let rateLimiter: RateLimiter | undefined;
-  if (rateLimitMax && (rateLimitScope === "sender" || rateLimitScope === "conversation" || rateLimitScope === "tenant")) {
+  if (
+    rateLimitMax &&
+    (rateLimitScope === "sender" || rateLimitScope === "conversation" || rateLimitScope === "tenant")
+  ) {
     const maxPerMinute = Number(rateLimitMax);
     if (Number.isFinite(maxPerMinute) && maxPerMinute > 0) {
       rateLimiter = new RateLimiter({
@@ -259,11 +285,7 @@ export async function main() {
     });
   }
 
-  async function runPipeline(
-    adapter: ChannelAdapter,
-    pipelineInput: unknown,
-    streamingOverride?: StreamingOptions,
-  ) {
+  async function runPipeline(adapter: ChannelAdapter, pipelineInput: unknown, streamingOverride?: StreamingOptions) {
     const startTime = Date.now();
     try {
       const pipeline = await FirstExecutablePathPipeline.create({
@@ -360,7 +382,9 @@ export async function main() {
     return pending;
   }
 
-  function findPendingSessionByHandle(sessionHandle: string): { conversationId: string; pending: PendingSession } | undefined {
+  function findPendingSessionByHandle(
+    sessionHandle: string,
+  ): { conversationId: string; pending: PendingSession } | undefined {
     for (const [conversationId, pending] of pendingSessions.entries()) {
       if (pending.sessionHandle === sessionHandle) {
         const active = getActivePendingSession(conversationId);
@@ -382,29 +406,17 @@ export async function main() {
     if (typeof agentName !== "string" || agentName.length === 0) return undefined;
 
     const prompt = extractPrompt(agentResponse);
-    const inputRequested = deriveEvent(
-      agentResponse,
-      agentResponse.event_id,
-      "agent.input.requested",
-      "agent",
-      {
-        prompt: prompt ?? "Input required",
-        session_handle: result.sessionHandle,
-      },
-    );
+    const inputRequested = deriveEvent(agentResponse, agentResponse.event_id, "agent.input.requested", "agent", {
+      prompt: prompt ?? "Input required",
+      session_handle: result.sessionHandle,
+    });
     validateAndAppend(inputRequested);
 
-    const statusChanged = deriveEvent(
-      agentResponse,
-      inputRequested.event_id,
-      "agent.status.changed",
-      "system",
-      {
-        status: "input-required",
-        session_handle: result.sessionHandle,
-        ...(prompt ? { message: prompt } : {}),
-      },
-    );
+    const statusChanged = deriveEvent(agentResponse, inputRequested.event_id, "agent.status.changed", "system", {
+      status: "input-required",
+      session_handle: result.sessionHandle,
+      ...(prompt ? { message: prompt } : {}),
+    });
     validateAndAppend(statusChanged);
 
     const conversationId = result.events[0]?.conversation_id;
@@ -435,29 +447,17 @@ export async function main() {
 
     validateAndAppend(userEvent);
 
-    const inputProvided = deriveEvent(
-      userEvent,
-      userEvent.event_id,
-      "agent.input.provided",
-      "end_user",
-      {
-        text: typeof userEvent.payload["text"] === "string" ? userEvent.payload["text"] : "",
-        session_handle: pending.sessionHandle,
-        ...(pending.inputRequestedEventId ? { input_event_id: pending.inputRequestedEventId } : {}),
-      },
-    );
+    const inputProvided = deriveEvent(userEvent, userEvent.event_id, "agent.input.provided", "end_user", {
+      text: typeof userEvent.payload["text"] === "string" ? userEvent.payload["text"] : "",
+      session_handle: pending.sessionHandle,
+      ...(pending.inputRequestedEventId ? { input_event_id: pending.inputRequestedEventId } : {}),
+    });
     validateAndAppend(inputProvided);
 
-    const invocationEvent = deriveEvent(
-      userEvent,
-      inputProvided.event_id,
-      "agent.invocation.requested",
-      "system",
-      {
-        backend: pending.agentName,
-        input_event_id: inputProvided.event_id,
-      },
-    );
+    const invocationEvent = deriveEvent(userEvent, inputProvided.event_id, "agent.invocation.requested", "system", {
+      backend: pending.agentName,
+      input_event_id: inputProvided.event_id,
+    });
     validateAndAppend(invocationEvent);
 
     const sender = adapter.createSender(userEvent);
@@ -526,13 +526,11 @@ export async function main() {
         { prompt, session_handle: agentResult.sessionHandle },
       );
       validateAndAppend(inputRequested);
-      const statusChanged = deriveEvent(
-        agentResult.event,
-        inputRequested.event_id,
-        "agent.status.changed",
-        "system",
-        { status: "input-required", session_handle: agentResult.sessionHandle, message: prompt },
-      );
+      const statusChanged = deriveEvent(agentResult.event, inputRequested.event_id, "agent.status.changed", "system", {
+        status: "input-required",
+        session_handle: agentResult.sessionHandle,
+        message: prompt,
+      });
       validateAndAppend(statusChanged);
       storePendingSession(userEvent.conversation_id, {
         sessionHandle: agentResult.sessionHandle,
@@ -604,9 +602,7 @@ export async function main() {
     raw: unknown,
     onStreamEvent?: (event: WebChatStreamEvent) => void,
   ): Promise<WebChatPipelineResult> {
-    const streamingOverride = onStreamEvent
-      ? buildWebChatStreaming(onStreamEvent, streamingIntervalMs)
-      : undefined;
+    const streamingOverride = onStreamEvent ? buildWebChatStreaming(onStreamEvent, streamingIntervalMs) : undefined;
 
     const result = await runPipeline(adapter, raw, streamingOverride);
     if (!result) {
@@ -642,7 +638,8 @@ export async function main() {
       throw new Error(`No pending session found for session handle: ${sessionHandle}`);
     }
 
-    const webChatConnection = channelRegistry.list()
+    const webChatConnection = channelRegistry
+      .list()
       .map((name) => channelRegistry.get(name))
       .find((channel) => channel?.type === "webchat");
     if (!webChatConnection) {
@@ -665,7 +662,12 @@ export async function main() {
       payload: { text },
     };
 
-    const result = await resumePendingSession(webChatConnection.adapter, userEvent, pendingEntry.pending, onStreamEvent);
+    const result = await resumePendingSession(
+      webChatConnection.adapter,
+      userEvent,
+      pendingEntry.pending,
+      onStreamEvent,
+    );
     if (result.sessionHandle) {
       webChatSessions.set(result.conversationId, result.sessionHandle);
     }

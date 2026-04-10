@@ -1,4 +1,9 @@
-import type { CanonicalizationFailure, CanonicalizationResult, CanonicalizationSuccess, IngressError } from "@chat-agent-relay/contract-harness";
+import type {
+  CanonicalizationFailure,
+  CanonicalizationResult,
+  CanonicalizationSuccess,
+  IngressError,
+} from "@chat-agent-relay/contract-harness";
 
 export type TeamsConfig = {
   appId: string;
@@ -59,9 +64,4 @@ export type TeamsTokenManager = {
   getToken(): Promise<string>;
 };
 
-export type {
-  CanonicalizationFailure,
-  CanonicalizationResult,
-  CanonicalizationSuccess,
-  IngressError,
-};
+export type { CanonicalizationFailure, CanonicalizationResult, CanonicalizationSuccess, IngressError };

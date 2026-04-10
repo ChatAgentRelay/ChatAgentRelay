@@ -40,4 +40,4 @@ jobs:
         run: bun test --recursive --coverage
 
       - name: Lint check
-        run: bunx @biomejs/biome check .
+        run: bun run lint

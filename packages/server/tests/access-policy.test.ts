@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { checkAccessPolicy } from "../src/access-policy";
 import type { AccessPolicyConfig } from "../src/access-policy";
+import { checkAccessPolicy } from "../src/access-policy";
 
 function openConfig(): AccessPolicyConfig {
   return { dmPolicy: "open", channelPolicy: "open", channelAllowlist: [] };

@@ -1,8 +1,8 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { testChannelAdapter } from "@chat-agent-relay/adapter-conformance";
+import { TeamsIngress } from "../src/teams-ingress";
 import { createTeamsSender } from "../src/teams-sender";
 import { createTeamsTokenManager } from "../src/token-manager";
-import { TeamsIngress } from "../src/teams-ingress";
 import { TeamsWebhookVerifier } from "../src/verify-jwt";
 
 const VALID_ACTIVITY = {
@@ -33,8 +33,16 @@ describe("TeamsIngress", () => {
     validInput: VALID_ACTIVITY,
     invalidInputs: [
       { label: "null body", input: null, expectedCode: "invalid_payload" },
-      { label: "missing serviceUrl", input: { ...VALID_ACTIVITY, serviceUrl: undefined }, expectedCode: "missing_field" },
-      { label: "wrong activity type", input: { ...VALID_ACTIVITY, type: "conversationUpdate" }, expectedCode: "unsupported_activity" },
+      {
+        label: "missing serviceUrl",
+        input: { ...VALID_ACTIVITY, serviceUrl: undefined },
+        expectedCode: "missing_field",
+      },
+      {
+        label: "wrong activity type",
+        input: { ...VALID_ACTIVITY, type: "conversationUpdate" },
+        expectedCode: "unsupported_activity",
+      },
     ],
     expectedChannel: "teams",
   });
@@ -88,7 +96,9 @@ describe("Teams token manager", () => {
     Date.now = () => now;
 
     try {
-      const manager = createTeamsTokenManager("app-id", "app-secret", "tenant-123", { loginBase: "https://login.example.test" });
+      const manager = createTeamsTokenManager("app-id", "app-secret", "tenant-123", {
+        loginBase: "https://login.example.test",
+      });
       await expect(manager.getToken()).resolves.toBe("token-1");
       now = 1_000;
       await expect(manager.getToken()).resolves.toBe("token-1");
@@ -104,8 +114,15 @@ describe("Teams webhook verifier", () => {
   it("accepts a valid bearer token when jose verification succeeds", async () => {
     const verifier = new TeamsWebhookVerifier("app-id", {
       openIdConfigUrl: "https://login.example.test/openid",
-      fetchImpl: (async () => new Response(JSON.stringify({ issuer: "https://issuer.example.test", jwks_uri: "https://issuer.example.test/keys" }), { status: 200 })) as unknown as typeof fetch,
-      jwtVerifyFn: (async () => ({ payload: {}, protectedHeader: { alg: "RS256" } })) as unknown as typeof import("jose").jwtVerify,
+      fetchImpl: (async () =>
+        new Response(
+          JSON.stringify({ issuer: "https://issuer.example.test", jwks_uri: "https://issuer.example.test/keys" }),
+          { status: 200 },
+        )) as unknown as typeof fetch,
+      jwtVerifyFn: (async () => ({
+        payload: {},
+        protectedHeader: { alg: "RS256" },
+      })) as unknown as typeof import("jose").jwtVerify,
     });
 
     const request = new Request("https://example.test/api/teams/messages", {
@@ -118,7 +135,11 @@ describe("Teams webhook verifier", () => {
   it("rejects missing or invalid bearer tokens", async () => {
     const verifier = new TeamsWebhookVerifier("app-id", {
       openIdConfigUrl: "https://login.example.test/openid",
-      fetchImpl: (async () => new Response(JSON.stringify({ issuer: "https://issuer.example.test", jwks_uri: "https://issuer.example.test/keys" }), { status: 200 })) as unknown as typeof fetch,
+      fetchImpl: (async () =>
+        new Response(
+          JSON.stringify({ issuer: "https://issuer.example.test", jwks_uri: "https://issuer.example.test/keys" }),
+          { status: 200 },
+        )) as unknown as typeof fetch,
     });
 
     const request = new Request("https://example.test/api/teams/messages", {
@@ -131,7 +152,8 @@ describe("Teams webhook verifier", () => {
 describe("Teams sender", () => {
   it("sends and edits activities via Bot Framework endpoints", async () => {
     const originalFetch = globalThis.fetch;
-    const calls: Array<{ url: string; method: string; authorization: string | null; body: Record<string, unknown> }> = [];
+    const calls: Array<{ url: string; method: string; authorization: string | null; body: Record<string, unknown> }> =
+      [];
 
     globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
       const url = String(input);
@@ -155,7 +177,11 @@ describe("Teams sender", () => {
 
     try {
       const sender = createTeamsSender("app-id", "app-secret", "tenant-123");
-      const reference = { serviceUrl: "https://smba.trafficmanager.net/amer/", conversationId: "conv-123", tenantId: "tenant-abc" };
+      const reference = {
+        serviceUrl: "https://smba.trafficmanager.net/amer/",
+        conversationId: "conv-123",
+        tenantId: "tenant-abc",
+      };
 
       const sent = await sender.sendMessage(reference, "Hello Teams");
       expect(sent.messageId).toBe("reply-456");

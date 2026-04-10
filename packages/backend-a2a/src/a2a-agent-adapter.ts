@@ -5,20 +5,12 @@ import type {
   AgentEvent,
   AgentInvocationContext,
   AgentPart,
-  AgentResumeInput,
   AgentResult,
+  AgentResumeInput,
   CanonicalEvent,
 } from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
-import type {
-  A2AAgentCard,
-  A2AAgentConfig,
-  A2AArtifact,
-  A2AMessage,
-  A2APart,
-  A2AStreamEvent,
-  A2ATask,
-} from "./types";
+import type { A2AAgentCard, A2AAgentConfig, A2AArtifact, A2AMessage, A2APart, A2AStreamEvent, A2ATask } from "./types";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 
@@ -29,11 +21,7 @@ export class A2AAgentAdapter implements AgentAdapter {
   private readonly validators: ContractHarnessValidators;
   private readonly agentCard: A2AAgentCard | undefined;
 
-  private constructor(
-    config: A2AAgentConfig,
-    validators: ContractHarnessValidators,
-    agentCard?: A2AAgentCard,
-  ) {
+  private constructor(config: A2AAgentConfig, validators: ContractHarnessValidators, agentCard?: A2AAgentCard) {
     this.endpoint = config.endpoint.replace(/\/+$/, "");
     this.timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.headers = config.headers ?? {};
@@ -363,10 +351,7 @@ export class A2AAgentAdapter implements AgentAdapter {
     return this.taskToResultFromResume(task, input, requestId, sessionHandle);
   }
 
-  async *resumeStream(
-    sessionHandle: string,
-    input: AgentResumeInput,
-  ): AsyncGenerator<AgentEvent, AgentResult> {
+  async *resumeStream(sessionHandle: string, input: AgentResumeInput): AsyncGenerator<AgentEvent, AgentResult> {
     const requestId = `req_${crypto.randomUUID()}`;
     const messageId = crypto.randomUUID();
 
@@ -524,21 +509,12 @@ export class A2AAgentAdapter implements AgentAdapter {
     return [{ kind: "text", text: input.messageText }];
   }
 
-  private taskToResult(
-    task: A2ATask,
-    context: AgentInvocationContext,
-    requestId: string,
-  ): AgentResult {
+  private taskToResult(task: A2ATask, context: AgentInvocationContext, requestId: string): AgentResult {
     const sessionHandle = task.contextId;
 
     if (task.status.state === "input-required") {
       const prompt = extractTextFromMessage(task.status.message);
-      const event = this.mapToCanonicalEvent(
-        context,
-        prompt || "Input required by agent",
-        requestId,
-        sessionHandle,
-      );
+      const event = this.mapToCanonicalEvent(context, prompt || "Input required by agent", requestId, sessionHandle);
       const validation = this.validators.validateEvent(event);
       if (!validation.ok) {
         return {
@@ -814,15 +790,11 @@ async function* parseSSE(response: Response): AsyncGenerator<unknown> {
 
 // ── Type guards ──────────────────────────────────────────────────────────
 
-function isStatusUpdate(
-  event: A2AStreamEvent,
-): event is Extract<A2AStreamEvent, { kind: "status-update" }> {
+function isStatusUpdate(event: A2AStreamEvent): event is Extract<A2AStreamEvent, { kind: "status-update" }> {
   return (event as Record<string, unknown>)["kind"] === "status-update";
 }
 
-function isArtifactUpdate(
-  event: A2AStreamEvent,
-): event is Extract<A2AStreamEvent, { kind: "artifact-update" }> {
+function isArtifactUpdate(event: A2AStreamEvent): event is Extract<A2AStreamEvent, { kind: "artifact-update" }> {
   return (event as Record<string, unknown>)["kind"] === "artifact-update";
 }
 

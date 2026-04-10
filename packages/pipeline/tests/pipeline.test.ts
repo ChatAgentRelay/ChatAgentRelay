@@ -2,7 +2,12 @@ import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { WebChatIngress } from "@chat-agent-relay/channel-web-chat";
-import type { AgentAdapter, AgentResult, AgentInvocationContext, ChannelAdapter } from "@chat-agent-relay/contract-harness";
+import type {
+  AgentAdapter,
+  AgentInvocationContext,
+  AgentResult,
+  ChannelAdapter,
+} from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { SqliteLedgerStore } from "@chat-agent-relay/event-ledger";
 import { RateLimiter } from "@chat-agent-relay/middleware";
@@ -74,7 +79,14 @@ function createFailingAgent(): AgentAdapter {
       requestId: `req_${crypto.randomUUID()}`,
       error: { code: "agent_unreachable", message: "Agent unreachable", retryable: true, category: "backend" },
     }),
-    describeCapabilities: () => ({ streaming: false, multiTurn: false, resume: false, hitl: false, cancel: false, artifacts: false }),
+    describeCapabilities: () => ({
+      streaming: false,
+      multiTurn: false,
+      resume: false,
+      hitl: false,
+      cancel: false,
+      artifacts: false,
+    }),
   };
 }
 
@@ -253,7 +265,9 @@ describe("first executable path pipeline (end-to-end)", () => {
       }),
       canonicalize: (raw) => ingress.canonicalize(raw),
       createSender: () => ({
-        send: async () => { throw new Error("Slack API unreachable"); },
+        send: async () => {
+          throw new Error("Slack API unreachable");
+        },
       }),
     };
     const config = await makeConfig({
@@ -343,9 +357,11 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("allows senders included in allowlist", async () => {
-    const pipeline = await FirstExecutablePathPipeline.create(makeConfig({
-      accessControl: { mode: "allowlist", senders: ["user_123"] },
-    }));
+    const pipeline = await FirstExecutablePathPipeline.create(
+      makeConfig({
+        accessControl: { mode: "allowlist", senders: ["user_123"] },
+      }),
+    );
 
     const result = await pipeline.execute(validInput());
     expect(result.blocked).toBeUndefined();
@@ -353,9 +369,11 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("blocks senders missing from allowlist", async () => {
-    const pipeline = await FirstExecutablePathPipeline.create(makeConfig({
-      accessControl: { mode: "allowlist", senders: ["someone_else"] },
-    }));
+    const pipeline = await FirstExecutablePathPipeline.create(
+      makeConfig({
+        accessControl: { mode: "allowlist", senders: ["someone_else"] },
+      }),
+    );
 
     const result = await pipeline.execute(validInput());
     expect(result.blocked).toBe(true);
@@ -365,9 +383,11 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("blocks senders included in blocklist", async () => {
-    const pipeline = await FirstExecutablePathPipeline.create(makeConfig({
-      accessControl: { mode: "blocklist", senders: ["user_123"] },
-    }));
+    const pipeline = await FirstExecutablePathPipeline.create(
+      makeConfig({
+        accessControl: { mode: "blocklist", senders: ["user_123"] },
+      }),
+    );
 
     const result = await pipeline.execute(validInput());
     expect(result.blocked).toBe(true);
@@ -375,9 +395,11 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("rate limits repeated messages from the same sender", async () => {
-    const pipeline = await FirstExecutablePathPipeline.create(makeConfig({
-      rateLimiter: new RateLimiter({ maxPerMinute: 1, scope: "sender" }),
-    }));
+    const pipeline = await FirstExecutablePathPipeline.create(
+      makeConfig({
+        rateLimiter: new RateLimiter({ maxPerMinute: 1, scope: "sender" }),
+      }),
+    );
 
     const first = await pipeline.execute(validInput());
     const second = await pipeline.execute({ ...validInput(), client_message_id: "web_msg_002" });
@@ -389,9 +411,11 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("does not share sender-scoped limits across senders", async () => {
-    const pipeline = await FirstExecutablePathPipeline.create(makeConfig({
-      rateLimiter: new RateLimiter({ maxPerMinute: 1, scope: "sender" }),
-    }));
+    const pipeline = await FirstExecutablePathPipeline.create(
+      makeConfig({
+        rateLimiter: new RateLimiter({ maxPerMinute: 1, scope: "sender" }),
+      }),
+    );
 
     const first = await pipeline.execute(validInput());
     const second = await pipeline.execute({
@@ -405,11 +429,13 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("blocks outbound delivery when outbound policy denies", async () => {
-    const pipeline = await FirstExecutablePathPipeline.create(makeConfig({
-      outboundPolicyId: "outbound_filter",
-      outboundPolicyFn: () => ({ decision: "deny", reason: "pii_detected" }),
-      agent: createMockAgent("SSN 123-45-6789"),
-    }));
+    const pipeline = await FirstExecutablePathPipeline.create(
+      makeConfig({
+        outboundPolicyId: "outbound_filter",
+        outboundPolicyFn: () => ({ decision: "deny", reason: "pii_detected" }),
+        agent: createMockAgent("SSN 123-45-6789"),
+      }),
+    );
 
     const result = await pipeline.execute(validInput());
 
@@ -423,10 +449,12 @@ describe("first executable path pipeline (end-to-end)", () => {
   });
 
   it("delivers normally when outbound policy allows", async () => {
-    const pipeline = await FirstExecutablePathPipeline.create(makeConfig({
-      outboundPolicyId: "outbound_filter",
-      outboundPolicyFn: () => ({ decision: "allow" }),
-    }));
+    const pipeline = await FirstExecutablePathPipeline.create(
+      makeConfig({
+        outboundPolicyId: "outbound_filter",
+        outboundPolicyFn: () => ({ decision: "allow" }),
+      }),
+    );
 
     const result = await pipeline.execute(validInput());
 

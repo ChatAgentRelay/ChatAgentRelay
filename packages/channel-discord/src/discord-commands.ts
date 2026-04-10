@@ -16,17 +16,14 @@ export async function registerGlobalCommands(
   token: string,
   commands: SlashCommandDefinition[],
 ): Promise<void> {
-  const response = await fetch(
-    `${DISCORD_API_BASE}/applications/${applicationId}/commands`,
-    {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bot ${token}`,
-      },
-      body: JSON.stringify(commands),
+  const response = await fetch(`${DISCORD_API_BASE}/applications/${applicationId}/commands`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bot ${token}`,
     },
-  );
+    body: JSON.stringify(commands),
+  });
   if (!response.ok) {
     const text = await response.text();
     throw new Error(`Failed to register commands (${response.status}): ${text}`);

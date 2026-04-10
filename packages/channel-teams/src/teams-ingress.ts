@@ -1,4 +1,10 @@
-import type { CanonicalEvent, ChannelAdapter, ChannelCapabilities, ChannelSender, ValidationResult } from "@chat-agent-relay/contract-harness";
+import type {
+  CanonicalEvent,
+  ChannelAdapter,
+  ChannelCapabilities,
+  ChannelSender,
+  ValidationResult,
+} from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { createTeamsSender } from "./teams-sender";
 import type { CanonicalizationResult, IngressError, TeamsActivity } from "./types";
@@ -39,8 +45,12 @@ export class TeamsIngress implements ChannelAdapter {
   createSender(event: CanonicalEvent): ChannelSender {
     const sender = createTeamsSender(this.appId, this.appSecret, this.teamsTenantId);
     return {
-      send: (text: string) => sender.sendMessage(extractConversationReference(event), text).then((result) => ({ providerMessageId: result.messageId })),
-      edit: (providerMessageId: string, text: string) => sender.editMessage(extractConversationReference(event), providerMessageId, text),
+      send: (text: string) =>
+        sender
+          .sendMessage(extractConversationReference(event), text)
+          .then((result) => ({ providerMessageId: result.messageId })),
+      edit: (providerMessageId: string, text: string) =>
+        sender.editMessage(extractConversationReference(event), providerMessageId, text),
     };
   }
 
@@ -53,7 +63,10 @@ export class TeamsIngress implements ChannelAdapter {
     const activity = activityResult.activity;
     const text = stripBotMentions(activity.text ?? "").trim();
     if (!text) {
-      return { ok: false, error: { code: "empty_text", message: "Teams activity text is empty after mention stripping" } };
+      return {
+        ok: false,
+        error: { code: "empty_text", message: "Teams activity text is empty after mention stripping" },
+      };
     }
 
     const conversationId = activity.conversation!.id;
@@ -123,13 +136,19 @@ function validateTeamsActivity(raw: unknown): ActivityValidationSuccess | Activi
 
   const activity = raw as TeamsActivity;
   if (activity.type !== "message") {
-    return { ok: false, error: { code: "unsupported_activity", message: "Only Teams message activities are supported" } };
+    return {
+      ok: false,
+      error: { code: "unsupported_activity", message: "Only Teams message activities are supported" },
+    };
   }
   if (typeof activity.serviceUrl !== "string" || !activity.serviceUrl) {
     return { ok: false, error: { code: "missing_field", field: "serviceUrl", message: "serviceUrl is required" } };
   }
   if (typeof activity.conversation?.id !== "string" || !activity.conversation.id) {
-    return { ok: false, error: { code: "missing_field", field: "conversation.id", message: "conversation.id is required" } };
+    return {
+      ok: false,
+      error: { code: "missing_field", field: "conversation.id", message: "conversation.id is required" },
+    };
   }
   if (typeof activity.from?.id !== "string" || !activity.from.id) {
     return { ok: false, error: { code: "missing_field", field: "from.id", message: "from.id is required" } };
@@ -145,7 +164,8 @@ function stripBotMentions(text: string): string {
 function extractConversationReference(event: CanonicalEvent) {
   const teams = event.provider_extensions?.["teams"] as Record<string, unknown> | undefined;
   const serviceUrl = typeof teams?.["service_url"] === "string" ? teams["service_url"] : undefined;
-  const conversationId = typeof teams?.["conversation_id"] === "string" ? teams["conversation_id"] : event.conversation_id;
+  const conversationId =
+    typeof teams?.["conversation_id"] === "string" ? teams["conversation_id"] : event.conversation_id;
   const tenantId = typeof teams?.["tenant_id"] === "string" ? teams["tenant_id"] : undefined;
   const activityId = typeof teams?.["activity_id"] === "string" ? teams["activity_id"] : undefined;
 

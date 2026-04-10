@@ -1,4 +1,11 @@
-import type { CanonicalEvent, ChannelAdapter, ChannelCapabilities, ChannelSender, CanonicalizationResult, ValidationResult } from "@chat-agent-relay/contract-harness";
+import type {
+  CanonicalEvent,
+  CanonicalizationResult,
+  ChannelAdapter,
+  ChannelCapabilities,
+  ChannelSender,
+  ValidationResult,
+} from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { createLarkSender } from "./lark-sender";
 import type { LarkEventWrapper, LarkMessageEvent } from "./types";
@@ -46,7 +53,7 @@ export class LarkIngress implements ChannelAdapter {
       this.apiBase !== undefined ? { apiBase: this.apiBase } : undefined,
     );
     const base: ChannelSender = {
-      send: (text: string) => sender.sendMessage(chatId, text).then(r => ({ providerMessageId: r.messageId })),
+      send: (text: string) => sender.sendMessage(chatId, text).then((r) => ({ providerMessageId: r.messageId })),
     };
     if (messageId) {
       base.edit = (providerMessageId: string, text: string) => sender.editMessage(providerMessageId, text);
@@ -67,7 +74,10 @@ export class LarkIngress implements ChannelAdapter {
     }
 
     if (!isLarkMessageEvent(raw.event)) {
-      return { ok: false, error: { code: "invalid_message_event", message: "Event body is not a valid message event" } };
+      return {
+        ok: false,
+        error: { code: "invalid_message_event", message: "Event body is not a valid message event" },
+      };
     }
 
     const msg = raw.event as unknown as LarkMessageEvent;
@@ -79,7 +89,10 @@ export class LarkIngress implements ChannelAdapter {
     if (msg.message.message_type !== "text") {
       return {
         ok: false,
-        error: { code: "unsupported_message_type", message: `Only text messages are supported, got: ${msg.message.message_type}` },
+        error: {
+          code: "unsupported_message_type",
+          message: `Only text messages are supported, got: ${msg.message.message_type}`,
+        },
       };
     }
 

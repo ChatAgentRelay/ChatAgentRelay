@@ -1,7 +1,8 @@
-import { mkdtempSync, rmSync, writeFileSync, chmodSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, spyOn } from "bun:test";
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { RouteEngine, SqliteConfigStore } from "@chat-agent-relay/config-store";
 import type {
   AgentAdapter,
   AgentEvent,
@@ -12,9 +13,14 @@ import type {
   ChannelCapabilities,
   ChannelSender,
 } from "@chat-agent-relay/contract-harness";
-import { RouteEngine, SqliteConfigStore } from "@chat-agent-relay/config-store";
 import { InMemoryEventLedgerStore } from "@chat-agent-relay/event-ledger";
-import { createPolicyFn, loadPolicyFromFile, type PolicyConfig, type PolicyDecision, type PolicyFn } from "@chat-agent-relay/middleware";
+import {
+  createPolicyFn,
+  loadPolicyFromFile,
+  type PolicyConfig,
+  type PolicyDecision,
+  type PolicyFn,
+} from "@chat-agent-relay/middleware";
 import type { Server } from "bun";
 import { AgentRegistry } from "../src/agent-registry";
 import { startApiServer } from "../src/api";
@@ -32,7 +38,6 @@ type PendingSession = {
   timeoutMs: number;
   inputRequestedEventId?: string;
 };
-
 
 type RuntimeState = {
   inboundPolicy?: (event: CanonicalEvent) => PolicyDecision;
@@ -107,7 +112,11 @@ function invocationEvent(channel: string, channelInstanceId: string, conversatio
   };
 }
 
-function successfulResponse(invocation: CanonicalEvent, text: string, options?: { sessionHandle?: string; inputRequired?: boolean }): AgentResult {
+function successfulResponse(
+  invocation: CanonicalEvent,
+  text: string,
+  options?: { sessionHandle?: string; inputRequired?: boolean },
+): AgentResult {
   return {
     ok: true,
     requestId: `req_${crypto.randomUUID()}`,
@@ -118,9 +127,7 @@ function successfulResponse(invocation: CanonicalEvent, text: string, options?: 
       tenant_id: invocation.tenant_id,
       workspace_id: invocation.workspace_id,
       channel: invocation.channel,
-      ...(invocation.channel_instance_id !== undefined
-        ? { channel_instance_id: invocation.channel_instance_id }
-        : {}),
+      ...(invocation.channel_instance_id !== undefined ? { channel_instance_id: invocation.channel_instance_id } : {}),
       conversation_id: invocation.conversation_id,
       session_id: invocation.session_id,
       correlation_id: invocation.correlation_id,
@@ -139,7 +146,13 @@ function successfulResponse(invocation: CanonicalEvent, text: string, options?: 
   };
 }
 
-function inputRequiredResponse(channel: string, channelInstanceId: string, conversationId: string, prompt: string, sessionHandle: string): AgentResult {
+function inputRequiredResponse(
+  channel: string,
+  channelInstanceId: string,
+  conversationId: string,
+  prompt: string,
+  sessionHandle: string,
+): AgentResult {
   return successfulResponse(invocationEvent(channel, channelInstanceId, conversationId), prompt, {
     sessionHandle,
     inputRequired: true,
@@ -165,7 +178,10 @@ class PassThroughAdapter implements ChannelAdapter {
   readonly channelType: string;
   duplicateMode = false;
 
-  constructor(channelType: string, private readonly sender: MockTextSender) {
+  constructor(
+    channelType: string,
+    private readonly sender: MockTextSender,
+  ) {
     this.channelType = channelType;
   }
 
@@ -182,7 +198,11 @@ class PassThroughAdapter implements ChannelAdapter {
   canonicalize(raw: unknown) {
     const event = raw as CanonicalEvent;
     const stableKey = `${this.channelType}:${event.conversation_id}:${event.event_type}`;
-    return { ok: true as const, event, idempotencyKey: this.duplicateMode ? stableKey : `${stableKey}:${crypto.randomUUID()}` };
+    return {
+      ok: true as const,
+      event,
+      idempotencyKey: this.duplicateMode ? stableKey : `${stableKey}:${crypto.randomUUID()}`,
+    };
   }
 
   createSender(): ChannelSender {
@@ -226,27 +246,43 @@ class MockAgent implements AgentAdapter {
     return rebindResult(this.invokeResult, context.invocationEvent);
   }
 
-  async resume(sessionHandle: string, input: { messageText: string; invocationEvent: CanonicalEvent }): Promise<AgentResult> {
+  async resume(
+    sessionHandle: string,
+    input: { messageText: string; invocationEvent: CanonicalEvent },
+  ): Promise<AgentResult> {
     this.resumeCalls.push({ sessionHandle, messageText: input.messageText });
     const next = this.resumeQueue.shift();
     if (!next) {
       return {
         ok: false,
         requestId: `req_${crypto.randomUUID()}`,
-        error: { code: "missing_resume", message: "No resume result configured", retryable: false, category: "user_error" },
+        error: {
+          code: "missing_resume",
+          message: "No resume result configured",
+          retryable: false,
+          category: "user_error",
+        },
       };
     }
     return rebindResult(next, input.invocationEvent);
   }
 
-  async *resumeStream(sessionHandle: string, input: { messageText: string; invocationEvent: CanonicalEvent }): AsyncGenerator<AgentEvent, AgentResult> {
+  async *resumeStream(
+    sessionHandle: string,
+    input: { messageText: string; invocationEvent: CanonicalEvent },
+  ): AsyncGenerator<AgentEvent, AgentResult> {
     this.resumeCalls.push({ sessionHandle, messageText: input.messageText });
     const next = this.resumeStreamQueue.shift();
     if (!next) {
       return {
         ok: false,
         requestId: `req_${crypto.randomUUID()}`,
-        error: { code: "missing_resume_stream", message: "No resume stream result configured", retryable: false, category: "user_error" },
+        error: {
+          code: "missing_resume_stream",
+          message: "No resume stream result configured",
+          retryable: false,
+          category: "user_error",
+        },
       };
     }
     for (const chunk of next.chunks) {
@@ -265,9 +301,7 @@ function rebindResult(result: AgentResult, invocation: CanonicalEvent): AgentRes
       tenant_id: invocation.tenant_id,
       workspace_id: invocation.workspace_id,
       channel: invocation.channel,
-      ...(invocation.channel_instance_id !== undefined
-        ? { channel_instance_id: invocation.channel_instance_id }
-        : {}),
+      ...(invocation.channel_instance_id !== undefined ? { channel_instance_id: invocation.channel_instance_id } : {}),
       conversation_id: invocation.conversation_id,
       session_id: invocation.session_id,
       correlation_id: invocation.correlation_id,
@@ -307,7 +341,13 @@ async function createRuntime(options: {
   const channelRegistry = new ChannelRegistry(async () => {});
   await configDb.addChannel(options.channelName, options.channelType as never, {});
 
-  function deriveEvent(source: CanonicalEvent, causationId: string, eventType: string, actorType: string, payload: Record<string, unknown>): CanonicalEvent {
+  function deriveEvent(
+    source: CanonicalEvent,
+    causationId: string,
+    eventType: string,
+    actorType: string,
+    payload: Record<string, unknown>,
+  ): CanonicalEvent {
     return {
       event_id: `evt_${crypto.randomUUID()}`,
       schema_version: "v1alpha1",
@@ -346,11 +386,13 @@ async function createRuntime(options: {
       session_handle: result.sessionHandle,
     });
     ledgerStore.append(requested);
-    ledgerStore.append(deriveEvent(result.event, requested.event_id, "agent.status.changed", "system", {
-      status: "input-required",
-      session_handle: result.sessionHandle,
-      message: result.event.payload["text"],
-    }));
+    ledgerStore.append(
+      deriveEvent(result.event, requested.event_id, "agent.status.changed", "system", {
+        status: "input-required",
+        session_handle: result.sessionHandle,
+        message: result.event.payload["text"],
+      }),
+    );
     pendingSessions.set(conversationId, {
       sessionHandle: result.sessionHandle,
       agentName,
@@ -370,11 +412,13 @@ async function createRuntime(options: {
     });
     ledgerStore.append(inboundPolicy);
     if (inboundDecision.decision === "deny") {
-      ledgerStore.append(deriveEvent(event, inboundPolicy.event_id, "event.blocked", "system", {
-        reason: inboundDecision.reason ?? "denied",
-        block_stage: "governance",
-        retryable: false,
-      }));
+      ledgerStore.append(
+        deriveEvent(event, inboundPolicy.event_id, "event.blocked", "system", {
+          reason: inboundDecision.reason ?? "denied",
+          block_stage: "governance",
+          retryable: false,
+        }),
+      );
       return;
     }
 
@@ -391,7 +435,10 @@ async function createRuntime(options: {
     });
     ledgerStore.append(invokeEvent);
 
-    const result = await options.agent.invoke({ messageText: String(event.payload["text"] ?? ""), invocationEvent: invokeEvent });
+    const result = await options.agent.invoke({
+      messageText: String(event.payload["text"] ?? ""),
+      invocationEvent: invokeEvent,
+    });
     if (!result.ok) throw new Error(result.error.message);
     ledgerStore.append(result.event);
     storePending(event.conversation_id, result);
@@ -410,11 +457,13 @@ async function createRuntime(options: {
     });
     ledgerStore.append(outboundPolicy);
     if (outboundDecision.decision === "deny") {
-      ledgerStore.append(deriveEvent(result.event, outboundPolicy.event_id, "event.blocked", "system", {
-        reason: outboundDecision.reason ?? "denied",
-        block_stage: "outbound_governance",
-        retryable: false,
-      }));
+      ledgerStore.append(
+        deriveEvent(result.event, outboundPolicy.event_id, "event.blocked", "system", {
+          reason: outboundDecision.reason ?? "denied",
+          block_stage: "outbound_governance",
+          retryable: false,
+        }),
+      );
       return;
     }
 
@@ -481,11 +530,13 @@ async function createRuntime(options: {
     });
     ledgerStore.append(outboundPolicy);
     if (outboundDecision.decision === "deny") {
-      ledgerStore.append(deriveEvent(result.event, outboundPolicy.event_id, "event.blocked", "system", {
-        reason: outboundDecision.reason ?? "denied",
-        block_stage: "outbound_governance",
-        retryable: false,
-      }));
+      ledgerStore.append(
+        deriveEvent(result.event, outboundPolicy.event_id, "event.blocked", "system", {
+          reason: outboundDecision.reason ?? "denied",
+          block_stage: "outbound_governance",
+          retryable: false,
+        }),
+      );
       return;
     }
 
@@ -522,16 +573,23 @@ async function createRuntime(options: {
     onConfigChanged: (key, value) => {
       if (key === "policy.config") {
         try {
-          const parsed = JSON.parse(value) as { rules?: Array<{ condition?: { type?: string; value?: string }; action?: "allow" | "deny"; reason?: string }> };
+          const parsed = JSON.parse(value) as {
+            rules?: Array<{
+              condition?: { type?: string; value?: string };
+              action?: "allow" | "deny";
+              reason?: string;
+            }>;
+          };
           const rule = parsed.rules?.[0];
           if (!rule) {
             delete runtimeState.inboundPolicy;
             return;
           }
           if (rule.condition?.type !== "channel" || !rule.condition.value || !rule.action) throw new Error("invalid");
-          runtimeState.inboundPolicy = (event) => event.channel === rule.condition!.value!
-            ? { decision: rule.action!, ...(rule.reason ? { reason: rule.reason } : {}) }
-            : { decision: "allow" };
+          runtimeState.inboundPolicy = (event) =>
+            event.channel === rule.condition!.value!
+              ? { decision: rule.action!, ...(rule.reason ? { reason: rule.reason } : {}) }
+              : { decision: "allow" };
         } catch {
           // preserve previous policy
         }
@@ -539,7 +597,13 @@ async function createRuntime(options: {
 
       if (key === "policy.outbound.config") {
         try {
-          const parsed = JSON.parse(value) as { rules?: Array<{ condition?: { type?: string; pattern?: string }; action?: "allow" | "deny"; reason?: string }> };
+          const parsed = JSON.parse(value) as {
+            rules?: Array<{
+              condition?: { type?: string; pattern?: string };
+              action?: "allow" | "deny";
+              reason?: string;
+            }>;
+          };
           const rule = parsed.rules?.[0];
           if (!rule) {
             delete runtimeState.outboundPolicy;
@@ -547,9 +611,12 @@ async function createRuntime(options: {
           }
           if (rule.condition?.type !== "keyword" || !rule.condition.pattern || !rule.action) throw new Error("invalid");
           const pattern = rule.condition.pattern.toLowerCase();
-          runtimeState.outboundPolicy = (event) => String(event.payload["text"] ?? "").toLowerCase().includes(pattern)
-            ? { decision: rule.action!, ...(rule.reason ? { reason: rule.reason } : {}) }
-            : { decision: "allow" };
+          runtimeState.outboundPolicy = (event) =>
+            String(event.payload["text"] ?? "")
+              .toLowerCase()
+              .includes(pattern)
+              ? { decision: rule.action!, ...(rule.reason ? { reason: rule.reason } : {}) }
+              : { decision: "allow" };
         } catch {
           // preserve previous policy
         }
@@ -675,72 +742,122 @@ describe("v0.4 governance API", () => {
     const conversationId = "slack_thread_1710756000.000001";
     const sessionHandle = "slack-hitl-session";
     const agent = new MockAgent({
-      invokeResult: inputRequiredResponse("slack", "slack_C123", conversationId, "What is your order number?", sessionHandle),
-      resumeQueue: [successfulResponse(invocationEvent("slack", "slack_C123", conversationId), "Thanks, order #12345 is on the way.")],
+      invokeResult: inputRequiredResponse(
+        "slack",
+        "slack_C123",
+        conversationId,
+        "What is your order number?",
+        sessionHandle,
+      ),
+      resumeQueue: [
+        successfulResponse(
+          invocationEvent("slack", "slack_C123", conversationId),
+          "Thanks, order #12345 is on the way.",
+        ),
+      ],
     });
 
     const runtime = await createRuntime({ channelName: "slack-main", channelType: "slack", agent });
     runtimes.push(runtime);
 
-    await runtime.sendIncoming(messageEvent({
-      channel: "slack",
-      channelInstanceId: "slack_C123",
-      conversationId,
-      text: "Where is my package?",
-      providerExtensions: { slack: { channel_id: "C123", thread_ts: "1710756000.000001" } },
-    }));
+    await runtime.sendIncoming(
+      messageEvent({
+        channel: "slack",
+        channelInstanceId: "slack_C123",
+        conversationId,
+        text: "Where is my package?",
+        providerExtensions: { slack: { channel_id: "C123", thread_ts: "1710756000.000001" } },
+      }),
+    );
 
     expect(runtime.pendingSessions.get(conversationId)?.sessionHandle).toBe(sessionHandle);
     expect(runtime.sender.sent).toContain("What is your order number?");
 
-    await runtime.sendIncoming(messageEvent({
-      channel: "slack",
-      channelInstanceId: "slack_C123",
-      conversationId,
-      text: "Order 12345",
-      providerExtensions: { slack: { channel_id: "C123", thread_ts: "1710756000.000001" } },
-    }));
+    await runtime.sendIncoming(
+      messageEvent({
+        channel: "slack",
+        channelInstanceId: "slack_C123",
+        conversationId,
+        text: "Order 12345",
+        providerExtensions: { slack: { channel_id: "C123", thread_ts: "1710756000.000001" } },
+      }),
+    );
 
     expect(runtime.agent.resumeCalls).toEqual([{ sessionHandle, messageText: "Order 12345" }]);
     expect(runtime.pendingSessions.has(conversationId)).toBe(false);
     expect(runtime.sender.sent.at(-1)).toBe("Thanks, order #12345 is on the way.");
-    expect(runtime.ledgerStore.getByConversationId(conversationId).some((event) => event.event_type === "agent.input.provided")).toBe(true);
+    expect(
+      runtime.ledgerStore
+        .getByConversationId(conversationId)
+        .some((event) => event.event_type === "agent.input.provided"),
+    ).toBe(true);
   });
 
   it("resumes a pending Teams conversation in the same conversation", async () => {
     const conversationId = "conv-teams-123";
     const sessionHandle = "teams-hitl-session";
     const agent = new MockAgent({
-      invokeResult: inputRequiredResponse("teams", "teams-conv-teams-123", conversationId, "Please confirm your ticket number.", sessionHandle),
-      resumeQueue: [successfulResponse(invocationEvent("teams", "teams-conv-teams-123", conversationId), "Thanks, ticket #42 is confirmed.")],
+      invokeResult: inputRequiredResponse(
+        "teams",
+        "teams-conv-teams-123",
+        conversationId,
+        "Please confirm your ticket number.",
+        sessionHandle,
+      ),
+      resumeQueue: [
+        successfulResponse(
+          invocationEvent("teams", "teams-conv-teams-123", conversationId),
+          "Thanks, ticket #42 is confirmed.",
+        ),
+      ],
     });
 
     const runtime = await createRuntime({ channelName: "teams-main", channelType: "teams", agent });
     runtimes.push(runtime);
 
-    await runtime.sendIncoming(messageEvent({
-      channel: "teams",
-      channelInstanceId: "teams-conv-teams-123",
-      conversationId,
-      text: "I need help with my ticket",
-      providerExtensions: { teams: { conversation_id: conversationId, service_url: "https://smba.trafficmanager.net/amer/", activity_id: "activity-1" } },
-    }));
+    await runtime.sendIncoming(
+      messageEvent({
+        channel: "teams",
+        channelInstanceId: "teams-conv-teams-123",
+        conversationId,
+        text: "I need help with my ticket",
+        providerExtensions: {
+          teams: {
+            conversation_id: conversationId,
+            service_url: "https://smba.trafficmanager.net/amer/",
+            activity_id: "activity-1",
+          },
+        },
+      }),
+    );
 
     expect(runtime.pendingSessions.get(conversationId)?.sessionHandle).toBe(sessionHandle);
     expect(runtime.sender.sent).toContain("Please confirm your ticket number.");
 
-    await runtime.sendIncoming(messageEvent({
-      channel: "teams",
-      channelInstanceId: "teams-conv-teams-123",
-      conversationId,
-      text: "Ticket 42",
-      providerExtensions: { teams: { conversation_id: conversationId, service_url: "https://smba.trafficmanager.net/amer/", activity_id: "activity-2" } },
-    }));
+    await runtime.sendIncoming(
+      messageEvent({
+        channel: "teams",
+        channelInstanceId: "teams-conv-teams-123",
+        conversationId,
+        text: "Ticket 42",
+        providerExtensions: {
+          teams: {
+            conversation_id: conversationId,
+            service_url: "https://smba.trafficmanager.net/amer/",
+            activity_id: "activity-2",
+          },
+        },
+      }),
+    );
 
     expect(runtime.agent.resumeCalls).toEqual([{ sessionHandle, messageText: "Ticket 42" }]);
     expect(runtime.pendingSessions.has(conversationId)).toBe(false);
     expect(runtime.sender.sent.at(-1)).toBe("Thanks, ticket #42 is confirmed.");
-    expect(runtime.ledgerStore.getByConversationId(conversationId).some((event) => event.event_type === "agent.input.provided")).toBe(true);
+    expect(
+      runtime.ledgerStore
+        .getByConversationId(conversationId)
+        .some((event) => event.event_type === "agent.input.provided"),
+    ).toBe(true);
   });
 
   it("supports chained input-required for Discord resume", async () => {
@@ -748,42 +865,57 @@ describe("v0.4 governance API", () => {
     const firstHandle = "discord-hitl-1";
     const secondHandle = "discord-hitl-2";
     const agent = new MockAgent({
-      invokeResult: inputRequiredResponse("discord", "discord_guild_555", conversationId, "Need your order number.", firstHandle),
+      invokeResult: inputRequiredResponse(
+        "discord",
+        "discord_guild_555",
+        conversationId,
+        "Need your order number.",
+        firstHandle,
+      ),
       resumeQueue: [
         inputRequiredResponse("discord", "discord_guild_555", conversationId, "Need your ZIP code.", secondHandle),
-        successfulResponse(invocationEvent("discord", "discord_guild_555", conversationId), "Thanks, everything is verified."),
+        successfulResponse(
+          invocationEvent("discord", "discord_guild_555", conversationId),
+          "Thanks, everything is verified.",
+        ),
       ],
     });
 
     const runtime = await createRuntime({ channelName: "discord-main", channelType: "discord", agent });
     runtimes.push(runtime);
 
-    await runtime.sendIncoming(messageEvent({
-      channel: "discord",
-      channelInstanceId: "discord_guild_555",
-      conversationId,
-      text: "Help me with my order",
-      providerExtensions: { discord: { channel_id: "9876543210987654321" } },
-    }));
+    await runtime.sendIncoming(
+      messageEvent({
+        channel: "discord",
+        channelInstanceId: "discord_guild_555",
+        conversationId,
+        text: "Help me with my order",
+        providerExtensions: { discord: { channel_id: "9876543210987654321" } },
+      }),
+    );
     expect(runtime.pendingSessions.get(conversationId)?.sessionHandle).toBe(firstHandle);
 
-    await runtime.sendIncoming(messageEvent({
-      channel: "discord",
-      channelInstanceId: "discord_guild_555",
-      conversationId,
-      text: "12345",
-      providerExtensions: { discord: { channel_id: "9876543210987654321" } },
-    }));
+    await runtime.sendIncoming(
+      messageEvent({
+        channel: "discord",
+        channelInstanceId: "discord_guild_555",
+        conversationId,
+        text: "12345",
+        providerExtensions: { discord: { channel_id: "9876543210987654321" } },
+      }),
+    );
     expect(runtime.pendingSessions.get(conversationId)?.sessionHandle).toBe(secondHandle);
     expect(runtime.sender.sent.at(-1)).toBe("Need your ZIP code.");
 
-    await runtime.sendIncoming(messageEvent({
-      channel: "discord",
-      channelInstanceId: "discord_guild_555",
-      conversationId,
-      text: "90210",
-      providerExtensions: { discord: { channel_id: "9876543210987654321" } },
-    }));
+    await runtime.sendIncoming(
+      messageEvent({
+        channel: "discord",
+        channelInstanceId: "discord_guild_555",
+        conversationId,
+        text: "90210",
+        providerExtensions: { discord: { channel_id: "9876543210987654321" } },
+      }),
+    );
 
     expect(runtime.agent.resumeCalls).toEqual([
       { sessionHandle: firstHandle, messageText: "12345" },
@@ -796,7 +928,13 @@ describe("v0.4 governance API", () => {
   it("falls back to normal routing after timeout", async () => {
     const conversationId = "slack_thread_timeout";
     const agent = new MockAgent({
-      invokeResult: inputRequiredResponse("slack", "slack_C123", conversationId, "Need more info.", "timed-out-session"),
+      invokeResult: inputRequiredResponse(
+        "slack",
+        "slack_C123",
+        conversationId,
+        "Need more info.",
+        "timed-out-session",
+      ),
       resumeQueue: [successfulResponse(invocationEvent("slack", "slack_C123", conversationId), "should not resume")],
     });
 
@@ -808,23 +946,27 @@ describe("v0.4 governance API", () => {
     });
     runtimes.push(runtime);
 
-    await runtime.sendIncoming(messageEvent({
-      channel: "slack",
-      channelInstanceId: "slack_C123",
-      conversationId,
-      text: "First",
-      providerExtensions: { slack: { channel_id: "C123" } },
-    }));
+    await runtime.sendIncoming(
+      messageEvent({
+        channel: "slack",
+        channelInstanceId: "slack_C123",
+        conversationId,
+        text: "First",
+        providerExtensions: { slack: { channel_id: "C123" } },
+      }),
+    );
     const pending = runtime.pendingSessions.get(conversationId)!;
     pending.createdAt = Date.now() - 10;
 
-    await runtime.sendIncoming(messageEvent({
-      channel: "slack",
-      channelInstanceId: "slack_C123",
-      conversationId,
-      text: "Second",
-      providerExtensions: { slack: { channel_id: "C123" } },
-    }));
+    await runtime.sendIncoming(
+      messageEvent({
+        channel: "slack",
+        channelInstanceId: "slack_C123",
+        conversationId,
+        text: "Second",
+        providerExtensions: { slack: { channel_id: "C123" } },
+      }),
+    );
 
     expect(runtime.agent.resumeCalls).toHaveLength(0);
     expect(runtime.agent.invokeCalls).toHaveLength(2);
@@ -833,40 +975,52 @@ describe("v0.4 governance API", () => {
   it("hot-reloads inbound policy for the next request and preserves the old policy on invalid config", async () => {
     const conversationId = "conv-policy-inbound";
     const agent = new MockAgent({
-      invokeResult: successfulResponse(invocationEvent("discord", "discord_guild_555", conversationId), "Allowed response"),
+      invokeResult: successfulResponse(
+        invocationEvent("discord", "discord_guild_555", conversationId),
+        "Allowed response",
+      ),
     });
 
     const runtime = await createRuntime({
       channelName: "discord-policy",
       channelType: "discord",
       agent,
-      initialInboundPolicy: (event) => event.channel === "slack" ? { decision: "deny", reason: "slack blocked" } : { decision: "allow" },
+      initialInboundPolicy: (event) =>
+        event.channel === "slack" ? { decision: "deny", reason: "slack blocked" } : { decision: "allow" },
     });
     runtimes.push(runtime);
 
-    await runtime.sendIncoming(messageEvent({
-      channel: "discord",
-      channelInstanceId: "discord_guild_555",
-      conversationId,
-      text: "hello",
-      providerExtensions: { discord: { channel_id: "987" } },
-    }));
+    await runtime.sendIncoming(
+      messageEvent({
+        channel: "discord",
+        channelInstanceId: "discord_guild_555",
+        conversationId,
+        text: "hello",
+        providerExtensions: { discord: { channel_id: "987" } },
+      }),
+    );
     expect(runtime.agent.invokeCalls).toHaveLength(1);
 
     const updated = await fetch(`${runtime.baseUrl}/api/config/policy.config`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ value: JSON.stringify({ rules: [{ condition: { type: "channel", value: "discord" }, action: "deny", reason: "discord blocked" }] }) }),
+      body: JSON.stringify({
+        value: JSON.stringify({
+          rules: [{ condition: { type: "channel", value: "discord" }, action: "deny", reason: "discord blocked" }],
+        }),
+      }),
     });
     expect(updated.status).toBe(200);
 
-    await runtime.sendIncoming(messageEvent({
-      channel: "discord",
-      channelInstanceId: "discord_guild_555",
-      conversationId,
-      text: "hello again",
-      providerExtensions: { discord: { channel_id: "987" } },
-    }));
+    await runtime.sendIncoming(
+      messageEvent({
+        channel: "discord",
+        channelInstanceId: "discord_guild_555",
+        conversationId,
+        text: "hello again",
+        providerExtensions: { discord: { channel_id: "987" } },
+      }),
+    );
     expect(runtime.agent.invokeCalls).toHaveLength(1);
 
     const invalid = await fetch(`${runtime.baseUrl}/api/config/policy.config`, {
@@ -876,16 +1030,20 @@ describe("v0.4 governance API", () => {
     });
     expect(invalid.status).toBe(200);
 
-    await runtime.sendIncoming(messageEvent({
-      channel: "discord",
-      channelInstanceId: "discord_guild_555",
-      conversationId,
-      text: "still blocked",
-      providerExtensions: { discord: { channel_id: "987" } },
-    }));
+    await runtime.sendIncoming(
+      messageEvent({
+        channel: "discord",
+        channelInstanceId: "discord_guild_555",
+        conversationId,
+        text: "still blocked",
+        providerExtensions: { discord: { channel_id: "987" } },
+      }),
+    );
     expect(runtime.agent.invokeCalls).toHaveLength(1);
 
-    const blocked = runtime.ledgerStore.getByConversationId(conversationId).filter((event) => event.event_type === "event.blocked");
+    const blocked = runtime.ledgerStore
+      .getByConversationId(conversationId)
+      .filter((event) => event.event_type === "event.blocked");
     expect(blocked.at(-1)?.payload["reason"]).toBe("discord blocked");
   });
 
@@ -898,30 +1056,41 @@ describe("v0.4 governance API", () => {
     const runtime = await createRuntime({ channelName: "slack-policy", channelType: "slack", agent });
     runtimes.push(runtime);
 
-    await runtime.sendIncoming(messageEvent({
-      channel: "slack",
-      channelInstanceId: "slack_C999",
-      conversationId,
-      text: "hello",
-      providerExtensions: { slack: { channel_id: "C999" } },
-    }));
+    await runtime.sendIncoming(
+      messageEvent({
+        channel: "slack",
+        channelInstanceId: "slack_C999",
+        conversationId,
+        text: "hello",
+        providerExtensions: { slack: { channel_id: "C999" } },
+      }),
+    );
     expect(runtime.sender.sent.at(-1)).toBe("safe output");
 
-    runtime.agent.invokeResult = successfulResponse(invocationEvent("slack", "slack_C999", conversationId), "contains secret data");
+    runtime.agent.invokeResult = successfulResponse(
+      invocationEvent("slack", "slack_C999", conversationId),
+      "contains secret data",
+    );
     const updated = await fetch(`${runtime.baseUrl}/api/config/policy.outbound.config`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ value: JSON.stringify({ rules: [{ condition: { type: "keyword", pattern: "secret" }, action: "deny", reason: "secret blocked" }] }) }),
+      body: JSON.stringify({
+        value: JSON.stringify({
+          rules: [{ condition: { type: "keyword", pattern: "secret" }, action: "deny", reason: "secret blocked" }],
+        }),
+      }),
     });
     expect(updated.status).toBe(200);
 
-    await runtime.sendIncoming(messageEvent({
-      channel: "slack",
-      channelInstanceId: "slack_C999",
-      conversationId,
-      text: "hello again",
-      providerExtensions: { slack: { channel_id: "C999" } },
-    }));
+    await runtime.sendIncoming(
+      messageEvent({
+        channel: "slack",
+        channelInstanceId: "slack_C999",
+        conversationId,
+        text: "hello again",
+        providerExtensions: { slack: { channel_id: "C999" } },
+      }),
+    );
     expect(runtime.sender.sent.at(-1)).toBe("safe output");
 
     const invalid = await fetch(`${runtime.baseUrl}/api/config/policy.outbound.config`, {
@@ -931,16 +1100,20 @@ describe("v0.4 governance API", () => {
     });
     expect(invalid.status).toBe(200);
 
-    await runtime.sendIncoming(messageEvent({
-      channel: "slack",
-      channelInstanceId: "slack_C999",
-      conversationId,
-      text: "hello third time",
-      providerExtensions: { slack: { channel_id: "C999" } },
-    }));
+    await runtime.sendIncoming(
+      messageEvent({
+        channel: "slack",
+        channelInstanceId: "slack_C999",
+        conversationId,
+        text: "hello third time",
+        providerExtensions: { slack: { channel_id: "C999" } },
+      }),
+    );
     expect(runtime.sender.sent.at(-1)).toBe("safe output");
 
-    const blocked = runtime.ledgerStore.getByConversationId(conversationId).filter((event) => event.event_type === "event.blocked");
+    const blocked = runtime.ledgerStore
+      .getByConversationId(conversationId)
+      .filter((event) => event.event_type === "event.blocked");
     expect(blocked.at(-1)?.payload["reason"]).toBe("secret blocked");
   });
 
@@ -964,14 +1137,24 @@ describe("v0.4 governance API", () => {
   it("reloads inbound policy from watched file edits and preserves previous policy on invalid YAML", async () => {
     const dir = mkdtempSync(join(tmpdir(), "car-policy-watch-"));
     const file = join(dir, "policy.yaml");
-    const watched: Array<{ filePath: string; listener: (curr: { mtimeMs: number; size: number; ino: number; isFile: () => boolean }, prev: { mtimeMs: number; size: number; ino: number; isFile: () => boolean }) => void }> = [];
+    const watched: Array<{
+      filePath: string;
+      listener: (
+        curr: { mtimeMs: number; size: number; ino: number; isFile: () => boolean },
+        prev: { mtimeMs: number; size: number; ino: number; isFile: () => boolean },
+      ) => void;
+    }> = [];
     const reloads: Array<"policy.config" | "policy.outbound.config"> = [];
     const runtimeState: RuntimeState = {
-      inboundPolicy: (event) => event.channel === "slack" ? { decision: "deny", reason: "slack blocked" } : { decision: "allow" },
+      inboundPolicy: (event) =>
+        event.channel === "slack" ? { decision: "deny", reason: "slack blocked" } : { decision: "allow" },
     };
     const errorSpy = spyOn(console, "error").mockImplementation(() => {});
 
-    writeFileSync(file, "rules:\n  - id: slack-only\n    action: deny\n    condition:\n      type: channel\n      value: slack\n");
+    writeFileSync(
+      file,
+      "rules:\n  - id: slack-only\n    action: deny\n    condition:\n      type: channel\n      value: slack\n",
+    );
 
     const stops = setupPolicyFileWatchers({
       inboundPath: file,
@@ -989,7 +1172,7 @@ describe("v0.4 governance API", () => {
           console.error("preserving previous policy");
         }
       },
-      watchFileImpl: ((filePath: string, _options: unknown, listener: typeof watched[number]["listener"]) => {
+      watchFileImpl: ((filePath: string, _options: unknown, listener: (typeof watched)[number]["listener"]) => {
         watched.push({ filePath, listener });
         return undefined as unknown as import("node:fs").StatWatcher;
       }) as unknown as typeof import("node:fs").watchFile,
@@ -999,15 +1182,38 @@ describe("v0.4 governance API", () => {
     expect(watched).toHaveLength(1);
     expect(watched[0]?.filePath).toBe(file);
 
-    writeFileSync(file, "rules:\n  - id: discord-only\n    action: deny\n    condition:\n      type: channel\n      value: discord\n");
+    writeFileSync(
+      file,
+      "rules:\n  - id: discord-only\n    action: deny\n    condition:\n      type: channel\n      value: discord\n",
+    );
     watched[0]!.listener(
       { mtimeMs: 2, size: 1, ino: 1, isFile: () => true },
       { mtimeMs: 1, size: 1, ino: 1, isFile: () => true },
     );
     await nextTick();
     expect(reloads).toEqual(["policy.config"]);
-    expect(runtimeState.inboundPolicy?.(messageEvent({ channel: "discord", channelInstanceId: "discord_test", conversationId: "conv-watch-discord", text: "hi", providerExtensions: { discord: { channel_id: "987" } } })).decision).toBe("deny");
-    expect(runtimeState.inboundPolicy?.(messageEvent({ channel: "slack", channelInstanceId: "slack_test", conversationId: "conv-watch-slack", text: "hi", providerExtensions: { slack: { channel_id: "C123" } } })).decision).toBe("allow");
+    expect(
+      runtimeState.inboundPolicy?.(
+        messageEvent({
+          channel: "discord",
+          channelInstanceId: "discord_test",
+          conversationId: "conv-watch-discord",
+          text: "hi",
+          providerExtensions: { discord: { channel_id: "987" } },
+        }),
+      ).decision,
+    ).toBe("deny");
+    expect(
+      runtimeState.inboundPolicy?.(
+        messageEvent({
+          channel: "slack",
+          channelInstanceId: "slack_test",
+          conversationId: "conv-watch-slack",
+          text: "hi",
+          providerExtensions: { slack: { channel_id: "C123" } },
+        }),
+      ).decision,
+    ).toBe("allow");
 
     writeFileSync(file, "rules: [\n");
     watched[0]!.listener(
@@ -1015,7 +1221,17 @@ describe("v0.4 governance API", () => {
       { mtimeMs: 2, size: 1, ino: 1, isFile: () => true },
     );
     await nextTick();
-    expect(runtimeState.inboundPolicy?.(messageEvent({ channel: "discord", channelInstanceId: "discord_test", conversationId: "conv-watch-discord", text: "hi", providerExtensions: { discord: { channel_id: "987" } } })).decision).toBe("deny");
+    expect(
+      runtimeState.inboundPolicy?.(
+        messageEvent({
+          channel: "discord",
+          channelInstanceId: "discord_test",
+          conversationId: "conv-watch-discord",
+          text: "hi",
+          providerExtensions: { discord: { channel_id: "987" } },
+        }),
+      ).decision,
+    ).toBe("deny");
     expect(errorSpy).toHaveBeenCalled();
 
     for (const stop of stops) stop();
@@ -1026,13 +1242,24 @@ describe("v0.4 governance API", () => {
   it("preserves previous outbound policy on watched file deletion or unreadable file", async () => {
     const dir = mkdtempSync(join(tmpdir(), "car-policy-watch-"));
     const file = join(dir, "outbound.yaml");
-    const watched: Array<{ listener: (curr: { mtimeMs: number; size: number; ino: number; isFile: () => boolean }, prev: { mtimeMs: number; size: number; ino: number; isFile: () => boolean }) => void }> = [];
+    const watched: Array<{
+      listener: (
+        curr: { mtimeMs: number; size: number; ino: number; isFile: () => boolean },
+        prev: { mtimeMs: number; size: number; ino: number; isFile: () => boolean },
+      ) => void;
+    }> = [];
     const runtimeState: RuntimeState = {
-      outboundPolicy: (event) => String(event.payload["text"] ?? "").includes("secret") ? { decision: "deny", reason: "secret blocked" } : { decision: "allow" },
+      outboundPolicy: (event) =>
+        String(event.payload["text"] ?? "").includes("secret")
+          ? { decision: "deny", reason: "secret blocked" }
+          : { decision: "allow" },
     };
     const warnSpy = spyOn(console, "error").mockImplementation(() => {});
 
-    writeFileSync(file, "rules:\n  - id: block-secret\n    action: deny\n    condition:\n      type: keyword\n      pattern: secret\n");
+    writeFileSync(
+      file,
+      "rules:\n  - id: block-secret\n    action: deny\n    condition:\n      type: keyword\n      pattern: secret\n",
+    );
 
     const stops = setupPolicyFileWatchers({
       outboundPath: file,
@@ -1044,7 +1271,7 @@ describe("v0.4 governance API", () => {
           console.error("preserving previous outbound policy");
         }
       },
-      watchFileImpl: ((_filePath: string, _options: unknown, listener: typeof watched[number]["listener"]) => {
+      watchFileImpl: ((_filePath: string, _options: unknown, listener: (typeof watched)[number]["listener"]) => {
         watched.push({ listener });
         return undefined as unknown as import("node:fs").StatWatcher;
       }) as unknown as typeof import("node:fs").watchFile,
@@ -1057,16 +1284,39 @@ describe("v0.4 governance API", () => {
       { mtimeMs: 1, size: 10, ino: 1, isFile: () => true },
     );
     await nextTick();
-    expect(runtimeState.outboundPolicy?.(messageEvent({ channel: "slack", channelInstanceId: "slack_test", conversationId: "conv-watch-outbound", text: "contains secret", providerExtensions: { slack: { channel_id: "C123" } } })).decision).toBe("deny");
+    expect(
+      runtimeState.outboundPolicy?.(
+        messageEvent({
+          channel: "slack",
+          channelInstanceId: "slack_test",
+          conversationId: "conv-watch-outbound",
+          text: "contains secret",
+          providerExtensions: { slack: { channel_id: "C123" } },
+        }),
+      ).decision,
+    ).toBe("deny");
 
-    writeFileSync(file, "rules:\n  - id: block-secret\n    action: deny\n    condition:\n      type: keyword\n      pattern: secret\n");
+    writeFileSync(
+      file,
+      "rules:\n  - id: block-secret\n    action: deny\n    condition:\n      type: keyword\n      pattern: secret\n",
+    );
     chmodSync(file, 0o000);
     watched[0]!.listener(
       { mtimeMs: 3, size: 10, ino: 1, isFile: () => true },
       { mtimeMs: 2, size: 10, ino: 1, isFile: () => true },
     );
     await nextTick();
-    expect(runtimeState.outboundPolicy?.(messageEvent({ channel: "slack", channelInstanceId: "slack_test", conversationId: "conv-watch-outbound", text: "contains secret", providerExtensions: { slack: { channel_id: "C123" } } })).decision).toBe("deny");
+    expect(
+      runtimeState.outboundPolicy?.(
+        messageEvent({
+          channel: "slack",
+          channelInstanceId: "slack_test",
+          conversationId: "conv-watch-outbound",
+          text: "contains secret",
+          providerExtensions: { slack: { channel_id: "C123" } },
+        }),
+      ).decision,
+    ).toBe("deny");
     expect(warnSpy).toHaveBeenCalled();
 
     chmodSync(file, 0o644);
@@ -1094,11 +1344,17 @@ describe("v0.4 governance API", () => {
     });
 
     await runtime.sendIncoming(event);
-    await runtime.sendIncoming({ ...event, event_id: `evt_${crypto.randomUUID()}`, correlation_id: `corr_${crypto.randomUUID()}` });
+    await runtime.sendIncoming({
+      ...event,
+      event_id: `evt_${crypto.randomUUID()}`,
+      correlation_id: `corr_${crypto.randomUUID()}`,
+    });
 
     expect(runtime.agent.invokeCalls).toHaveLength(1);
     expect(runtime.sender.sent).toEqual(["Processed once"]);
-    const replies = runtime.ledgerStore.getByConversationId(conversationId).filter((entry) => entry.event_type === "agent.response.completed");
+    const replies = runtime.ledgerStore
+      .getByConversationId(conversationId)
+      .filter((entry) => entry.event_type === "agent.response.completed");
     expect(replies).toHaveLength(1);
   });
 
@@ -1106,31 +1362,46 @@ describe("v0.4 governance API", () => {
     const conversationId = "discord:channel:streaming";
     const sessionHandle = "discord-stream-hitl";
     const agent = new MockAgent({
-      invokeResult: inputRequiredResponse("discord", "discord_guild_555", conversationId, "Need more info.", sessionHandle),
-      resumeStreamQueue: [{
-        chunks: ["Resumed ", "response"],
-        result: successfulResponse(invocationEvent("discord", "discord_guild_555", conversationId), "Resumed response"),
-      }],
+      invokeResult: inputRequiredResponse(
+        "discord",
+        "discord_guild_555",
+        conversationId,
+        "Need more info.",
+        sessionHandle,
+      ),
+      resumeStreamQueue: [
+        {
+          chunks: ["Resumed ", "response"],
+          result: successfulResponse(
+            invocationEvent("discord", "discord_guild_555", conversationId),
+            "Resumed response",
+          ),
+        },
+      ],
       streaming: true,
     });
 
     const runtime = await createRuntime({ channelName: "discord-stream", channelType: "discord", agent });
     runtimes.push(runtime);
 
-    await runtime.sendIncoming(messageEvent({
-      channel: "discord",
-      channelInstanceId: "discord_guild_555",
-      conversationId,
-      text: "start",
-      providerExtensions: { discord: { channel_id: "987" } },
-    }));
-    await runtime.sendIncoming(messageEvent({
-      channel: "discord",
-      channelInstanceId: "discord_guild_555",
-      conversationId,
-      text: "resume me",
-      providerExtensions: { discord: { channel_id: "987" } },
-    }));
+    await runtime.sendIncoming(
+      messageEvent({
+        channel: "discord",
+        channelInstanceId: "discord_guild_555",
+        conversationId,
+        text: "start",
+        providerExtensions: { discord: { channel_id: "987" } },
+      }),
+    );
+    await runtime.sendIncoming(
+      messageEvent({
+        channel: "discord",
+        channelInstanceId: "discord_guild_555",
+        conversationId,
+        text: "resume me",
+        providerExtensions: { discord: { channel_id: "987" } },
+      }),
+    );
 
     expect(runtime.agent.resumeCalls).toEqual([{ sessionHandle, messageText: "resume me" }]);
     expect(runtime.sender.sent).toContain("...");

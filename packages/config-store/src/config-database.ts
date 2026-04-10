@@ -2,13 +2,13 @@ import { Database } from "bun:sqlite";
 import type { ConfigStore } from "./config-store";
 import { EncryptionEngine } from "./encryption";
 import {
-  SENSITIVE_FIELDS,
   type AgentRecord,
   type AgentType,
   type ChannelRecord,
   type ChannelType,
   type RouteMatchType,
   type RouteRecord,
+  SENSITIVE_FIELDS,
   type SettingRecord,
 } from "./types";
 
@@ -77,8 +77,8 @@ export class SqliteConfigStore implements ConfigStore {
     if (!this.encryption) return;
 
     const allRows = [
-      ...this.db.prepare("SELECT name, type, config FROM channels").all() as RawRow[],
-      ...this.db.prepare("SELECT name, type, config FROM agents").all() as RawRow[],
+      ...(this.db.prepare("SELECT name, type, config FROM channels").all() as RawRow[]),
+      ...(this.db.prepare("SELECT name, type, config FROM agents").all() as RawRow[]),
     ];
 
     for (const row of allRows) {
@@ -101,9 +101,9 @@ export class SqliteConfigStore implements ConfigStore {
 
   async addChannel(name: string, type: ChannelType, config: Record<string, unknown>): Promise<ChannelRecord> {
     const stored = await this.encryptConfig(type, config);
-    this.db.prepare(
-      "INSERT INTO channels (name, type, config) VALUES ($name, $type, $config)",
-    ).run({ $name: name, $type: type, $config: JSON.stringify(stored) });
+    this.db
+      .prepare("INSERT INTO channels (name, type, config) VALUES ($name, $type, $config)")
+      .run({ $name: name, $type: type, $config: JSON.stringify(stored) });
     return (await this.getChannel(name))!;
   }
 
@@ -118,16 +118,21 @@ export class SqliteConfigStore implements ConfigStore {
     return Promise.all(rows.map((r) => this.rowToChannel(r)));
   }
 
-  async updateChannel(name: string, updates: { config?: Record<string, unknown>; enabled?: boolean }): Promise<ChannelRecord | undefined> {
+  async updateChannel(
+    name: string,
+    updates: { config?: Record<string, unknown>; enabled?: boolean },
+  ): Promise<ChannelRecord | undefined> {
     const existing = await this.getChannel(name);
     if (!existing) return undefined;
     if (updates.config !== undefined) {
       const stored = await this.encryptConfig(existing.type, updates.config);
-      this.db.prepare("UPDATE channels SET config = $config, updated_at = datetime('now') WHERE name = $name")
+      this.db
+        .prepare("UPDATE channels SET config = $config, updated_at = datetime('now') WHERE name = $name")
         .run({ $name: name, $config: JSON.stringify(stored) });
     }
     if (updates.enabled !== undefined) {
-      this.db.prepare("UPDATE channels SET enabled = $enabled, updated_at = datetime('now') WHERE name = $name")
+      this.db
+        .prepare("UPDATE channels SET enabled = $enabled, updated_at = datetime('now') WHERE name = $name")
         .run({ $name: name, $enabled: updates.enabled ? 1 : 0 });
     }
     return (await this.getChannel(name))!;
@@ -142,9 +147,9 @@ export class SqliteConfigStore implements ConfigStore {
 
   async addAgent(name: string, type: AgentType, config: Record<string, unknown>): Promise<AgentRecord> {
     const stored = await this.encryptConfig(type, config);
-    this.db.prepare(
-      "INSERT INTO agents (name, type, config) VALUES ($name, $type, $config)",
-    ).run({ $name: name, $type: type, $config: JSON.stringify(stored) });
+    this.db
+      .prepare("INSERT INTO agents (name, type, config) VALUES ($name, $type, $config)")
+      .run({ $name: name, $type: type, $config: JSON.stringify(stored) });
     return (await this.getAgent(name))!;
   }
 
@@ -159,16 +164,21 @@ export class SqliteConfigStore implements ConfigStore {
     return Promise.all(rows.map((r) => this.rowToAgent(r)));
   }
 
-  async updateAgent(name: string, updates: { config?: Record<string, unknown>; enabled?: boolean }): Promise<AgentRecord | undefined> {
+  async updateAgent(
+    name: string,
+    updates: { config?: Record<string, unknown>; enabled?: boolean },
+  ): Promise<AgentRecord | undefined> {
     const existing = await this.getAgent(name);
     if (!existing) return undefined;
     if (updates.config !== undefined) {
       const stored = await this.encryptConfig(existing.type, updates.config);
-      this.db.prepare("UPDATE agents SET config = $config, updated_at = datetime('now') WHERE name = $name")
+      this.db
+        .prepare("UPDATE agents SET config = $config, updated_at = datetime('now') WHERE name = $name")
         .run({ $name: name, $config: JSON.stringify(stored) });
     }
     if (updates.enabled !== undefined) {
-      this.db.prepare("UPDATE agents SET enabled = $enabled, updated_at = datetime('now') WHERE name = $name")
+      this.db
+        .prepare("UPDATE agents SET enabled = $enabled, updated_at = datetime('now') WHERE name = $name")
         .run({ $name: name, $enabled: updates.enabled ? 1 : 0 });
     }
     return (await this.getAgent(name))!;
@@ -183,9 +193,11 @@ export class SqliteConfigStore implements ConfigStore {
   // ── Routes ───────────────────────────────────────────────────────────
 
   addRoute(matchType: RouteMatchType, matchValue: string | null, agentName: string, priority = 0): RouteRecord {
-    this.db.prepare(
-      "INSERT INTO routes (priority, match_type, match_value, agent_name) VALUES ($priority, $match_type, $match_value, $agent_name)",
-    ).run({ $priority: priority, $match_type: matchType, $match_value: matchValue, $agent_name: agentName });
+    this.db
+      .prepare(
+        "INSERT INTO routes (priority, match_type, match_value, agent_name) VALUES ($priority, $match_type, $match_value, $agent_name)",
+      )
+      .run({ $priority: priority, $match_type: matchType, $match_value: matchValue, $agent_name: agentName });
     const row = this.db.prepare("SELECT * FROM routes ORDER BY id DESC LIMIT 1").get() as RawRow;
     return this.rowToRoute(row);
   }
@@ -201,7 +213,8 @@ export class SqliteConfigStore implements ConfigStore {
   }
 
   updateRouteEnabled(id: number, enabled: boolean): boolean {
-    const result = this.db.prepare("UPDATE routes SET enabled = $enabled WHERE id = $id")
+    const result = this.db
+      .prepare("UPDATE routes SET enabled = $enabled WHERE id = $id")
       .run({ $id: id, $enabled: enabled ? 1 : 0 });
     return result.changes > 0;
   }
@@ -209,14 +222,18 @@ export class SqliteConfigStore implements ConfigStore {
   // ── Settings ─────────────────────────────────────────────────────────
 
   getSetting(key: string): string | undefined {
-    const row = this.db.prepare("SELECT value FROM settings WHERE key = $key").get({ $key: key }) as { value: string } | null;
+    const row = this.db.prepare("SELECT value FROM settings WHERE key = $key").get({ $key: key }) as {
+      value: string;
+    } | null;
     return row?.value;
   }
 
   setSetting(key: string, value: string): void {
-    this.db.prepare(
-      "INSERT INTO settings (key, value) VALUES ($key, $value) ON CONFLICT(key) DO UPDATE SET value = $value, updated_at = datetime('now')",
-    ).run({ $key: key, $value: value });
+    this.db
+      .prepare(
+        "INSERT INTO settings (key, value) VALUES ($key, $value) ON CONFLICT(key) DO UPDATE SET value = $value, updated_at = datetime('now')",
+      )
+      .run({ $key: key, $value: value });
   }
 
   listSettings(): SettingRecord[] {

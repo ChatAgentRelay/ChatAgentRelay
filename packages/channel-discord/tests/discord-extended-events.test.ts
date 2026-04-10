@@ -1,11 +1,7 @@
 import { beforeAll, describe, expect, it } from "bun:test";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { DiscordIngress } from "../src/discord-ingress";
-import type {
-  DiscordMessageDeleteEvent,
-  DiscordMessageUpdateEvent,
-  DiscordReactionEvent,
-} from "../src/types";
+import type { DiscordMessageDeleteEvent, DiscordMessageUpdateEvent, DiscordReactionEvent } from "../src/types";
 
 function sampleMessageUpdate(): DiscordMessageUpdateEvent {
   return {

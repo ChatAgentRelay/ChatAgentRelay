@@ -62,9 +62,9 @@ describe("DingTalk sender", () => {
     responseCode = 500;
     responseBody = {};
     const sender = createDingTalkSender();
-    await expect(
-      sender.sendViaWebhook(`http://localhost:${server.port}/webhook`, "Test"),
-    ).rejects.toThrow("webhook request failed");
+    await expect(sender.sendViaWebhook(`http://localhost:${server.port}/webhook`, "Test")).rejects.toThrow(
+      "webhook request failed",
+    );
     responseCode = 200;
     responseBody = { errcode: 0, errmsg: "ok" };
   });
@@ -72,9 +72,9 @@ describe("DingTalk sender", () => {
   it("sendViaWebhook throws on DingTalk API error", async () => {
     responseBody = { errcode: 310000, errmsg: "token expired" };
     const sender = createDingTalkSender();
-    await expect(
-      sender.sendViaWebhook(`http://localhost:${server.port}/webhook`, "Test"),
-    ).rejects.toThrow("DingTalk API error 310000");
+    await expect(sender.sendViaWebhook(`http://localhost:${server.port}/webhook`, "Test")).rejects.toThrow(
+      "DingTalk API error 310000",
+    );
     responseBody = { errcode: 0, errmsg: "ok" };
   });
 

@@ -118,14 +118,11 @@ export class DiscordSender {
   }
 
   async deferInteraction(interactionId: string, interactionToken: string): Promise<void> {
-    const response = await fetch(
-      `${this.apiBase}/interactions/${interactionId}/${interactionToken}/callback`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bot ${this.token}` },
-        body: JSON.stringify({ type: 5 }),
-      },
-    );
+    const response = await fetch(`${this.apiBase}/interactions/${interactionId}/${interactionToken}/callback`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bot ${this.token}` },
+      body: JSON.stringify({ type: 5 }),
+    });
 
     if (!response.ok) {
       const errorBody = await response.text();
@@ -133,19 +130,12 @@ export class DiscordSender {
     }
   }
 
-  async editInteractionResponse(
-    applicationId: string,
-    interactionToken: string,
-    content: string,
-  ): Promise<void> {
-    const response = await fetch(
-      `${this.apiBase}/webhooks/${applicationId}/${interactionToken}/messages/@original`,
-      {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bot ${this.token}` },
-        body: JSON.stringify({ content }),
-      },
-    );
+  async editInteractionResponse(applicationId: string, interactionToken: string, content: string): Promise<void> {
+    const response = await fetch(`${this.apiBase}/webhooks/${applicationId}/${interactionToken}/messages/@original`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bot ${this.token}` },
+      body: JSON.stringify({ content }),
+    });
 
     if (!response.ok) {
       const errorBody = await response.text();

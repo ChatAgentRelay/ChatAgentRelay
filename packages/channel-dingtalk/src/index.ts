@@ -1,6 +1,6 @@
 export { DingTalkIngress } from "./dingtalk-ingress";
-export { DingTalkWebhookVerifier } from "./dingtalk-verifier";
 export { createDingTalkSender } from "./dingtalk-sender";
+export { DingTalkWebhookVerifier } from "./dingtalk-verifier";
 export type {
   CanonicalizationFailure,
   CanonicalizationResult,

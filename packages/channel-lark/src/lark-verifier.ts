@@ -11,9 +11,7 @@ export class LarkWebhookVerifier implements WebhookVerifier {
     if (!timestamp || !nonce || !signature) return false;
 
     const body = await request.text();
-    const expected = createHmac("sha256", this.encryptKey)
-      .update(`${timestamp}${nonce}${body}`)
-      .digest("base64");
+    const expected = createHmac("sha256", this.encryptKey).update(`${timestamp}${nonce}${body}`).digest("base64");
 
     const actualBuffer = Buffer.from(signature);
     const expectedBuffer = Buffer.from(expected);

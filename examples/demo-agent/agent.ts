@@ -175,10 +175,7 @@ Bun.serve({
     const params = body.params as Record<string, unknown> | undefined;
     const message = params?.message as Record<string, unknown> | undefined;
     const parts = (message?.parts ?? []) as { kind: string; text?: string }[];
-    const userText = parts
-      .filter((p) => p.kind === "text" && p.text)
-      .map((p) => p.text!)
-      .join("\n");
+    const userText = parts.flatMap((p) => (p.kind === "text" && p.text ? [p.text] : [])).join("\n");
 
     if (!userText) {
       return Response.json(buildTaskResponse(requestId, "I received your message, but it had no text content."));

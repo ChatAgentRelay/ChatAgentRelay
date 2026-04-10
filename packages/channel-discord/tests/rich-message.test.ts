@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { richMessageToDiscordEmbed } from "../src/rich-message";
 import type { RichMessage } from "../src/rich-message";
+import { richMessageToDiscordEmbed } from "../src/rich-message";
 
 describe("richMessageToDiscordEmbed", () => {
   it("converts text blocks", () => {
@@ -56,11 +56,7 @@ describe("richMessageToDiscordEmbed", () => {
 
   it("joins multiple blocks with double newlines", () => {
     const msg: RichMessage = {
-      blocks: [
-        { type: "header", text: "Title" },
-        { type: "text", text: "Body" },
-        { type: "divider" },
-      ],
+      blocks: [{ type: "header", text: "Title" }, { type: "text", text: "Body" }, { type: "divider" }],
       fallbackText: "Title",
     };
     const embed = richMessageToDiscordEmbed(msg);

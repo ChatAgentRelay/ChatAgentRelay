@@ -1,8 +1,14 @@
-import type { CanonicalEvent, ChannelAdapter, ChannelCapabilities, ChannelSender, ValidationResult } from "@chat-agent-relay/contract-harness";
+import type {
+  CanonicalEvent,
+  ChannelAdapter,
+  ChannelCapabilities,
+  ChannelSender,
+  ValidationResult,
+} from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { createWhatsAppSessionTracker } from "./session-tracker";
-import { createWhatsAppSender } from "./whatsapp-sender";
 import type { CanonicalizationResult, IngressError, WhatsAppSessionTracker, WhatsAppWebhookPayload } from "./types";
+import { createWhatsAppSender } from "./whatsapp-sender";
 
 const WHATSAPP_SESSION_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -48,7 +54,8 @@ export class WhatsAppIngress implements ChannelAdapter {
       sessionTracker: this.sessionTracker,
     });
     return {
-      send: (text: string) => sender.sendMessage(extractRecipient(event), text).then((r) => ({ providerMessageId: r.messageId })),
+      send: (text: string) =>
+        sender.sendMessage(extractRecipient(event), text).then((r) => ({ providerMessageId: r.messageId })),
     };
   }
 
@@ -60,13 +67,18 @@ export class WhatsAppIngress implements ChannelAdapter {
     const entry = payload.payload.entry[0];
     const value = change?.value;
     if (!entry || !change || !value) {
-      return { ok: false, error: { code: "invalid_payload", message: "Missing entry/change/value in WhatsApp payload" } };
+      return {
+        ok: false,
+        error: { code: "invalid_payload", message: "Missing entry/change/value in WhatsApp payload" },
+      };
     }
 
     const message = value.messages?.[0];
     if (message) {
       const conversationId = `wa_${value.metadata?.phone_number_id ?? this.phoneNumberId}_${message.from}`;
-      const sessionWindowExpiresAt = new Date(Number(message.timestamp) * 1000 + WHATSAPP_SESSION_WINDOW_MS).toISOString();
+      const sessionWindowExpiresAt = new Date(
+        Number(message.timestamp) * 1000 + WHATSAPP_SESSION_WINDOW_MS,
+      ).toISOString();
       this.sessionTracker.record({ recipient: message.from, expiresAt: sessionWindowExpiresAt });
 
       const event: CanonicalEvent = {
@@ -159,7 +171,10 @@ export class WhatsAppIngress implements ChannelAdapter {
       return { ok: true, event, idempotencyKey: `wa-status-${status.id}-${status.status}` };
     }
 
-    return { ok: false, error: { code: "unsupported_payload", message: "WhatsApp payload has no supported messages or statuses" } };
+    return {
+      ok: false,
+      error: { code: "unsupported_payload", message: "WhatsApp payload has no supported messages or statuses" },
+    };
   }
 }
 
@@ -187,7 +202,9 @@ function mapWhatsAppStatus(status: string): "submitted" | "working" | "completed
   }
 }
 
-function validatePayload(raw: unknown): { ok: true; payload: WhatsAppWebhookPayload } | { ok: false; error: IngressError } {
+function validatePayload(
+  raw: unknown,
+): { ok: true; payload: WhatsAppWebhookPayload } | { ok: false; error: IngressError } {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     return { ok: false, error: { code: "invalid_payload", message: "Request body must be a non-null object" } };
   }

@@ -89,7 +89,10 @@ export class DiscordIngress implements ChannelAdapter {
 
   private canonicalizeMessageCreate(raw: DiscordMessageEvent): CanonicalizationResult {
     if (raw.author.bot === true) {
-      return { ok: false, error: { code: "bot_message", message: `Ignoring bot message from author: ${raw.author.id}` } };
+      return {
+        ok: false,
+        error: { code: "bot_message", message: `Ignoring bot message from author: ${raw.author.id}` },
+      };
     }
 
     if (!raw.content || raw.content.trim().length === 0) {
@@ -108,7 +111,8 @@ export class DiscordIngress implements ChannelAdapter {
       conversationId = `discord:channel:${raw.channel_id}`;
     }
 
-    const channelInstanceId = raw.guild_id !== undefined ? `discord_guild_${raw.guild_id}` : `discord_dm_${raw.channel_id}`;
+    const channelInstanceId =
+      raw.guild_id !== undefined ? `discord_guild_${raw.guild_id}` : `discord_dm_${raw.channel_id}`;
     const idempotencyKey = `discord:${this.tenantId}:${raw.id}`;
     const sessionId = `discord_sess_${raw.author.id}`;
 
@@ -161,7 +165,10 @@ export class DiscordIngress implements ChannelAdapter {
     if (raw.type !== 2) {
       return {
         ok: false,
-        error: { code: "unsupported_interaction_type", message: `Expected APPLICATION_COMMAND (type=2), got type=${raw.type}` },
+        error: {
+          code: "unsupported_interaction_type",
+          message: `Expected APPLICATION_COMMAND (type=2), got type=${raw.type}`,
+        },
       };
     }
 
@@ -183,12 +190,10 @@ export class DiscordIngress implements ChannelAdapter {
       }
     }
 
-    const channelInstanceId = raw.guild_id !== undefined
-      ? `discord_guild_${raw.guild_id}`
-      : `discord_dm_${raw.channel_id}`;
-    const conversationId = raw.guild_id !== undefined
-      ? `discord:cmd:${raw.guild_id}:${raw.channel_id}`
-      : `discord:cmd:dm:${raw.channel_id}`;
+    const channelInstanceId =
+      raw.guild_id !== undefined ? `discord_guild_${raw.guild_id}` : `discord_dm_${raw.channel_id}`;
+    const conversationId =
+      raw.guild_id !== undefined ? `discord:cmd:${raw.guild_id}:${raw.channel_id}` : `discord:cmd:dm:${raw.channel_id}`;
     const idempotencyKey = `discord:${this.tenantId}:interaction:${raw.id}`;
 
     const event: CanonicalEvent = {
@@ -237,12 +242,17 @@ export class DiscordIngress implements ChannelAdapter {
 
   canonicalizeMessageUpdate(raw: unknown): DiscordCanonicalizationResult {
     if (!isDiscordMessageUpdateEvent(raw)) {
-      return { ok: false, error: { code: "invalid_message_update", message: "Not a valid Discord MESSAGE_UPDATE event" } };
+      return {
+        ok: false,
+        error: { code: "invalid_message_update", message: "Not a valid Discord MESSAGE_UPDATE event" },
+      };
     }
 
-    const channelInstanceId = raw.guild_id !== undefined ? `discord_guild_${raw.guild_id}` : `discord_dm_${raw.channel_id}`;
+    const channelInstanceId =
+      raw.guild_id !== undefined ? `discord_guild_${raw.guild_id}` : `discord_dm_${raw.channel_id}`;
     const idempotencyKey = `discord:${this.tenantId}:edit:${raw.id}:${raw.edited_timestamp ?? Date.now()}`;
-    const conversationId = raw.guild_id !== undefined ? `discord:channel:${raw.channel_id}` : `discord:dm:${raw.channel_id}`;
+    const conversationId =
+      raw.guild_id !== undefined ? `discord:channel:${raw.channel_id}` : `discord:dm:${raw.channel_id}`;
 
     const event: CanonicalEvent = {
       event_id: `evt_${crypto.randomUUID()}`,
@@ -289,12 +299,17 @@ export class DiscordIngress implements ChannelAdapter {
 
   canonicalizeMessageDelete(raw: unknown): DiscordCanonicalizationResult {
     if (!isDiscordMessageDeleteEvent(raw)) {
-      return { ok: false, error: { code: "invalid_message_delete", message: "Not a valid Discord MESSAGE_DELETE event" } };
+      return {
+        ok: false,
+        error: { code: "invalid_message_delete", message: "Not a valid Discord MESSAGE_DELETE event" },
+      };
     }
 
-    const channelInstanceId = raw.guild_id !== undefined ? `discord_guild_${raw.guild_id}` : `discord_dm_${raw.channel_id}`;
+    const channelInstanceId =
+      raw.guild_id !== undefined ? `discord_guild_${raw.guild_id}` : `discord_dm_${raw.channel_id}`;
     const idempotencyKey = `discord:${this.tenantId}:delete:${raw.id}`;
-    const conversationId = raw.guild_id !== undefined ? `discord:channel:${raw.channel_id}` : `discord:dm:${raw.channel_id}`;
+    const conversationId =
+      raw.guild_id !== undefined ? `discord:channel:${raw.channel_id}` : `discord:dm:${raw.channel_id}`;
 
     const event: CanonicalEvent = {
       event_id: `evt_${crypto.randomUUID()}`,
@@ -340,9 +355,11 @@ export class DiscordIngress implements ChannelAdapter {
       return { ok: false, error: { code: "invalid_reaction", message: "Not a valid Discord reaction event" } };
     }
 
-    const channelInstanceId = raw.guild_id !== undefined ? `discord_guild_${raw.guild_id}` : `discord_dm_${raw.channel_id}`;
+    const channelInstanceId =
+      raw.guild_id !== undefined ? `discord_guild_${raw.guild_id}` : `discord_dm_${raw.channel_id}`;
     const idempotencyKey = `discord:${this.tenantId}:reaction:${raw.message_id}:${raw.emoji.name}:${raw.user_id}`;
-    const conversationId = raw.guild_id !== undefined ? `discord:channel:${raw.channel_id}` : `discord:dm:${raw.channel_id}`;
+    const conversationId =
+      raw.guild_id !== undefined ? `discord:channel:${raw.channel_id}` : `discord:dm:${raw.channel_id}`;
     const emojiStr = raw.emoji.id ? `${raw.emoji.name}:${raw.emoji.id}` : raw.emoji.name;
 
     const event: CanonicalEvent = {

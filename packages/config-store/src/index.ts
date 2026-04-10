@@ -1,9 +1,8 @@
-export type { ConfigStore } from "./config-store";
 export { SqliteConfigStore } from "./config-database";
+export type { ConfigStore } from "./config-store";
 export { EncryptionEngine } from "./encryption";
-export { RouteEngine } from "./route-engine";
 export type { RouteContext, RouteDecision } from "./route-engine";
-export { SENSITIVE_FIELDS } from "./types";
+export { RouteEngine } from "./route-engine";
 export type {
   AgentRecord,
   AgentType,
@@ -13,3 +12,4 @@ export type {
   RouteRecord,
   SettingRecord,
 } from "./types";
+export { SENSITIVE_FIELDS } from "./types";

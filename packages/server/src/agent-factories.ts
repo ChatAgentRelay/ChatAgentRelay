@@ -1,6 +1,6 @@
 import { A2AAgentAdapter } from "@chat-agent-relay/backend-a2a";
 import type { AgentFactory } from "./agent-registry";
-import { pickString, pickNumber, pickHeaders } from "./config-helpers";
+import { pickHeaders, pickNumber, pickString } from "./config-helpers";
 
 export function createA2AFactory(): AgentFactory {
   return async (config) => {
