@@ -51,7 +51,7 @@ out/
 .worktrees/
 
 # Claude local state
-.claude/settings.local.json
+/.claude/
 
 # Private internal docs
 /docs/private/

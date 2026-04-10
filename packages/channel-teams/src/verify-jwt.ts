@@ -33,16 +33,15 @@ export class TeamsWebhookVerifier implements WebhookVerifier {
 
     try {
       const jwksUri = await this.getJwksUri();
-      const fetchImpl = this.options?.fetchImpl ?? fetch;
-      const jwks = createRemoteJWKSet(jwksUri, { fetcher: fetchImpl as typeof globalThis.fetch });
       const nowSeconds = this.options?.now ? Math.floor(this.options.now() / 1000) : undefined;
       const openIdConfig = await this.getOpenIdConfiguration();
 
+      const jwks = createRemoteJWKSet(jwksUri);
       const jwtVerifyFn = this.options?.jwtVerifyFn ?? jwtVerify;
       await jwtVerifyFn(token, jwks, {
         issuer: openIdConfig.issuer,
         audience: this.appId,
-        currentDate: nowSeconds !== undefined ? new Date(nowSeconds * 1000) : undefined,
+        ...(nowSeconds !== undefined ? { currentDate: new Date(nowSeconds * 1000) } : {}),
       });
       return true;
     } catch {

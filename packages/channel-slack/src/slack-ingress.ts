@@ -47,7 +47,10 @@ export class SlackIngress implements ChannelAdapter {
     options?: { apiBase?: string },
   ): Promise<SlackIngress> {
     const validators = await ContractHarnessValidators.getShared();
-    const sender = new SlackSender({ botToken, apiBase: options?.apiBase });
+    const sender = new SlackSender({
+      botToken,
+      ...(options?.apiBase !== undefined ? { apiBase: options.apiBase } : {}),
+    });
     return new SlackIngress(validators, sender, tenantId, workspaceId);
   }
 
@@ -86,7 +89,7 @@ export class SlackIngress implements ChannelAdapter {
       return { ok: false, error: { code: "invalid_slack_event", message: "Not a valid Slack event" } };
     }
 
-    const eventType = inner["type"] as string | undefined;
+    const eventType = typeof inner["type"] === "string" ? inner["type"] : undefined;
 
     if (eventType === "reaction_added" || eventType === "reaction_removed") {
       return this.canonicalizeReaction(inner);
@@ -370,14 +373,14 @@ export class SlackIngress implements ChannelAdapter {
   }
 }
 
-function extractSlackInnerEvent(raw: unknown): unknown | undefined {
+function extractSlackInnerEvent(raw: unknown): Record<string, unknown> | undefined {
   if (typeof raw !== "object" || raw === null) return undefined;
   const obj = raw as Record<string, unknown>;
 
   if (typeof obj["payload"] === "object" && obj["payload"] !== null) {
     const payload = obj["payload"] as Record<string, unknown>;
     if (typeof payload["event"] === "object" && payload["event"] !== null) {
-      return payload["event"];
+      return payload["event"] as Record<string, unknown>;
     }
   }
 

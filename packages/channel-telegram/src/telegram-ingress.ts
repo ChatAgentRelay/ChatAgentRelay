@@ -37,7 +37,10 @@ export class TelegramIngress implements ChannelAdapter {
   createSender(event: CanonicalEvent): ChannelSender {
     const tg = event.provider_extensions?.["telegram"] as Record<string, unknown> | undefined;
     const chatId = (tg?.["chat_id"] ?? event.channel_instance_id?.replace("telegram-", "")) as number | string;
-    const sender = createTelegramSender(this.botToken, { apiBase: this.apiBase });
+    const sender = createTelegramSender(
+      this.botToken,
+      this.apiBase !== undefined ? { apiBase: this.apiBase } : undefined,
+    );
     return {
       send: (text: string) => sender.sendMessage(chatId, text).then(r => ({ providerMessageId: String(r.messageId) })),
       edit: (providerMessageId: string, text: string) => sender.editMessage(chatId, Number(providerMessageId), text),

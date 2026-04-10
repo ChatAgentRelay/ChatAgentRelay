@@ -184,9 +184,9 @@ export function startWebChatServer(config: WebChatHttpConfig) {
       conversation_id: result.conversationId,
       correlation_id: result.correlationId,
       reply: result.reply,
-      session_handle: result.sessionHandle,
-      hitl_pending: result.hitlPending,
-      hitl_prompt: result.hitlPrompt,
+      ...(result.sessionHandle !== undefined ? { session_handle: result.sessionHandle } : {}),
+      ...(result.hitlPending !== undefined ? { hitl_pending: result.hitlPending } : {}),
+      ...(result.hitlPrompt !== undefined ? { hitl_prompt: result.hitlPrompt } : {}),
     };
   }
 
@@ -270,8 +270,8 @@ export function startWebChatServer(config: WebChatHttpConfig) {
                 conversation_id: result.conversationId,
                 correlation_id: result.correlationId,
                 reply: result.reply,
-                session_handle: result.sessionHandle,
-                hitl_pending: result.hitlPending,
+                ...(result.sessionHandle !== undefined ? { session_handle: result.sessionHandle } : {}),
+                ...(result.hitlPending !== undefined ? { hitl_pending: result.hitlPending } : {}),
               });
               close();
             })
@@ -347,8 +347,8 @@ export function startWebChatServer(config: WebChatHttpConfig) {
                 conversation_id: result.conversationId,
                 correlation_id: result.correlationId,
                 reply: result.reply,
-                session_handle: result.sessionHandle,
-                hitl_pending: result.hitlPending,
+                ...(result.sessionHandle !== undefined ? { session_handle: result.sessionHandle } : {}),
+                ...(result.hitlPending !== undefined ? { hitl_pending: result.hitlPending } : {}),
               });
               close();
             })

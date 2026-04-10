@@ -40,7 +40,11 @@ export class LarkIngress implements ChannelAdapter {
     const lark = event.provider_extensions?.["lark"] as Record<string, unknown> | undefined;
     const chatId = (lark?.["chat_id"] ?? event.channel_instance_id?.replace("lark-", "")) as string;
     const messageId = lark?.["message_id"] as string | undefined;
-    const sender = createLarkSender(this.appId, this.appSecret, { apiBase: this.apiBase });
+    const sender = createLarkSender(
+      this.appId,
+      this.appSecret,
+      this.apiBase !== undefined ? { apiBase: this.apiBase } : undefined,
+    );
     const base: ChannelSender = {
       send: (text: string) => sender.sendMessage(chatId, text).then(r => ({ providerMessageId: r.messageId })),
     };

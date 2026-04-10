@@ -46,7 +46,10 @@ export class DiscordIngress implements ChannelAdapter {
     options?: { apiBase?: string },
   ): Promise<DiscordIngress> {
     const validators = await ContractHarnessValidators.getShared();
-    const sender = new DiscordSender({ token: botToken, apiBase: options?.apiBase });
+    const sender = new DiscordSender({
+      token: botToken,
+      ...(options?.apiBase !== undefined ? { apiBase: options.apiBase } : {}),
+    });
     return new DiscordIngress(validators, sender, tenantId, workspaceId);
   }
 

@@ -84,7 +84,7 @@ describe("Teams token manager", () => {
     globalThis.fetch = (async () => {
       calls++;
       return new Response(JSON.stringify({ access_token: `token-${calls}`, expires_in: 3600 }), { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
     Date.now = () => now;
 
     try {
@@ -105,7 +105,7 @@ describe("Teams webhook verifier", () => {
     const verifier = new TeamsWebhookVerifier("app-id", {
       openIdConfigUrl: "https://login.example.test/openid",
       fetchImpl: (async () => new Response(JSON.stringify({ issuer: "https://issuer.example.test", jwks_uri: "https://issuer.example.test/keys" }), { status: 200 })) as typeof fetch,
-      jwtVerifyFn: (async () => ({ payload: {}, protectedHeader: {} })) as typeof import("jose").jwtVerify,
+      jwtVerifyFn: (async () => ({ payload: {}, protectedHeader: { alg: "RS256" } })) as unknown as typeof import("jose").jwtVerify,
     });
 
     const request = new Request("https://example.test/api/teams/messages", {
@@ -151,7 +151,7 @@ describe("Teams sender", () => {
         return new Response(JSON.stringify({ id: "reply-456" }), { status: 200 });
       }
       return new Response(JSON.stringify({ id: "reply-456" }), { status: 200 });
-    }) as typeof fetch;
+    }) as unknown as typeof fetch;
 
     try {
       const sender = createTeamsSender("app-id", "app-secret", "tenant-123");
