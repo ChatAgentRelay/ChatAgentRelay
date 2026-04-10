@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Route Chat Messages to the Right Agent — Chat Agent Relay</title>
+  <meta name="description" content="Multiple agents serve different functions. CAR routes each inbound message to the right agent based on configurable rules.">
+
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Route Chat Messages to the Right Agent — Chat Agent Relay">
+  <meta property="og:description" content="Route chat messages to different agents based on configurable rules.">
+  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/use-cases/multi-agent/">
+  <meta property="og:site_name" content="Chat Agent Relay">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Route Chat Messages to the Right Agent — Chat Agent Relay">
+  <meta name="twitter:description" content="Route chat messages to different agents based on configurable rules.">
+
+  <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+  <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+
+  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/use-cases/multi-agent/">
+  <link rel="icon" href="/ChatAgentRelay/img/favicon.svg" type="image/svg+xml">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="../../css/style.css">
+
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-7FERB87K2D');
+  </script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="container">
+    <a href="/ChatAgentRelay/" class="nav-brand"><span class="prompt">$</span> car</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <div class="nav-links">
+      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+      <a href="/ChatAgentRelay/use-cases/" class="active">Use Cases</a>
+      <a href="/ChatAgentRelay/docs/">Docs</a>
+      <a href="/ChatAgentRelay/compare/diy/">Compare</a>
+      <a href="/ChatAgentRelay/blog/">Blog</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="nav-cta" data-track="nav_github">GitHub</a>
+    </div>
+  </div>
+</nav>
+
+<main>
+  <article class="article">
+    <h1>Route Chat Messages to the Right Agent</h1>
+    <p class="meta">Multiple agents, one relay. Configurable routing rules decide which agent handles each message.</p>
+
+    <h2>The problem</h2>
+    <p>Organizations deploy multiple agents for different functions:</p>
+    <ul>
+      <li>A <strong>support agent</strong> in the #support channel</li>
+      <li>An <strong>ops agent</strong> that handles infrastructure alerts</li>
+      <li>A <strong>code review agent</strong> for engineering channels</li>
+      <li>A <strong>general assistant</strong> as the default fallback</li>
+    </ul>
+    <p>Without a routing layer, each agent either listens to everything (noisy, wasteful) or requires per-agent channel configuration (fragile, hard to change). Routing logic ends up scattered across webhook handlers and if-else chains in application code.</p>
+
+    <h2>How CAR solves it</h2>
+    <p>Register multiple agents and define routing rules. CAR evaluates the rules on every inbound message and dispatches to the matching agent:</p>
+
+    <div class="terminal" style="max-width:100%;margin:24px 0">
+      <div class="terminal-header">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot yellow"></span>
+        <span class="terminal-dot green"></span>
+        <span class="terminal-title">terminal</span>
+      </div>
+      <div class="terminal-body">
+<pre style="margin:0;background:transparent;border:none;padding:0;font-family:inherit;font-size:0.85rem;color:var(--text-muted);white-space:pre;overflow-x:auto"><span style="color:var(--text-dim)">$</span> car agent add support-bot --endpoint=https://support.example.com
+<span style="color:var(--text-dim)">$</span> car agent add ops-bot --endpoint=https://ops.example.com
+<span style="color:var(--text-dim)">$</span> car agent add general-bot --endpoint=https://general.example.com
+
+<span style="color:var(--text-dim)">$</span> car route add --channel-match="support-*" --agent=support-bot
+<span style="color:var(--text-dim)">$</span> car route add --channel-match="ops-*" --agent=ops-bot
+<span style="color:var(--text-dim)">$</span> car route add --default --agent=general-bot
+
+<span style="color:var(--text-dim)">$</span> car start
+<span style="color:var(--green)">[car] 3 agents registered &middot; 3 routes active &middot; relay running</span></pre>
+      </div>
+    </div>
+
+    <p>Messages from <code>#support-general</code> go to the support bot. Messages from <code>#ops-alerts</code> go to the ops bot. Everything else falls through to the general assistant.</p>
+
+    <h2>How routing works</h2>
+    <div class="terminal" style="max-width:100%;margin:16px 0">
+      <div class="terminal-header">
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot yellow"></span>
+        <span class="terminal-dot green"></span>
+        <span class="terminal-title">routing-flow.txt</span>
+      </div>
+      <div class="terminal-body" style="line-height:1.5">
+<pre style="margin:0;background:transparent;border:none;padding:0;font-family:inherit;font-size:0.75rem;color:var(--text-muted);white-space:pre;overflow-x:auto">message.received
+  &rarr; policy.decision.made    (governance first)
+  &rarr; route.decision.made     (evaluate rules, select agent)
+  &rarr; agent.invocation.requested  (dispatch to selected agent)
+  &rarr; ...delivery</pre>
+      </div>
+    </div>
+    <p>The routing decision is recorded as a canonical event in the ledger. You can always see which agent handled which message and why.</p>
+
+    <h2>Route rule types</h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <h3>Channel match</h3>
+        <p>Route based on channel name patterns. <code>--channel-match="support-*"</code> matches any channel starting with "support-".</p>
+      </div>
+      <div class="feature-card">
+        <h3>Default route</h3>
+        <p>Fallback when no other rule matches. Every deployment should have a default route to avoid unhandled messages.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Dynamic routing</h3>
+        <p>Supply a custom <code>routeFn</code> for advanced logic: content-based routing, user-based routing, or external service lookups.</p>
+      </div>
+    </div>
+
+    <h2>What you get</h2>
+    <ul>
+      <li><strong>Centralized routing configuration</strong> &mdash; all rules in one place, managed via CLI or API</li>
+      <li><strong>Auditable route decisions</strong> &mdash; every <code>route.decision.made</code> event records which agent was selected and why</li>
+      <li><strong>Runtime updates</strong> &mdash; add, remove, or change routes without restarting the relay</li>
+      <li><strong>Governance before routing</strong> &mdash; policy runs before the route decision, so blocked messages never reach any agent</li>
+    </ul>
+
+    <div class="hero-actions" style="justify-content:flex-start;margin-top:32px">
+      <a href="/ChatAgentRelay/docs/" class="btn btn-primary">Get Started</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-secondary">View on GitHub</a>
+    </div>
+  </article>
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
+      <a href="/ChatAgentRelay/docs/">Docs</a>
+      <a href="/ChatAgentRelay/blog/">Blog</a>
+      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
+    </div>
+    <p>MIT License &middot; Built with Bun and TypeScript</p>
+  </div>
+</footer>
+
+<script src="../../js/main.js"></script>
+</body>
+</html>

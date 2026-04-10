@@ -105,6 +105,17 @@ export async function main() {
 
   const configDb = new SqliteConfigStore(dbPath, encKey);
 
+  try {
+    await configDb.verifyEncryptionKey();
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Startup aborted — encryption key verification failed.\n${msg}\n` +
+      `Hint: CAR_ENCRYPTION_KEY must match the key used when channels/agents were registered. ` +
+      `If the key is lost, delete ${dbPath} and re-register.`,
+    );
+  }
+
   const apiPort = Number(
     process.env["CAR_API_PORT"]
     ?? configDb.getSetting("api.port")

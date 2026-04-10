@@ -16,6 +16,9 @@
         "typescript": "^6.0.2",
       },
     },
+    "examples/demo-agent": {
+      "name": "@chat-agent-relay/example-demo-agent",
+    },
     "packages/adapter-conformance": {
       "name": "@chat-agent-relay/adapter-conformance",
       "dependencies": {
@@ -254,6 +257,8 @@
     "@chat-agent-relay/event-ledger": ["@chat-agent-relay/event-ledger@workspace:packages/event-ledger"],
 
     "@chat-agent-relay/example-custom-channel-adapter": ["@chat-agent-relay/example-custom-channel-adapter@workspace:examples/custom-channel-adapter"],
+
+    "@chat-agent-relay/example-demo-agent": ["@chat-agent-relay/example-demo-agent@workspace:examples/demo-agent"],
 
     "@chat-agent-relay/middleware": ["@chat-agent-relay/middleware@workspace:packages/middleware"],
 

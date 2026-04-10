@@ -44,12 +44,20 @@ export class EncryptionEngine {
     for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
     const iv = bytes.slice(0, IV_LENGTH);
     const ciphertext = bytes.slice(IV_LENGTH);
-    const decrypted = await crypto.subtle.decrypt(
-      { name: ALGORITHM, iv, tagLength: TAG_LENGTH },
-      key,
-      ciphertext,
-    );
-    return new TextDecoder().decode(decrypted);
+    try {
+      const decrypted = await crypto.subtle.decrypt(
+        { name: ALGORITHM, iv, tagLength: TAG_LENGTH },
+        key,
+        ciphertext,
+      );
+      return new TextDecoder().decode(decrypted);
+    } catch {
+      throw new Error(
+        "Decryption failed — CAR_ENCRYPTION_KEY does not match the key used to encrypt this data. " +
+        "If the key has changed or the database was created with a different key, either restore the " +
+        "original key or delete the database and re-register channels/agents.",
+      );
+    }
   }
 
   isEncrypted(value: string): boolean {

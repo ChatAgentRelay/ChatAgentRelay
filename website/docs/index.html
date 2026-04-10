@@ -58,6 +58,7 @@
   <div class="nav-links">
     <a href="/ChatAgentRelay/docs/">Docs</a>
     <a href="/ChatAgentRelay/why-car/">Why CAR</a>
+    <a href="/ChatAgentRelay/use-cases/">Use Cases</a>
     <a href="/ChatAgentRelay/blog/">Blog</a>
     <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" target="_blank">GitHub</a>
   </div>
@@ -165,6 +166,7 @@ cd ChatAgentRelay
 bun install</code></pre>
       <p>Add a channel, add an agent, set a route, and start the relay:</p>
       <pre><code>cd packages/server
+bun link
 export CAR_ENCRYPTION_KEY="$(openssl rand -hex 32)"
 car channel add web --type=webchat
 car agent add my-bot --endpoint=http://localhost:8080

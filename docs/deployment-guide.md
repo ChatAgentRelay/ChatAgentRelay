@@ -9,6 +9,8 @@
 - One or more A2A-compatible agent endpoints
 - One or more chat platform bot accounts (Slack, Teams, Discord, etc.)
 
+CAR ships with 8 built-in channel adapters: Slack, Discord, Telegram, Teams, WhatsApp, Lark, DingTalk, and WebChat.
+
 ## 2. Installation
 
 ```bash
@@ -30,7 +32,7 @@ bun test --recursive
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `CAR_DB_PATH` | No | `./car.db` | SQLite database path (config + ledger) |
+| `CAR_DB_PATH` | No | `./car.db` | Database path (config + ledger) |
 | `CAR_ENCRYPTION_KEY` | Yes (prod) | — | AES-256-GCM key for credential encryption. Generate: `openssl rand -hex 32` |
 | `CAR_API_KEY` | Yes (prod) | — | Bearer token for management API authentication |
 | `CAR_API_PORT` | No | `3000` | HTTP API listen port |
@@ -39,7 +41,7 @@ bun test --recursive
 
 ### Database Settings
 
-Settings are stored in SQLite and managed via `car config set <key> <value>` or `PUT /api/config/:key`.
+Settings are stored locally and managed via `car config set <key> <value>` or `PUT /api/config/:key`.
 
 | Key | Values | Default | Description |
 |-----|--------|---------|-------------|
@@ -60,6 +62,7 @@ Priority: environment variables override database settings.
 
 ```bash
 cd packages/server
+bun link                                # registers the 'car' CLI command
 
 # Set production secrets
 export CAR_ENCRYPTION_KEY="$(openssl rand -hex 32)"

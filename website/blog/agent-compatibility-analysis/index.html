@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Agent Runtime Compatibility Analysis — Pre-Consolidation Reference</title>
-  <meta name="description" content="Pre-consolidation analysis of how Chat Agent Relay connected to major agent runtimes. CAR now uses A2A as the sole agent protocol. See &quot;One Protocol to Connect Them All&quot; for the current architecture.">
+  <title>Agent Runtime Compatibility Analysis — Connecting CAR to Every Agent Backend</title>
+  <meta name="description" content="Historical analysis of how Chat Agent Relay evaluated agent runtime coverage before consolidating on A2A as its standard agent-side protocol boundary.">
   <meta name="keywords" content="Chat Agent Relay, CAR, agent compatibility, LangGraph, A2A, AutoGen, AG2, Google ADK, CrewAI, n8n, Dify, backend adapter, agent runtime, 2026">
 
   <!-- Open Graph -->
   <meta property="og:type" content="article">
-  <meta property="og:title" content="Agent Runtime Compatibility Analysis — Pre-Consolidation Reference">
+  <meta property="og:title" content="Agent Runtime Compatibility Analysis — Connecting CAR to Every Agent Backend">
   <meta property="og:description" content="Compatibility analysis for CAR's earlier adapter coverage model. CAR now uses A2A as the sole agent protocol.">
   <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/blog/agent-compatibility-analysis/">
   <meta property="og:site_name" content="Chat Agent Relay">
@@ -60,8 +60,8 @@
   {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
-    "headline": "Agent Runtime Compatibility Analysis — Pre-Consolidation Reference",
-    "description": "Pre-consolidation analysis of how Chat Agent Relay connected to major agent runtimes. CAR now uses A2A as the sole agent protocol. See \"One Protocol to Connect Them All\" for the current architecture.",
+    "headline": "Agent Runtime Compatibility Analysis — Connecting CAR to Every Agent Backend",
+    "description": "Historical analysis of how Chat Agent Relay evaluated agent runtime coverage before consolidating on A2A as its standard agent-side protocol boundary.",
     "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/agent-compatibility-analysis/",
     "datePublished": "2026-03-30",
     "dateModified": "2026-03-30",
@@ -90,7 +90,7 @@
 
 <main>
   <article class="article">
-    <h1>Agent Runtime Compatibility Analysis &mdash; Pre-Consolidation Reference</h1>
+    <h1>Agent Runtime Compatibility Analysis &mdash; Connecting CAR to Every Agent Backend</h1>
     <p class="meta">March 30, 2026 &middot; 12 min read &middot; Technical analysis</p>
 
     <div style="background:#fff3cd;border:1px solid #ffc107;border-radius:6px;padding:1rem 1.25rem;margin:1.5rem 0">
@@ -99,11 +99,11 @@
 
     <!-- ─── Section 1: Our Architecture ─── -->
 
-    <h2 id="architecture">Our Architecture: Five Adapters, One Canonical Model</h2>
+    <h2 id="architecture">Historical Architecture: Five Adapters, One Canonical Model</h2>
     <p>
-      Chat Agent Relay sits between chat platforms and agent runtimes. On the inbound side, <strong>Channel Adapters</strong> normalize Slack, Discord, WebChat, Telegram, Lark, and DingTalk protocols into canonical events. On the outbound side, <strong>Agent Adapters</strong> normalize agent runtime protocols so the pipeline never couples to a single vendor.
+      Chat Agent Relay sits between chat platforms and agent runtimes. On the inbound side, <strong>Channel Adapters</strong> normalize Slack, Discord, WebChat, Telegram, Lark, and DingTalk protocols into canonical events. On the outbound side, <strong>Agent Adapters</strong> normalize agent runtime protocols so the relay pipeline never couples to a single vendor.
     </p>
-    <p>We ship five agent adapters that, together, cover the entire 2026 landscape:</p>
+    <p>At the time of this analysis, we evaluated five agent adapters that together covered the 2026 landscape:</p>
     <ul>
       <li><code>backend-a2a</code> &mdash; Connects to any <strong>A2A-compliant</strong> agent (the emerging standard, supported natively by AG2, Google ADK, and growing).</li>
       <li><code>backend-langgraph</code> &mdash; Native adapter for <strong>LangGraph Platform</strong>, the most widely deployed agent framework, using its Thread/Run REST API.</li>
@@ -409,10 +409,10 @@ CAR connects to server   &rarr;   backend-a2a / backend-http / backend-langgraph
       <li><strong>Semantic Kernel, LlamaIndex</strong> &mdash; Following the A2A conversation; adoption is a matter of time for any framework that wants interoperability.</li>
     </ul>
     <p>
-      The implication for CAR is clear: <strong><code>backend-a2a</code> becomes the primary adapter over time</strong>. As frameworks adopt A2A, the need for framework-specific adapters diminishes. <code>backend-langgraph</code> and <code>backend-http</code> serve as bridges&mdash;essential today, increasingly optional as A2A adoption matures.
+      The implication for CAR is clear: <strong>the agent-side boundary should converge on <code>backend-a2a</code> over time</strong>. As frameworks adopt A2A, the need for framework-specific adapters diminishes. <code>backend-langgraph</code> and <code>backend-http</code> served as bridges in this phase of the analysis and become less central as A2A adoption matures.
     </p>
     <p>
-      This is a strong architectural position. Rather than building and maintaining a bespoke adapter for every framework, CAR invests in one standards-based adapter and lets the ecosystem converge toward it. The adapter count shrinks over time instead of growing.
+      This is a strong relay-layer position. Rather than redefining CAR around every framework, the project can keep its chat-to-agent middleware role stable while investing in one standards-based agent-side boundary and letting the ecosystem converge toward it. The adapter count shrinks over time instead of growing.
     </p>
 
     <!-- ─── Section 7: backend-openai as LLM convenience adapter ─── -->
@@ -433,7 +433,7 @@ CAR connects to server   &rarr;   backend-a2a / backend-http / backend-langgraph
 
     <!-- ─── Section 8: Conclusion ─── -->
 
-    <h2 id="conclusion">Conclusion: Five Adapters Cover 2026</h2>
+    <h2 id="conclusion">Conclusion: Why This Comparison Mattered in 2026</h2>
     <p>
       The 2026 agent ecosystem is sprawling&mdash;dozens of frameworks, workflow platforms, SDK variants, and deployment patterns. But the protocol surface is remarkably constrained. Every deployed agent speaks one of five languages:
     </p>
@@ -445,7 +445,7 @@ CAR connects to server   &rarr;   backend-a2a / backend-http / backend-langgraph
       <li><strong>OpenAI API</strong> &mdash; Direct LLM access for prototyping with <code>backend-openai</code>.</li>
     </ol>
     <p>
-      Five adapters, full ecosystem reach. As A2A adoption accelerates through 2026 and beyond, the picture simplifies further. CAR&rsquo;s investment in <code>backend-a2a</code> is an investment in the protocol the ecosystem is converging on.
+      At that moment, five adapters explained the ecosystem reach. As A2A adoption accelerated through 2026 and beyond, the picture simplified further. The lasting takeaway is not that CAR should define itself by adapter count, but that its relay architecture benefits when the agent side converges on a standard protocol boundary.
     </p>
 
     <div class="hero-actions" style="justify-content:flex-start;margin-top:8px;margin-bottom:16px">

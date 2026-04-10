@@ -1,0 +1,8 @@
+{
+  "name": "@chat-agent-relay/example-demo-agent",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun run agent.ts"
+  }
+}

@@ -73,6 +73,30 @@ export class SqliteConfigStore implements ConfigStore {
     this.encryption = encryptionKey ? new EncryptionEngine(encryptionKey) : null;
   }
 
+  async verifyEncryptionKey(): Promise<void> {
+    if (!this.encryption) return;
+
+    const allRows = [
+      ...this.db.prepare("SELECT name, type, config FROM channels").all() as RawRow[],
+      ...this.db.prepare("SELECT name, type, config FROM agents").all() as RawRow[],
+    ];
+
+    for (const row of allRows) {
+      const type = row["type"] as string;
+      const configJson = row["config"] as string;
+      const fields = SENSITIVE_FIELDS[type] ?? [];
+      if (fields.length === 0) continue;
+
+      const parsed = JSON.parse(configJson) as Record<string, unknown>;
+      const hasEncrypted = fields.some(
+        (f) => typeof parsed[f] === "string" && this.encryption!.isEncrypted(parsed[f] as string),
+      );
+      if (!hasEncrypted) continue;
+
+      await this.encryption.decryptFields(parsed, fields);
+    }
+  }
+
   // ── Channels ─────────────────────────────────────────────────────────
 
   async addChannel(name: string, type: ChannelType, config: Record<string, unknown>): Promise<ChannelRecord> {
@@ -219,7 +243,12 @@ export class SqliteConfigStore implements ConfigStore {
   }
 
   private async decryptConfig(type: string, configJson: string): Promise<Record<string, unknown>> {
-    const parsed = JSON.parse(configJson) as Record<string, unknown>;
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(configJson) as Record<string, unknown>;
+    } catch {
+      throw new Error(`Corrupted config JSON for type '${type}' — the database may need to be recreated`);
+    }
     if (!this.encryption) return parsed;
     const fields = SENSITIVE_FIELDS[type] ?? [];
     return this.encryption.decryptFields(parsed, fields);

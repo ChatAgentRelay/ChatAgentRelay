@@ -49,4 +49,14 @@ describe("EncryptionEngine", () => {
     const encrypted = await engine.encryptFields(obj, ["apiKey"]);
     expect(encrypted["apiKey"]).toBe("");
   });
+
+  it("throws descriptive error on key mismatch (not generic crypto error)", async () => {
+    const engineA = new EncryptionEngine("key-A-for-encrypt-12345678");
+    const engineB = new EncryptionEngine("key-B-wrong-key-1234567890");
+    const encrypted = await engineA.encrypt("secret-data");
+
+    await expect(engineB.decrypt(encrypted)).rejects.toThrow(
+      /CAR_ENCRYPTION_KEY does not match/,
+    );
+  });
 });

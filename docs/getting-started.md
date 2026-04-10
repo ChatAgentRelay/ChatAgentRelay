@@ -1,12 +1,79 @@
 # Getting Started with Chat Agent Relay
 
-This guide walks you through running Chat Agent Relay (CAR) with Slack and an A2A agent endpoint, then shows how to connect your own agent and chat platform.
+## Fastest Path: Slack + Agent in 5 Minutes
+
+Already have a Slack app and an A2A agent endpoint? Here is the shortest path:
+
+```bash
+git clone https://github.com/ChatAgentRelay/ChatAgentRelay.git && cd ChatAgentRelay
+bun install
+cd packages/server
+bun link                                # registers the 'car' CLI command
+
+# Keep this key stable — all car commands must use the same key for the same DB
+export CAR_ENCRYPTION_KEY="$(openssl rand -hex 32)"
+
+car channel add my-slack --type=slack --bot-token=xoxb-YOUR-TOKEN --app-token=xapp-YOUR-TOKEN
+car agent add my-bot --endpoint=https://your-agent.example.com
+car route add --default --agent=my-bot
+car start
+```
+
+Send a message in Slack — CAR canonicalizes it, applies policy, routes to your agent, delivers the response, and records the full event chain. Check health with `curl http://localhost:3000/api/health`.
+
+Need to create a Slack app first? Continue below for the full walkthrough.
+
+## No Agent Yet? Try the Built-in Demo
+
+If you don't have an agent endpoint ready, CAR ships a demo agent that connects to OpenAI, Anthropic, or Google with a single API key. This lets you see the full relay pipeline working in under 2 minutes.
+
+```bash
+git clone https://github.com/ChatAgentRelay/ChatAgentRelay.git && cd ChatAgentRelay
+bun install
+
+# Terminal 1 — start the demo agent (pick one provider)
+cd examples/demo-agent
+export OPENAI_API_KEY="sk-..."   # or ANTHROPIC_API_KEY or GEMINI_API_KEY
+bun run agent.ts
+
+# Terminal 2 — configure CAR with WebChat + demo agent
+cd packages/server
+bun link
+
+# Keep this key stable for the lifetime of the database
+export CAR_ENCRYPTION_KEY="$(openssl rand -hex 32)"
+
+car channel add web --type=webchat
+car agent add demo --endpoint=http://localhost:9100
+car route add --default --agent=demo
+car start
+
+# Terminal 3 — send a test message
+curl -s http://localhost:3000/api/chat \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "text": "What is Chat Agent Relay?",
+    "user_id": "test-user",
+    "client_message_id": "msg-001",
+    "tenant_id": "demo",
+    "workspace_id": "default",
+    "channel_instance_id": "web"
+  }' | jq .
+```
+
+You should see the agent's reply in the `reply` field. The demo agent uses cheap models (gpt-4o-mini / claude-3-5-haiku / gemini-2.0-flash) and costs fractions of a cent per message. See [examples/demo-agent](../examples/demo-agent/) for details.
+
+Once you're ready to connect a real agent, replace `--endpoint=http://localhost:9100` with your own A2A endpoint.
+
+---
+
+This guide walks you through running Chat Agent Relay (CAR) with Slack and an A2A agent endpoint, then shows how to connect additional channels and agents.
 
 ## Prerequisites
 
 - [Bun](https://bun.sh/) v1.2+
-- A Slack workspace where you can create apps
-- An agent endpoint (A2A protocol)
+- A Slack workspace where you can create apps (see [Step 3](#3-set-up-a-slack-app))
+- An agent endpoint (A2A protocol) — or use the [built-in demo agent](#no-agent-yet-try-the-built-in-demo)
 
 ## 1. Clone and Install
 
@@ -16,25 +83,20 @@ cd ChatAgentRelay
 bun install
 ```
 
-Verify everything works:
-
-```bash
-bun test --recursive
-# Expected: all tests pass (~692 tests across 51 files)
-```
-
 ## 2. Environment (minimal)
 
-CAR keeps **channels, agents, routes, and settings** in a SQLite config store by default — not in environment variables.
+CAR keeps **channels, agents, routes, and settings** in a local config store — not in environment variables.
 
-| Variable | Required | Default | Purpose |
-|----------|----------|---------|---------|
-| `CAR_DB_PATH` | No | `./car.db` | Path to the SQLite config + ledger database |
-| `CAR_ENCRYPTION_KEY` | Recommended | — | Key for AES-256-GCM encryption of tokens and API keys at rest |
-| `CAR_API_KEY` | Recommended | — | Bearer token for management API authentication |
-| `CAR_API_PORT` | No | `3000` | HTTP API listen port |
-| `CAR_POLICY_FILE` | No | — | Path to YAML policy configuration file |
-| `CAR_OUTBOUND_POLICY_FILE` | No | — | Path to YAML outbound policy file |
+
+| Variable                   | Required    | Default    | Purpose                                                       |
+| -------------------------- | ----------- | ---------- | ------------------------------------------------------------- |
+| `CAR_DB_PATH`              | No          | `./car.db` | Path to the config + ledger database                          |
+| `CAR_ENCRYPTION_KEY`       | Recommended | —          | Key for AES-256-GCM encryption of tokens and API keys at rest |
+| `CAR_API_KEY`              | Recommended | —          | Bearer token for management API authentication                |
+| `CAR_API_PORT`             | No          | `3000`     | HTTP API listen port                                          |
+| `CAR_POLICY_FILE`          | No          | —          | Path to YAML policy configuration file                        |
+| `CAR_OUTBOUND_POLICY_FILE` | No          | —          | Path to YAML outbound policy file                             |
+
 
 Generate a key for local use:
 
@@ -42,27 +104,32 @@ Generate a key for local use:
 export CAR_ENCRYPTION_KEY="$(openssl rand -hex 32)"
 ```
 
+> **Important:** The encryption key **must remain the same** across all `car` CLI calls and `car start` within the same database. If you lose the key (e.g., close the terminal) while the database still contains encrypted tokens, `car start` will fail with a decryption error. In that case, delete `car.db` and re-register your channels and agents.
+>
+> For production, persist `CAR_ENCRYPTION_KEY` in a secure store (e.g., `.env` file, secrets manager) rather than generating it inline.
+
 ## 3. Set Up a Slack App
 
 1. Go to [api.slack.com/apps](https://api.slack.com/apps) and click **Create New App** → **From scratch**
 2. Name it (e.g., "CAR Bot") and select your workspace
 3. Under **Socket Mode**, enable it and generate an **App-Level Token** with `connections:write` scope — this is your app token (starts with `xapp-`)
 4. Under **OAuth & Permissions**, add these Bot Token Scopes:
-   - `chat:write` — send messages
-   - `channels:history` — read channel messages
-   - `groups:history` — read private channel messages
-   - `im:history` — read DM messages
-   - `reactions:write` — add/remove ack reactions
+  - `chat:write` — send messages
+  - `channels:history` — read channel messages
+  - `groups:history` — read private channel messages
+  - `im:history` — read DM messages
+  - `reactions:write` — add/remove ack reactions
 5. Install the app to your workspace. Copy the **Bot User OAuth Token** (starts with `xoxb-`)
 6. Under **Event Subscriptions**, enable events and subscribe to `message.channels`, `message.groups`, `message.im`, and `app_mention`
 
 ## 4. Register Channels, Agents, and Routes (CLI)
 
-From `packages/server`, use the `car` CLI so configuration is written to the database (encrypted where applicable):
+From `packages/server`, register the CLI and configure the relay:
 
 ```bash
 cd packages/server
-export CAR_ENCRYPTION_KEY="$(openssl rand -hex 32)"   # if not already set
+bun link                                                # registers the 'car' CLI command
+export CAR_ENCRYPTION_KEY="$(openssl rand -hex 32)"     # if not already set
 
 car channel add my-slack --type=slack --bot-token=xoxb-... --app-token=xapp-...
 car agent add my-bot --endpoint=https://...
@@ -70,10 +137,12 @@ car route add --default --agent=my-bot
 car start
 ```
 
-- **`car channel add|list|remove`** — `slack`, `discord`, `webchat`, `telegram`, `lark`, `dingtalk`, `teams`, `whatsapp`
-- **`car agent add|list|remove`** — A2A only; pass `--endpoint=URL` (and optional `--timeout-ms`)
-- **`car route add|list|remove`** — which agent handles traffic (default route, channel match, or pattern)
-- **`car config set|get`** — arbitrary settings in the config store
+- `**car channel add|list|remove**` — `slack`, `discord`, `webchat`, `telegram`, `lark`, `dingtalk`, `teams`, `whatsapp`
+- `**car agent add|list|remove**` — A2A only; pass `--endpoint=URL` (and optional `--timeout-ms`)
+- `**car route add|list|remove**` — which agent handles traffic (default route, channel match, or pattern)
+- `**car config set|get**` — arbitrary settings in the config store
+
+CAR ships with 8 built-in channel adapters: Slack, Discord, Telegram, Teams, WhatsApp, Lark, DingTalk, and WebChat.
 
 Channels and agents can be **added or updated at runtime** without restarting the process (where the adapter supports it).
 
@@ -99,7 +168,7 @@ car channel add my-discord --type=discord --bot-token=...
 car channel add my-teams --type=teams --app-id=... --app-secret=... --tenant-id=...
 ```
 
-3. Set the bot **Messaging endpoint** to `https://your-domain/api/teams/messages`.
+1. Set the bot **Messaging endpoint** to `https://your-domain/api/teams/messages`.
 
 ## 7. WhatsApp (Optional)
 
@@ -110,7 +179,7 @@ car channel add my-teams --type=teams --app-id=... --app-secret=... --tenant-id=
 car channel add my-whatsapp --type=whatsapp --phone-number-id=... --access-token=... --verify-token=... --app-secret=...
 ```
 
-3. Set the webhook URL to `https://your-domain/api/whatsapp/webhook`.
+1. Set the webhook URL to `https://your-domain/api/whatsapp/webhook`.
 
 ## 8. Security Setup
 
@@ -175,6 +244,7 @@ interface ChannelAdapter {
 ```
 
 Key rules:
+
 - `channelType` identifies the platform (e.g. `"slack"`, `"discord"`)
 - `describeCapabilities()` declares what the channel supports (streaming, editing, commands, etc.)
 - `canonicalize()` accepts `unknown` input, never throws — returns error results
@@ -203,11 +273,13 @@ testChannelAdapter({
 
 ## 13. Connecting to Agent Runtimes
 
-Register agents with **`car agent add`** (or `POST /api/agents`) using the appropriate `type` and config:
+Register agents with `**car agent add**` (or `POST /api/agents`) using the appropriate `type` and config:
 
-| Type | Typical config keys |
-|------|---------------------|
+
+| Type  | Typical config keys            |
+| ----- | ------------------------------ |
 | `a2a` | `endpoint`, optional `headers` |
+
 
 ## 14. Writing a Custom Agent Adapter
 
@@ -234,6 +306,7 @@ const adapter: AgentAdapter = {
 ```
 
 Key rules:
+
 - `describeCapabilities()` MUST include `streaming`, `multiTurn`, `resume`, `hitl`, `cancel`, and `artifacts`; the pipeline uses `multiTurn` for ledger conversation history and `streaming` for streaming invocation paths
 - Never throw from `invoke()` — return `{ ok: false, error: {...} }` on failure
 - Produce a valid `agent.response.completed` event on success

@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 import { SqliteConfigStore } from "@chat-agent-relay/config-store";
 import type { AgentType, ChannelType, RouteMatchType } from "@chat-agent-relay/config-store";
 

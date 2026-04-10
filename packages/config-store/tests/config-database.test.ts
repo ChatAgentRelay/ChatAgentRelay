@@ -132,6 +132,41 @@ describe("SqliteConfigStore", () => {
     });
   });
 
+  describe("verifyEncryptionKey", () => {
+    it("passes when no encrypted data exists", async () => {
+      const db = createDb("some-key");
+      await db.addChannel("web", "webchat", {});
+      await db.addAgent("a1", "a2a", { endpoint: "http://x" });
+      await expect(db.verifyEncryptionKey()).resolves.toBeUndefined();
+    });
+
+    it("passes when the correct key is used", async () => {
+      const db = createDb("correct-key-123456789012345");
+      await db.addChannel("s1", "slack", { botToken: "xoxb-secret", appToken: "xapp-secret" });
+      await expect(db.verifyEncryptionKey()).resolves.toBeUndefined();
+    });
+
+    it("fails when a different key is used for existing encrypted data", async () => {
+      const dbA = new SqliteConfigStore("/tmp/car-verify-key-test.db", "key-A-original-12345678901");
+      await dbA.addChannel("s1", "slack", { botToken: "xoxb-secret", appToken: "xapp-secret" });
+      dbA.close();
+
+      const dbB = new SqliteConfigStore("/tmp/car-verify-key-test.db", "key-B-wrong-key-12345678901");
+      try {
+        await expect(dbB.verifyEncryptionKey()).rejects.toThrow(/CAR_ENCRYPTION_KEY does not match/);
+      } finally {
+        dbB.close();
+        try { require("node:fs").unlinkSync("/tmp/car-verify-key-test.db"); } catch {}
+      }
+    });
+
+    it("passes with no encryption engine (encKey undefined)", async () => {
+      const db = createDb();
+      await db.addChannel("web", "webchat", {});
+      await expect(db.verifyEncryptionKey()).resolves.toBeUndefined();
+    });
+  });
+
   describe("settings", () => {
     it("sets and gets settings", () => {
       const db = createDb();

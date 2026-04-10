@@ -3,9 +3,11 @@ dist
 .git
 .github
 .cursor
-*.db
-*.db-shm
-*.db-wal
-*.db-journal
+.claude
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/*.db-journal
 .env
 docs/private
+promotion

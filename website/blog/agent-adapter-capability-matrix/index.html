@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Agent Adapter Capability Matrix — What Each Protocol Can and Cannot Do</title>
-  <meta name="description" content="Pre-consolidation capability matrix for Chat Agent Relay's earlier five-adapter design. CAR now uses A2A as the sole agent protocol.">
+  <meta name="description" content="Historical capability matrix for Chat Agent Relay's earlier multi-adapter design, showing how protocol constraints shaped the transition to A2A as the standard agent-side boundary.">
   <meta name="keywords" content="Chat Agent Relay, CAR, agent adapter, A2A, LangGraph, ACP, Agent Client Protocol, HTTP adapter, OpenAI, streaming, HITL, human-in-the-loop, capability matrix, 2026">
 
   <!-- Open Graph -->
@@ -64,7 +64,7 @@
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     "headline": "Agent Adapter Capability Matrix — What Each Protocol Can and Cannot Do",
-    "description": "Pre-consolidation capability matrix for Chat Agent Relay's earlier five-adapter design. CAR now uses A2A as the sole agent protocol.",
+    "description": "Historical capability matrix for Chat Agent Relay's earlier multi-adapter design and the protocol constraints that informed the move to A2A as the standard agent-side boundary.",
     "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/agent-adapter-capability-matrix/",
     "datePublished": "2026-03-28",
     "dateModified": "2026-03-28",
@@ -101,7 +101,7 @@
     </div>
 
     <p>
-      Chat Agent Relay ships five agent adapters that cover the entire 2026 agent landscape. But not every adapter can do everything&mdash;and that&rsquo;s by design. Some limitations are fundamental protocol constraints; others are conscious scope decisions. This post maps the complete capability matrix and explains <em>why</em> each cell is what it is.
+      This article captures an earlier phase when Chat Agent Relay compared five agent adapters across the 2026 landscape. Not every adapter could do everything&mdash;and that was partly a protocol reality, partly a scope choice. This post maps that historical capability matrix and explains <em>why</em> each cell looked the way it did.
     </p>
 
     <h2 id="the-interface">The AgentAdapter Interface</h2>
@@ -209,7 +209,7 @@
 
     <h3>A2A &mdash; The Protocol Standard</h3>
     <p>
-      Google&rsquo;s Agent-to-Agent protocol is the most capable adapter in CAR. It implements every method on the interface and is the only adapter that supports <strong>artifacts</strong>&mdash;structured outputs beyond text (files, data payloads). On creation, the adapter fetches the agent&rsquo;s <code>/.well-known/agent.json</code> Agent Card for capability discovery. Sessions use A2A&rsquo;s <code>contextId</code> for multi-turn continuity. HITL works via the <code>input-required</code> task state, and cancellation uses <code>task/cancel</code> JSON-RPC.
+      Google&rsquo;s Agent-to-Agent protocol was the richest adapter in this comparison. It implemented every method on the interface and was the only adapter that supported <strong>artifacts</strong>&mdash;structured outputs beyond text (files, data payloads). On creation, the adapter fetched the agent&rsquo;s <code>/.well-known/agent.json</code> Agent Card for capability discovery. Sessions used A2A&rsquo;s <code>contextId</code> for multi-turn continuity. HITL worked via the <code>input-required</code> task state, and cancellation used <code>task/cancel</code> JSON-RPC.
     </p>
 
     <h3>LangGraph &mdash; The Framework Native</h3>
@@ -326,10 +326,10 @@
 
     <h2 id="conclusion">Conclusion</h2>
     <p>
-      Five adapters, eight capabilities, zero magic. Every checkmark in the matrix is backed by working code. Every &ldquo;&#10007;&rdquo; has a clear reason: either the protocol doesn&rsquo;t support it, or the underlying API design makes it impossible. We don&rsquo;t fake capabilities or paper over limitations&mdash;the pipeline handles graceful degradation automatically.
+      As a historical comparison, this matrix still shows something useful: protocol boundaries matter more than marketing checklists. Every checkmark in the matrix came from real behavior, and every &ldquo;&#10007;&rdquo; had a concrete reason: either the protocol didn&rsquo;t support it, or the underlying API design made it impractical. That clarity is part of what made the later shift to A2A as the standard agent-side boundary so compelling.
     </p>
     <p>
-      The full-featured trio (A2A, LangGraph, ACP) covers the use cases that need statefulness. The simple pair (HTTP, OpenAI) covers everything else. Together they span every agent runtime deployed in production today.
+      The full-featured trio (A2A, LangGraph, ACP) showed which protocols could support stateful relay scenarios cleanly. The simple pair (HTTP, OpenAI) covered lighter-weight use cases. Read that way, the matrix is less a product identity statement and more a snapshot of why CAR eventually narrowed its standard agent-side boundary.
     </p>
 
     <div class="hero-actions" style="justify-content:flex-start;margin-top:8px;margin-bottom:16px">

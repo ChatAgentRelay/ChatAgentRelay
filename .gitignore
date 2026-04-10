@@ -55,3 +55,6 @@ out/
 
 # Private internal docs
 /docs/private/
+
+# Local promotion materials (do not commit)
+/promotion/

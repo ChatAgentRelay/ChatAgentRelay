@@ -224,6 +224,7 @@ export function startApiServer(config: ApiConfig): ReturnType<typeof Bun.serve> 
   const server = Bun.serve({
     port,
     async fetch(req) {
+      try {
       const url = new URL(req.url);
       const path = url.pathname;
       const method = req.method;
@@ -827,6 +828,15 @@ export function startApiServer(config: ApiConfig): ReturnType<typeof Bun.serve> 
       }
 
       return errorResponse("Not found", 404);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      logger.error("Unhandled API error", { error_message: msg });
+      const isDecryptionError = msg.includes("CAR_ENCRYPTION_KEY") || msg.includes("Decryption failed");
+      return errorResponse(
+        isDecryptionError ? `Config error: ${msg}` : "Internal server error",
+        500,
+      );
+    }
     },
   });
 
