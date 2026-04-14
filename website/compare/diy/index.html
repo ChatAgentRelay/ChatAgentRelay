@@ -1,204 +1,131 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Chat Agent Relay vs DIY Integration — Comparing the Relay Path</title>
-  <meta name="description" content="Compare rebuilding the chat-to-agent relay path yourself versus using Chat Agent Relay, the standard relay layer between chat platforms and agents.">
-  <meta name="keywords" content="Chat Agent Relay, CAR, DIY integration, relay layer, canonical events, governance, audit, A2A, chat platform, agent">
+---
+layout: page
+title: "Chat Agent Relay vs DIY Integration — Comparing the Relay Path"
+description: "Compare rebuilding the chat-to-agent relay path yourself versus using Chat Agent Relay, the standard relay layer between chat platforms and agents."
+keywords: "Chat Agent Relay, CAR, DIY integration, relay layer, canonical events, governance, audit, A2A, chat platform, agent"
+og_type: article
+og_title: "Chat Agent Relay vs DIY Integration — Comparing the Relay Path"
+og_description: "Canonical events, governance, routing, A2A invocation, delivery reliability, replay, and auditability versus rebuilding the path yourself."
+twitter_title: "Chat Agent Relay vs DIY — Comparing the Relay Path"
+twitter_description: "Compare rebuilding the chat-to-agent relay path yourself versus using CAR."
+nav_active: compare
+structured_data:
+  "@context": "https://schema.org"
+  "@type": "WebPage"
+  name: "Chat Agent Relay vs DIY Integration"
+  description: "Comparison of rebuilding the chat-to-agent relay path yourself versus using Chat Agent Relay."
+  url: "https://ChatAgentRelay.github.io/ChatAgentRelay/compare/diy/"
+---
+<h1>Chat Agent Relay vs Building It Yourself</h1>
+<p class="meta">Compare &middot; relay path</p>
 
-  <!-- Open Graph -->
-  <meta property="og:type" content="article">
-  <meta property="og:title" content="Chat Agent Relay vs DIY Integration — Comparing the Relay Path">
-  <meta property="og:description" content="Canonical events, governance, routing, A2A invocation, delivery reliability, replay, and auditability versus rebuilding the path yourself.">
-  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/compare/diy/">
-  <meta property="og:site_name" content="Chat Agent Relay">
+<p>
+  A custom integration can be fine when there is one chat surface, one agent, and a narrow operational scope. The difficulty usually appears later: a second channel, policy requirements, delivery failures, routing changes, or audit questions. At that point, teams are no longer just shipping an agent. They are rebuilding a relay path.
+</p>
 
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Chat Agent Relay vs DIY — Comparing the Relay Path">
-  <meta name="twitter:description" content="Compare rebuilding the chat-to-agent relay path yourself versus using CAR.">
+<h2>What is being compared</h2>
+<p>
+  The comparison is not between "using AI" and "not using AI." It is between:
+</p>
+<ul>
+  <li>rebuilding the chat-to-agent message path inside each integration, or</li>
+  <li>using a standard relay layer centered on canonical events, governance, routing, A2A invocation, delivery reliability, replay, and audit.</li>
+</ul>
 
-  <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
-  <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+<h2>Capability comparison</h2>
+<div style="overflow-x:auto;margin-bottom:24px">
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th>Capability</th>
+        <th>DIY integration</th>
+        <th>CAR</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="highlight">Channel boundary</td>
+        <td>Rebuild provider verification, canonicalization, and delivery logic per platform</td>
+        <td class="check">Preserve one channel-side adapter contract around the relay</td>
+      </tr>
+      <tr>
+        <td class="highlight">Agent boundary</td>
+        <td>Rewrite request/response mapping for each agent integration</td>
+        <td class="check">Use A2A as the standard agent-side boundary</td>
+      </tr>
+      <tr>
+        <td class="highlight">Canonical message path</td>
+        <td>Typically implicit and scattered across handlers</td>
+        <td class="check">One canonical event path across channels and agents</td>
+      </tr>
+      <tr>
+        <td class="highlight">Governance</td>
+        <td>Custom checks embedded in each integration</td>
+        <td class="check">Message-path governance before routing and before delivery</td>
+      </tr>
+      <tr>
+        <td class="highlight">Routing</td>
+        <td>Custom branching per integration</td>
+        <td class="check">Central route decisions over canonical events</td>
+      </tr>
+      <tr>
+        <td class="highlight">Replay and audit</td>
+        <td>Assemble logs from multiple systems</td>
+        <td class="check">Replay from an append-only canonical ledger</td>
+      </tr>
+      <tr>
+        <td class="highlight">Delivery failure handling</td>
+        <td>Opaque retries and provider-specific error branches</td>
+        <td class="check">Structured retry behavior and blocked outcomes</td>
+      </tr>
+      <tr>
+        <td class="highlight">Adding another channel</td>
+        <td>Repeat provider-specific integration work</td>
+        <td class="check">Add another channel adapter against the same relay model</td>
+      </tr>
+      <tr>
+        <td class="highlight">Adding another agent</td>
+        <td>Repeat invocation and mapping work</td>
+        <td class="check">Register another agent behind the same relay path</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
-  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/compare/diy/">
-  <link rel="icon" href="/ChatAgentRelay/img/favicon.svg" type="image/svg+xml">
+<h2>The recurring costs of DIY</h2>
+<p>
+  A working prototype often hides the long-term cost of the relay path. The recurring cost tends to come from the same places:
+</p>
+<ul>
+  <li><strong>Provider-specific transport logic</strong> — signatures, callbacks, message shapes, rate limits, and delivery quirks repeat across platforms.</li>
+  <li><strong>Lack of a stable internal contract</strong> — raw provider payloads and agent-specific response shapes leak into business logic.</li>
+  <li><strong>Audit added late</strong> — correlation, causation, durable history, and blocked outcomes have to be retrofitted after incidents or compliance requests.</li>
+  <li><strong>Error handling fragments</strong> — delivery failures, invocation failures, and policy blocks end up represented differently in different integrations.</li>
+  <li><strong>Routing and governance drift</strong> — each integration grows its own local rules, which are hard to reason about consistently.</li>
+</ul>
 
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<h2>When DIY makes sense</h2>
+<p>
+  CAR is not the only valid choice. Building in-house can be reasonable when:
+</p>
+<ul>
+  <li>you have one tightly scoped chat surface and one tightly scoped agent path,</li>
+  <li>you do not need a stable replayable canonical event model,</li>
+  <li>you are comfortable owning governance, routing, delivery, and audit behavior directly in application code, and</li>
+  <li>you accept that future expansion will likely require another round of integration work.</li>
+</ul>
 
-  <link rel="stylesheet" href="../../css/style.css">
+<h2>Why teams choose CAR</h2>
+<p>
+  Teams adopt CAR when they want the relay path itself to be a first-class, governed, replayable system instead of an accumulation of one-off integrations.
+</p>
+<ul>
+  <li><strong>Canonical events</strong> keep the internal contract stable.</li>
+  <li><strong>Governance and routing</strong> stay on the message path instead of being reimplemented per channel.</li>
+  <li><strong>A2A at the agent boundary</strong> keeps CAR focused on a standard agent-side protocol boundary rather than broad runtime abstraction.</li>
+  <li><strong>Append-only replay and audit</strong> preserve what happened and why.</li>
+</ul>
 
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-7FERB87K2D');
-  </script>
-
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    "name": "Chat Agent Relay vs DIY Integration",
-    "description": "Comparison of rebuilding the chat-to-agent relay path yourself versus using Chat Agent Relay.",
-    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/compare/diy/"
-  }
-  </script>
-</head>
-<body>
-
-<!-- Nav -->
-<nav class="nav">
-  <div class="container">
-    <a href="/ChatAgentRelay/" class="nav-brand"><span class="prompt">$</span> car</a>
-    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
-    <div class="nav-links">
-      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
-      <a href="/ChatAgentRelay/use-cases/">Use Cases</a>
-      <a href="/ChatAgentRelay/docs/">Docs</a>
-      <a href="/ChatAgentRelay/compare/diy/" class="active">Compare</a>
-      <a href="/ChatAgentRelay/blog/">Blog</a>
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="nav-cta" data-track="nav_github">GitHub</a>
-    </div>
-  </div>
-</nav>
-
-<article class="article">
-  <h1>Chat Agent Relay vs Building It Yourself</h1>
-  <p class="meta">Compare &middot; relay path</p>
-
-  <p>
-    A custom integration can be fine when there is one chat surface, one agent, and a narrow operational scope. The difficulty usually appears later: a second channel, policy requirements, delivery failures, routing changes, or audit questions. At that point, teams are no longer just shipping an agent. They are rebuilding a relay path.
-  </p>
-
-  <h2>What is being compared</h2>
-  <p>
-    The comparison is not between “using AI” and “not using AI.” It is between:
-  </p>
-  <ul>
-    <li>rebuilding the chat-to-agent message path inside each integration, or</li>
-    <li>using a standard relay layer centered on canonical events, governance, routing, A2A invocation, delivery reliability, replay, and audit.</li>
-  </ul>
-
-  <h2>Capability comparison</h2>
-  <div style="overflow-x:auto;margin-bottom:24px">
-    <table class="compare-table">
-      <thead>
-        <tr>
-          <th>Capability</th>
-          <th>DIY integration</th>
-          <th>CAR</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td class="highlight">Channel boundary</td>
-          <td>Rebuild provider verification, canonicalization, and delivery logic per platform</td>
-          <td class="check">Preserve one channel-side adapter contract around the relay</td>
-        </tr>
-        <tr>
-          <td class="highlight">Agent boundary</td>
-          <td>Rewrite request/response mapping for each agent integration</td>
-          <td class="check">Use A2A as the standard agent-side boundary</td>
-        </tr>
-        <tr>
-          <td class="highlight">Canonical message path</td>
-          <td>Typically implicit and scattered across handlers</td>
-          <td class="check">One canonical event path across channels and agents</td>
-        </tr>
-        <tr>
-          <td class="highlight">Governance</td>
-          <td>Custom checks embedded in each integration</td>
-          <td class="check">Message-path governance before routing and before delivery</td>
-        </tr>
-        <tr>
-          <td class="highlight">Routing</td>
-          <td>Custom branching per integration</td>
-          <td class="check">Central route decisions over canonical events</td>
-        </tr>
-        <tr>
-          <td class="highlight">Replay and audit</td>
-          <td>Assemble logs from multiple systems</td>
-          <td class="check">Replay from an append-only canonical ledger</td>
-        </tr>
-        <tr>
-          <td class="highlight">Delivery failure handling</td>
-          <td>Opaque retries and provider-specific error branches</td>
-          <td class="check">Structured retry behavior and blocked outcomes</td>
-        </tr>
-        <tr>
-          <td class="highlight">Adding another channel</td>
-          <td>Repeat provider-specific integration work</td>
-          <td class="check">Add another channel adapter against the same relay model</td>
-        </tr>
-        <tr>
-          <td class="highlight">Adding another agent</td>
-          <td>Repeat invocation and mapping work</td>
-          <td class="check">Register another agent behind the same relay path</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <h2>The recurring costs of DIY</h2>
-  <p>
-    A working prototype often hides the long-term cost of the relay path. The recurring cost tends to come from the same places:
-  </p>
-  <ul>
-    <li><strong>Provider-specific transport logic</strong> — signatures, callbacks, message shapes, rate limits, and delivery quirks repeat across platforms.</li>
-    <li><strong>Lack of a stable internal contract</strong> — raw provider payloads and agent-specific response shapes leak into business logic.</li>
-    <li><strong>Audit added late</strong> — correlation, causation, durable history, and blocked outcomes have to be retrofitted after incidents or compliance requests.</li>
-    <li><strong>Error handling fragments</strong> — delivery failures, invocation failures, and policy blocks end up represented differently in different integrations.</li>
-    <li><strong>Routing and governance drift</strong> — each integration grows its own local rules, which are hard to reason about consistently.</li>
-  </ul>
-
-  <h2>When DIY makes sense</h2>
-  <p>
-    CAR is not the only valid choice. Building in-house can be reasonable when:
-  </p>
-  <ul>
-    <li>you have one tightly scoped chat surface and one tightly scoped agent path,</li>
-    <li>you do not need a stable replayable canonical event model,</li>
-    <li>you are comfortable owning governance, routing, delivery, and audit behavior directly in application code, and</li>
-    <li>you accept that future expansion will likely require another round of integration work.</li>
-  </ul>
-
-  <h2>Why teams choose CAR</h2>
-  <p>
-    Teams adopt CAR when they want the relay path itself to be a first-class, governed, replayable system instead of an accumulation of one-off integrations.
-  </p>
-  <ul>
-    <li><strong>Canonical events</strong> keep the internal contract stable.</li>
-    <li><strong>Governance and routing</strong> stay on the message path instead of being reimplemented per channel.</li>
-    <li><strong>A2A at the agent boundary</strong> keeps CAR focused on a standard agent-side protocol boundary rather than broad runtime abstraction.</li>
-    <li><strong>Append-only replay and audit</strong> preserve what happened and why.</li>
-  </ul>
-
-  <p style="margin-top:32px">
-    <a href="/ChatAgentRelay/docs/" class="btn btn-primary" data-track="compare_diy_get_started">Read the docs</a>
-  </p>
-</article>
-
-<!-- Footer -->
-<footer class="footer">
-  <div class="container">
-    <div class="footer-links">
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
-      <a href="/ChatAgentRelay/docs/">Docs</a>
-      <a href="/ChatAgentRelay/blog/">Blog</a>
-      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
-      <a href="/ChatAgentRelay/use-cases/">Use Cases</a>
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
-    </div>
-    <p>MIT License &middot; Built with Bun and TypeScript</p>
-  </div>
-</footer>
-
-<script src="../../js/main.js"></script>
-</body>
-</html>
+<p style="margin-top:32px">
+  <a href="{{ site.baseurl }}/docs/" class="btn btn-primary" data-track="compare_diy_get_started">Read the docs</a>
+</p>

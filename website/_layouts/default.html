@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  {% include head.html %}
+  {% include analytics.html %}
+  {% if page.structured_data %}
+  <script type="application/ld+json">
+  {{ page.structured_data | jsonify }}
+  </script>
+  {% endif %}
+  {% if page.extra_head %}{{ page.extra_head }}{% endif %}
+</head>
+<body>
+
+{% if page.nav_style == 'docs' %}
+  {% include nav-docs.html %}
+{% else %}
+  {% include nav.html %}
+{% endif %}
+
+{{ content }}
+
+{% unless page.hide_footer %}
+  {% include footer.html %}
+{% endunless %}
+
+<script src="{{ site.baseurl }}/js/main.js"></script>
+</body>
+</html>

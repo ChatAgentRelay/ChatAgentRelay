@@ -1,225 +1,105 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Agents — Chat Agent Relay</title>
-  <meta name="description" content="Overview of the agent-side boundary in Chat Agent Relay. CAR is a standard relay layer between chat platforms and agents, using A2A as the standard agent-side protocol boundary.">
+---
+layout: doc
+title: "Agents — Chat Agent Relay"
+description: "Overview of the agent-side boundary in Chat Agent Relay. CAR is a standard relay layer between chat platforms and agents, using A2A as the standard agent-side protocol boundary."
+og_type: article
+og_title: "Agents — Chat Agent Relay"
+og_description: "Overview of the agent-side boundary in Chat Agent Relay and how A2A fits into the relay path."
+twitter_title: "Agents — Chat Agent Relay"
+twitter_description: "Overview of the agent-side boundary in Chat Agent Relay and how A2A fits into the relay path."
+structured_data:
+  "@context": "https://schema.org"
+  "@type": "TechArticle"
+  name: "Agents — Chat Agent Relay"
+  description: "Overview of the agent-side boundary in Chat Agent Relay. CAR is a standard relay layer between chat platforms and agents, using A2A as the standard agent-side protocol boundary."
+  url: "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/agents/"
+---
+<h1>Agents</h1>
+  <p class="subtitle">Chat Agent Relay is a standard relay layer between chat platforms and agents. On the agent side, CAR uses <strong>A2A</strong> as the standard protocol boundary so the relay path stays consistent while remote agent runtimes keep ownership of their internal execution model, tools, and private state.</p>
 
-  <!-- Open Graph -->
-  <meta property="og:type" content="article">
-  <meta property="og:title" content="Agents — Chat Agent Relay">
-  <meta property="og:description" content="Overview of the agent-side boundary in Chat Agent Relay and how A2A fits into the relay path.">
-  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/agents/">
-  <meta property="og:site_name" content="Chat Agent Relay">
-  <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+  <h2 id="agent-side-boundary">Agent-side boundary</h2>
+  <p>
+    CAR does not run the agent internally. The agent-side boundary exists so CAR can hand off a routed turn, receive the result in canonical form, and continue the governed message path through delivery, replay, and audit.
+  </p>
+  <p>
+    That keeps responsibilities clear:
+  </p>
+  <ul>
+    <li><strong>CAR</strong> owns canonical events, governance, routing, delivery orchestration, and append-only audit truth.</li>
+    <li><strong>The remote agent runtime</strong> owns prompt execution, tool use, private memory, framework-specific state, and internal orchestration.</li>
+  </ul>
 
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Agents — Chat Agent Relay">
-  <meta name="twitter:description" content="Overview of the agent-side boundary in Chat Agent Relay and how A2A fits into the relay path.">
-  <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
+  <h2 id="where-a2a-fits">Where A2A fits</h2>
+  <p>
+    A2A is the standard protocol boundary CAR uses on the agent side. It is not the primary product identity of CAR; it is how the relay talks to remote agents once routing has selected the destination.
+  </p>
+  <pre><code>message.received
+→ policy.decision.made
+→ route.decision.made
+→ agent.invocation.requested
+→ A2A invocation
+→ agent.response.completed
+→ message.send.requested
+→ message.sent</code></pre>
+  <p>
+    This is what lets the rest of the relay path stay stable across different agent implementations.
+  </p>
 
-  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/agents/">
-  <link rel="icon" href="/ChatAgentRelay/img/favicon.svg" type="image/svg+xml">
+  <h2 id="what-car-expects">What CAR expects from the agent side</h2>
+  <p>At the boundary, CAR needs a small set of predictable behaviors.</p>
+  <table>
+    <thead>
+      <tr><th>Concern</th><th>What CAR needs</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Invocation</td><td>A routable remote agent endpoint that can accept a turn and return a result</td></tr>
+      <tr><td>Capabilities</td><td>A declared feature surface such as streaming, resumable interaction, HITL, cancellation, or artifacts where supported</td></tr>
+      <tr><td>Session continuity</td><td>A stable session handle when the remote runtime supports multi-turn or resumable flows</td></tr>
+      <tr><td>Structured failure</td><td>Errors that can be represented on the canonical path instead of becoming silent drops</td></tr>
+    </tbody>
+  </table>
 
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="../../css/style.css">
-  <link rel="stylesheet" href="../../css/docs.css">
-
-  <!-- Analytics -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-7FERB87K2D');
-  </script>
-
-  <!-- Structured Data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "TechArticle",
-    "headline": "Agents — Chat Agent Relay",
-    "description": "Overview of the agent-side boundary in Chat Agent Relay. CAR is a standard relay layer between chat platforms and agents, using A2A as the standard agent-side protocol boundary.",
-    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/agents/"
-  }
-  </script>
-</head>
-<body>
-
-<!-- Nav -->
-<nav class="nav"><div class="container nav-inner">
-  <a href="/ChatAgentRelay/" class="nav-logo">Chat Agent Relay</a>
-  <button class="nav-toggle" aria-label="Menu">&#9776;</button>
-  <div class="nav-links">
-    <a href="/ChatAgentRelay/docs/" class="active">Docs</a>
-    <a href="/ChatAgentRelay/why-car/">Why CAR</a>
-    <a href="/ChatAgentRelay/use-cases/">Use Cases</a>
-    <a href="/ChatAgentRelay/blog/">Blog</a>
-    <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" target="_blank">GitHub</a>
+  <h2 id="supported-agent-path">Current supported agent path</h2>
+  <p>
+    In the current repository, the built-in agent-side adapter is the A2A adapter. That reflects CAR's present architectural baseline: a relay-centered system with one standard agent-side protocol boundary.
+  </p>
+  <div class="card-grid">
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="card">
+      <div class="card-icon">&#x1F310;</div>
+      <div class="card-title">A2A</div>
+      <div class="card-desc">The standard protocol boundary between CAR and remote agent runtimes.</div>
+    </a>
   </div>
-</div></nav>
 
-<div class="doc-shell">
+  <h2 id="capabilities">Extension capabilities</h2>
+  <p>
+    Some agent-side behaviors are extensions layered onto the same relay path rather than part of the minimum boundary.
+  </p>
+  <ul>
+    <li><strong>Streaming</strong> — partial output can be surfaced progressively while still ending in a final canonical completion event.</li>
+    <li><strong>Resumable interaction / HITL</strong> — CAR can pause and resume the path when the agent requests additional human input.</li>
+    <li><strong>Cancellation</strong> — CAR can request that an in-progress invocation stop when the remote runtime supports it.</li>
+    <li><strong>Artifacts</strong> — the agent side can return structured outputs that remain associated with the canonical path.</li>
+  </ul>
 
-  <!-- Sidebar -->
-  <aside class="doc-sidebar">
-    <div class="sidebar-group">
-      <span class="sidebar-group-title">Getting Started</span>
-      <a href="/ChatAgentRelay/docs/" class="sidebar-link">Overview</a>
-    </div>
-    <div class="sidebar-group">
-      <span class="sidebar-group-title">Channels</span>
-      <a href="/ChatAgentRelay/docs/channels/" class="sidebar-link">Overview</a>
-      <a href="/ChatAgentRelay/docs/channels/slack.html" class="sidebar-link">Slack</a>
-      <a href="/ChatAgentRelay/docs/channels/discord.html" class="sidebar-link">Discord</a>
-      <a href="/ChatAgentRelay/docs/channels/webchat.html" class="sidebar-link">WebChat</a>
-      <a href="/ChatAgentRelay/docs/channels/telegram.html" class="sidebar-link">Telegram</a>
-      <a href="/ChatAgentRelay/docs/channels/lark.html" class="sidebar-link">Lark / 飞书</a>
-      <a href="/ChatAgentRelay/docs/channels/dingtalk.html" class="sidebar-link">DingTalk / 钉钉</a>
-    </div>
-    <div class="sidebar-group">
-      <span class="sidebar-group-title">Agents</span>
-      <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link active">Overview</a>
-      <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A</a>
-    </div>
-    <div class="sidebar-group">
-      <span class="sidebar-group-title">Configuration</span>
-      <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
-      <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Routing</a>
-      <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage</a>
-    </div>
-    <div class="sidebar-group">
-      <span class="sidebar-group-title">Concepts</span>
-      <a href="/ChatAgentRelay/docs/concepts/" class="sidebar-link">Architecture</a>
-      <a href="/ChatAgentRelay/docs/concepts/events.html" class="sidebar-link">Event Model</a>
-      <a href="/ChatAgentRelay/docs/concepts/pipeline.html" class="sidebar-link">Pipeline</a>
-    </div>
-    <div class="sidebar-group">
-      <span class="sidebar-group-title">Reference</span>
-      <a href="/ChatAgentRelay/docs/api/" class="sidebar-link">HTTP API</a>
-    </div>
-  </aside>
-
-  <!-- Content -->
-  <main class="doc-content">
-    <h1>Agents</h1>
-    <p class="subtitle">Chat Agent Relay is a standard relay layer between chat platforms and agents. On the agent side, CAR uses <strong>A2A</strong> as the standard protocol boundary so the relay path stays consistent while remote agent runtimes keep ownership of their internal execution model, tools, and private state.</p>
-
-    <h2 id="agent-side-boundary">Agent-side boundary</h2>
-    <p>
-      CAR does not run the agent internally. The agent-side boundary exists so CAR can hand off a routed turn, receive the result in canonical form, and continue the governed message path through delivery, replay, and audit.
-    </p>
-    <p>
-      That keeps responsibilities clear:
-    </p>
-    <ul>
-      <li><strong>CAR</strong> owns canonical events, governance, routing, delivery orchestration, and append-only audit truth.</li>
-      <li><strong>The remote agent runtime</strong> owns prompt execution, tool use, private memory, framework-specific state, and internal orchestration.</li>
-    </ul>
-
-    <h2 id="where-a2a-fits">Where A2A fits</h2>
-    <p>
-      A2A is the standard protocol boundary CAR uses on the agent side. It is not the primary product identity of CAR; it is how the relay talks to remote agents once routing has selected the destination.
-    </p>
-    <pre><code>message.received
-  → policy.decision.made
-  → route.decision.made
-  → agent.invocation.requested
-  → A2A invocation
-  → agent.response.completed
-  → message.send.requested
-  → message.sent</code></pre>
-    <p>
-      This is what lets the rest of the relay path stay stable across different agent implementations.
-    </p>
-
-    <h2 id="what-car-expects">What CAR expects from the agent side</h2>
-    <p>At the boundary, CAR needs a small set of predictable behaviors.</p>
-    <table>
-      <thead>
-        <tr><th>Concern</th><th>What CAR needs</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Invocation</td><td>A routable remote agent endpoint that can accept a turn and return a result</td></tr>
-        <tr><td>Capabilities</td><td>A declared feature surface such as streaming, resumable interaction, HITL, cancellation, or artifacts where supported</td></tr>
-        <tr><td>Session continuity</td><td>A stable session handle when the remote runtime supports multi-turn or resumable flows</td></tr>
-        <tr><td>Structured failure</td><td>Errors that can be represented on the canonical path instead of becoming silent drops</td></tr>
-      </tbody>
-    </table>
-
-    <h2 id="supported-agent-path">Current supported agent path</h2>
-    <p>
-      In the current repository, the built-in agent-side adapter is the A2A adapter. That reflects CAR's present architectural baseline: a relay-centered system with one standard agent-side protocol boundary.
-    </p>
-    <div class="card-grid">
-      <a href="/ChatAgentRelay/docs/agents/a2a.html" class="card">
-        <div class="card-icon">&#x1F310;</div>
-        <div class="card-title">A2A</div>
-        <div class="card-desc">The standard protocol boundary between CAR and remote agent runtimes.</div>
-      </a>
-    </div>
-
-    <h2 id="capabilities">Extension capabilities</h2>
-    <p>
-      Some agent-side behaviors are extensions layered onto the same relay path rather than part of the minimum boundary.
-    </p>
-    <ul>
-      <li><strong>Streaming</strong> — partial output can be surfaced progressively while still ending in a final canonical completion event.</li>
-      <li><strong>Resumable interaction / HITL</strong> — CAR can pause and resume the path when the agent requests additional human input.</li>
-      <li><strong>Cancellation</strong> — CAR can request that an in-progress invocation stop when the remote runtime supports it.</li>
-      <li><strong>Artifacts</strong> — the agent side can return structured outputs that remain associated with the canonical path.</li>
-    </ul>
-
-    <h2 id="registering">Registering an agent</h2>
-    <p>Use the <code>car</code> CLI to register a remote agent endpoint and route traffic to it.</p>
-    <pre><code>car agent add my-agent --endpoint=http://localhost:9000
+  <h2 id="registering">Registering an agent</h2>
+  <p>Use the <code>car</code> CLI to register a remote agent endpoint and route traffic to it.</p>
+  <pre><code>car agent add my-agent --endpoint=http://localhost:9000
 car route add --default --agent=my-agent</code></pre>
 
-    <div class="callout callout-info">
-      <strong>Boundary discipline</strong>
-      CAR is not an agent runtime or general-purpose orchestration framework. The agent-side boundary is intentionally narrow so provider-native chat behavior stays at the channel edge and runtime-private execution behavior stays behind the agent edge.
-    </div>
-
-    <!-- Pagination -->
-    <div class="doc-pagination">
-      <a href="/ChatAgentRelay/docs/channels/dingtalk.html" class="prev">
-        <span class="label">Previous</span>
-        <span class="title">&larr; DingTalk / 钉钉</span>
-      </a>
-      <a href="/ChatAgentRelay/docs/agents/a2a.html" class="next">
-        <span class="label">Next</span>
-        <span class="title">A2A &rarr;</span>
-      </a>
-    </div>
-  </main>
-
-</div>
-
-<!-- Mobile sidebar toggle -->
-<button class="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
-
-<!-- Footer -->
-<footer class="footer">
-  <div class="container">
-    <div class="footer-links">
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
-      <a href="/ChatAgentRelay/docs/">Docs</a>
-      <a href="/ChatAgentRelay/blog/">Blog</a>
-      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
-      <a href="/ChatAgentRelay/use-cases/">Use Cases</a>
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
-    </div>
-    <p>MIT License &middot; Built with Bun and TypeScript</p>
+  <div class="callout callout-info">
+    <strong>Boundary discipline</strong>
+    CAR is not an agent runtime or general-purpose orchestration framework. The agent-side boundary is intentionally narrow so provider-native chat behavior stays at the channel edge and runtime-private execution behavior stays behind the agent edge.
   </div>
-</footer>
 
-<script src="../../js/main.js"></script>
-</body>
-</html>
+  <!-- Pagination -->
+  <div class="doc-pagination">
+    <a href="/ChatAgentRelay/docs/channels/dingtalk.html" class="prev">
+      <span class="label">Previous</span>
+      <span class="title">&larr; DingTalk / 钉钉</span>
+    </a>
+    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="next">
+      <span class="label">Next</span>
+      <span class="title">A2A &rarr;</span>
+    </a>
+  </div>

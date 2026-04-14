@@ -1,77 +1,26 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Chat Agent Relay — Standard Relay Layer Between Chat Platforms and Agents</title>
-  <meta name="description" content="Open-source relay layer between chat platforms and agents. Canonical events, governance, routing, delivery reliability, and auditability on the message path.">
-  <meta name="keywords" content="Chat Agent Relay, CAR, chat platform, agent, relay layer, A2A, canonical events, governance, audit, open source">
-
-  <!-- Open Graph -->
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="Chat Agent Relay — A Standard Relay Layer Between Chat Platforms and Agents">
-  <meta property="og:description" content="Open-source relay layer centered on canonical events, governance, routing, delivery reliability, and auditability.">
-  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/">
-  <meta property="og:site_name" content="Chat Agent Relay">
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Chat Agent Relay — A Standard Relay Layer Between Chat Platforms and Agents">
-  <meta name="twitter:description" content="Open-source relay layer for chat-to-agent message paths.">
-
-  <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
-  <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
-
-  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/">
-  <link rel="icon" href="/ChatAgentRelay/img/favicon.svg" type="image/svg+xml">
-
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="css/style.css">
-
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-7FERB87K2D');
-  </script>
-
-  <!-- Structured Data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "SoftwareApplication",
-    "name": "Chat Agent Relay",
-    "applicationCategory": "DeveloperApplication",
-    "operatingSystem": "Linux, macOS, Windows",
-    "description": "Open-source relay layer between chat platforms and agents, centered on canonical events and the governed message path.",
-    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/",
-    "license": "https://opensource.org/licenses/MIT",
-    "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
-  }
-  </script>
-</head>
-<body>
-
-<!-- Nav -->
-<nav class="nav">
-  <div class="container">
-    <a href="/ChatAgentRelay/" class="nav-brand"><span class="prompt">$</span> car</a>
-    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
-    <div class="nav-links">
-      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
-      <a href="/ChatAgentRelay/use-cases/">Use Cases</a>
-      <a href="/ChatAgentRelay/docs/">Docs</a>
-      <a href="/ChatAgentRelay/compare/diy/">Compare</a>
-      <a href="/ChatAgentRelay/blog/">Blog</a>
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="nav-cta" data-track="nav_github">GitHub</a>
-    </div>
-  </div>
-</nav>
+---
+layout: home
+title: "Chat Agent Relay — Standard Relay Layer Between Chat Platforms and Agents"
+description: "Open-source relay layer between chat platforms and agents. Canonical events, governance, routing, delivery reliability, and auditability on the message path."
+keywords: "Chat Agent Relay, CAR, chat platform, agent, relay layer, A2A, canonical events, governance, audit, open source"
+og_title: "Chat Agent Relay — A Standard Relay Layer Between Chat Platforms and Agents"
+og_description: "Open-source relay layer centered on canonical events, governance, routing, delivery reliability, and auditability."
+twitter_title: "Chat Agent Relay — A Standard Relay Layer Between Chat Platforms and Agents"
+twitter_description: "Open-source relay layer for chat-to-agent message paths."
+structured_data:
+  "@context": "https://schema.org"
+  "@type": "SoftwareApplication"
+  name: "Chat Agent Relay"
+  applicationCategory: "DeveloperApplication"
+  operatingSystem: "Linux, macOS, Windows"
+  description: "Open-source relay layer between chat platforms and agents, centered on canonical events and the governed message path."
+  url: "https://ChatAgentRelay.github.io/ChatAgentRelay/"
+  license: "https://opensource.org/licenses/MIT"
+  offers:
+    "@type": "Offer"
+    price: "0"
+    priceCurrency: "USD"
+---
 
 <!-- Hero -->
 <section class="hero">
@@ -88,7 +37,7 @@
       <strong>Chat Agent Relay provides that message path once.</strong> CAR canonicalizes inbound chat traffic, governs and routes it, invokes agents through A2A, delivers responses, and preserves replayable audit history in an append-only ledger.
     </p>
     <div class="hero-actions">
-      <a href="/ChatAgentRelay/docs/" class="btn btn-primary" data-track="hero_get_started">Get Started</a>
+      <a href="{{ site.baseurl }}/docs/" class="btn btn-primary" data-track="hero_get_started">Get Started</a>
       <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-secondary" data-track="hero_github">View on GitHub</a>
     </div>
 
@@ -349,7 +298,7 @@
     </div>
 
     <div style="text-align:center;margin-top:24px">
-      <a href="/ChatAgentRelay/compare/diy/" class="btn btn-secondary" data-track="compare_diy">Full comparison &rarr;</a>
+      <a href="{{ site.baseurl }}/compare/diy/" class="btn btn-secondary" data-track="compare_diy">Full comparison &rarr;</a>
     </div>
   </div>
 </section>
@@ -386,7 +335,7 @@
     <h2>Stop rebuilding chat-to-agent plumbing.</h2>
     <p>Use a standard relay layer centered on canonical events, A2A invocation, delivery reliability, replay, and audit.</p>
     <div class="hero-actions">
-      <a href="/ChatAgentRelay/docs/" class="btn btn-primary" data-track="cta_get_started">Get Started</a>
+      <a href="{{ site.baseurl }}/docs/" class="btn btn-primary" data-track="cta_get_started">Get Started</a>
       <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-secondary" data-track="cta_github">Star on GitHub</a>
     </div>
 
@@ -397,21 +346,3 @@
     </div>
   </div>
 </section>
-
-<!-- Footer -->
-<footer class="footer">
-  <div class="container">
-    <div class="footer-links">
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
-      <a href="/ChatAgentRelay/docs/">Docs</a>
-      <a href="/ChatAgentRelay/blog/">Blog</a>
-      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
-    </div>
-    <p>MIT License &middot; Built with Bun and TypeScript</p>
-  </div>
-</footer>
-
-<script src="js/main.js"></script>
-</body>
-</html>

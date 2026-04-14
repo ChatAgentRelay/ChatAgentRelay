@@ -1,0 +1,34 @@
+---
+layout: default
+extra_css: true
+nav_active: blog
+---
+<main>
+  <article class="article">
+    <h1>{{ page.heading | default: page.title }}</h1>
+    <p class="meta">{{ page.date | date: "%B %-d, %Y" }}{% if page.read_time %} &middot; {{ page.read_time }}{% endif %}{% if page.category_label %} &middot; {{ page.category_label }}{% endif %}</p>
+
+    {{ content }}
+
+    {% if page.show_cta %}
+    <div class="hero-actions" style="justify-content:flex-start;margin-top:8px;margin-bottom:16px">
+      {% if page.cta_primary_url %}
+      <a href="{{ page.cta_primary_url }}" class="btn btn-primary" data-track="{{ page.cta_primary_track | default: 'blog_cta' }}">{{ page.cta_primary_text | default: "Try Chat Agent Relay" }}</a>
+      {% endif %}
+      {% if page.cta_secondary_url %}
+      <a href="{{ page.cta_secondary_url }}" class="btn btn-secondary" data-track="{{ page.cta_secondary_track | default: 'blog_github' }}">{{ page.cta_secondary_text | default: "View on GitHub" }}</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if page.show_share %}
+    <div class="share-row" style="justify-content:flex-start">
+      <a href="https://twitter.com/intent/tweet?text={{ page.title | uri_escape }}&url={{ page.url | absolute_url | uri_escape }}" class="share-btn" target="_blank" rel="noopener" data-track="blog_share_x">Share on X</a>
+      <a href="https://www.linkedin.com/sharing/share-offsite/?url={{ page.url | absolute_url | uri_escape }}" class="share-btn" target="_blank" rel="noopener" data-track="blog_share_li">Share on LinkedIn</a>
+      <a href="https://news.ycombinator.com/submitlink?u={{ page.url | absolute_url | uri_escape }}&t={{ page.title | uri_escape }}" class="share-btn" target="_blank" rel="noopener" data-track="blog_share_hn">Share on HN</a>
+    </div>
+    {% endif %}
+
+    <p style="margin-top:24px"><a href="{{ site.baseurl }}/blog/">&larr; Back to Blog</a></p>
+  </article>
+</main>

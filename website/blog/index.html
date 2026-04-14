@@ -1,185 +1,56 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Blog — Chat Agent Relay: Chat-to-Agent Middleware Updates</title>
-  <meta name="description" content="News and technical writing from Chat Agent Relay: open-source middleware connecting chat platforms to AI agents. Architecture and canonical event model.">
-  <meta name="keywords" content="Chat Agent Relay, CAR, blog, chat platform, AI agent, middleware, open source, Slack, architecture, events">
-
-  <!-- Open Graph -->
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="Blog — Chat Agent Relay: Chat-to-Agent Middleware Updates">
-  <meta property="og:description" content="Updates and deep dives on Chat Agent Relay: chat-to-agent middleware, governance, audit, and pluggable adapters.">
-  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/blog/">
-  <meta property="og:site_name" content="Chat Agent Relay">
-
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Blog — Chat Agent Relay: Middleware Updates">
-  <meta name="twitter:description" content="News and technical articles from the Chat Agent Relay open-source chat-to-agent middleware project.">
-
-  <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
-  <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
-
-  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/blog/">
-  <link rel="icon" href="/ChatAgentRelay/img/favicon.svg" type="image/svg+xml">
-
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="../css/style.css">
-  <link rel="stylesheet" href="../css/docs.css">
-
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-7FERB87K2D');
-  </script>
-
-  <!-- Structured Data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "Blog",
-    "name": "Chat Agent Relay Blog",
-    "description": "Articles about Chat Agent Relay open-source middleware for chat platforms and AI agents.",
-    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/",
-    "publisher": { "@type": "Organization", "name": "Chat Agent Relay", "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/" },
-    "blogPost": [
-      {
-        "@type": "BlogPosting",
-        "headline": "Enterprise Governance in CAR: Message Flow Security Without Agent Lock-In",
-        "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/enterprise-governance-deep-dive/",
-        "datePublished": "2026-04-01",
-        "description": "How CAR governs the message flow without locking into agent runtimes — and why it complements Faramesh and AetherClaw."
-      },
-      {
-        "@type": "BlogPosting",
-        "headline": "From Prototype to Production: CAR v0.2–v0.6 Journey",
-        "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/v1-road-to-production/",
-        "datePublished": "2026-04-01",
-        "description": "Five milestones, 20 requirements, 692 tests — how CAR went from a prototype with 6 channels to a production-ready relay with 8 channels and enterprise governance."
-      },
-      {
-        "@type": "BlogPosting",
-        "headline": "One Protocol to Connect Them All: Why CAR Chose A2A",
-        "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/one-protocol-a2a/",
-        "datePublished": "2026-03-31",
-        "description": "How Chat Agent Relay simplified its agent-side boundary around A2A — while staying a relay layer between chat platforms and agents."
-      },
-      {
-        "@type": "BlogPosting",
-        "headline": "Agent Adapter Capability Matrix",
-        "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/agent-adapter-capability-matrix/",
-        "datePublished": "2026-03-28",
-        "description": "Pre-consolidation comparison of five agent adapters. CAR now uses A2A as the sole protocol."
-      },
-      {
-        "@type": "BlogPosting",
-        "headline": "Agent Runtime Compatibility Analysis",
-        "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/agent-compatibility-analysis/",
-        "datePublished": "2026-03-30",
-        "description": "Pre-consolidation analysis of five agent adapters. See One Protocol to Connect Them All for current architecture."
-      },
-      {
-        "@type": "BlogPosting",
-        "headline": "Introducing Chat Agent Relay",
-        "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/introducing-chat-agent-relay/",
-        "datePublished": "2026-03-01",
-        "description": "Why we built an open-source middleware for chat-to-agent integration."
-      },
-      {
-        "@type": "BlogPosting",
-        "headline": "Architecture Deep Dive",
-        "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/architecture-deep-dive/",
-        "datePublished": "2026-03-01",
-        "description": "The canonical event chain and why every message produces 7 events."
-      }
-    ]
-  }
-  </script>
-</head>
-<body>
-
-<!-- Nav -->
-<nav class="nav">
-  <div class="container">
-    <a href="/ChatAgentRelay/" class="nav-brand"><span class="prompt">$</span> car</a>
-    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
-    <div class="nav-links">
-      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
-      <a href="/ChatAgentRelay/docs/">Docs</a>
-      <a href="/ChatAgentRelay/compare/diy/">Compare</a>
-      <a href="/ChatAgentRelay/blog/" class="active">Blog</a>
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="nav-cta" data-track="nav_github">GitHub</a>
-    </div>
-  </div>
-</nav>
-
-<main>
-  <article class="article">
-    <h1>Blog</h1>
-    <p class="meta">Updates &amp; technical writing &middot; open-source chat-to-agent middleware</p>
-
-    <div class="blog-list">
-      <article class="blog-card">
-        <p class="meta">April 2026</p>
-        <h2><a href="/ChatAgentRelay/blog/enterprise-governance-deep-dive/">Enterprise Governance in CAR: Message Flow Security Without Agent Lock-In</a></h2>
-        <p>How CAR governs the message flow without locking into agent runtimes &mdash; and why it complements Faramesh and AetherClaw</p>
-      </article>
-      <article class="blog-card">
-        <p class="meta">April 2026</p>
-        <h2><a href="/ChatAgentRelay/blog/v1-road-to-production/">From Prototype to Production: CAR v0.2&ndash;v0.6 Journey</a></h2>
-        <p>Five milestones, 20 requirements, 692 tests &mdash; how CAR went from a prototype to a production-ready relay</p>
-      </article>
-      <article class="blog-card">
-        <p class="meta">March 2026</p>
-        <h2><a href="/ChatAgentRelay/blog/one-protocol-a2a/">One Protocol to Connect Them All: Why CAR Chose A2A</a></h2>
-        <p>How Chat Agent Relay simplified its agent-side boundary around A2A while staying focused on chat-to-agent relay responsibilities</p>
-      </article>
-      <article class="blog-card">
-        <p class="meta">March 2026</p>
-        <h2><a href="/ChatAgentRelay/blog/agent-adapter-capability-matrix/">Agent Adapter Capability Matrix</a></h2>
-        <p>Comparison of CAR's earlier five-adapter design, with links to the current A2A-only architecture</p>
-      </article>
-      <article class="blog-card">
-        <p class="meta">March 2026</p>
-        <h2><a href="/ChatAgentRelay/blog/agent-compatibility-analysis/">Agent Runtime Compatibility Analysis</a></h2>
-        <p>Analysis of CAR's earlier adapter coverage model. See &ldquo;One Protocol&rdquo; for the current architecture</p>
-      </article>
-      <article class="blog-card">
-        <p class="meta">March 2026</p>
-        <h2><a href="/ChatAgentRelay/blog/introducing-chat-agent-relay/">Introducing Chat Agent Relay</a></h2>
-        <p>Why we built an open-source middleware for chat-to-agent integration</p>
-      </article>
-      <article class="blog-card">
-        <p class="meta">March 2026</p>
-        <h2><a href="/ChatAgentRelay/blog/architecture-deep-dive/">Architecture Deep Dive</a></h2>
-        <p>The canonical event chain and why every message produces 7 events</p>
-      </article>
-    </div>
-  </article>
-</main>
-
-<!-- Footer -->
-<footer class="footer">
-  <div class="container">
-    <div class="footer-links">
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
-      <a href="/ChatAgentRelay/docs/">Docs</a>
-      <a href="/ChatAgentRelay/blog/">Blog</a>
-      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
-    </div>
-    <p>MIT License &middot; Built with Bun and TypeScript</p>
-  </div>
-</footer>
-
-<script src="../js/main.js"></script>
-</body>
-</html>
+---
+layout: blog-index
+title: "Blog — Chat Agent Relay: Chat-to-Agent Middleware Updates"
+description: "News and technical writing from Chat Agent Relay: open-source middleware connecting chat platforms to AI agents. Architecture and canonical event model."
+keywords: "Chat Agent Relay, CAR, blog, chat platform, AI agent, middleware, open source, Slack, architecture, events"
+og_title: "Blog — Chat Agent Relay: Chat-to-Agent Middleware Updates"
+og_description: "Updates and deep dives on Chat Agent Relay: chat-to-agent middleware, governance, audit, and pluggable adapters."
+twitter_title: "Blog — Chat Agent Relay: Middleware Updates"
+twitter_description: "News and technical articles from the Chat Agent Relay open-source chat-to-agent middleware project."
+structured_data:
+  "@context": "https://schema.org"
+  "@type": "Blog"
+  name: "Chat Agent Relay Blog"
+  description: "Articles about Chat Agent Relay open-source middleware for chat platforms and AI agents."
+  url: "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/"
+  publisher:
+    "@type": "Organization"
+    name: "Chat Agent Relay"
+    url: "https://ChatAgentRelay.github.io/ChatAgentRelay/"
+  blogPost:
+    - "@type": "BlogPosting"
+      headline: "Enterprise Governance in CAR: Message Flow Security Without Agent Lock-In"
+      url: "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/enterprise-governance-deep-dive/"
+      datePublished: "2026-04-01"
+      description: "How CAR governs the message flow without locking into agent runtimes — and why it complements Faramesh and AetherClaw."
+    - "@type": "BlogPosting"
+      headline: "From Prototype to Production: CAR v0.2–v0.6 Journey"
+      url: "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/v1-road-to-production/"
+      datePublished: "2026-04-01"
+      description: "Five milestones, 20 requirements, 692 tests — how CAR went from a prototype with 6 channels to a production-ready relay with 8 channels and enterprise governance."
+    - "@type": "BlogPosting"
+      headline: "One Protocol to Connect Them All: Why CAR Chose A2A"
+      url: "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/one-protocol-a2a/"
+      datePublished: "2026-03-31"
+      description: "How Chat Agent Relay simplified its agent-side boundary around A2A — while staying a relay layer between chat platforms and agents."
+    - "@type": "BlogPosting"
+      headline: "Agent Adapter Capability Matrix"
+      url: "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/agent-adapter-capability-matrix/"
+      datePublished: "2026-03-28"
+      description: "Pre-consolidation comparison of five agent adapters. CAR now uses A2A as the sole protocol."
+    - "@type": "BlogPosting"
+      headline: "Agent Runtime Compatibility Analysis"
+      url: "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/agent-compatibility-analysis/"
+      datePublished: "2026-03-30"
+      description: "Pre-consolidation analysis of five agent adapters. See One Protocol to Connect Them All for current architecture."
+    - "@type": "BlogPosting"
+      headline: "Introducing Chat Agent Relay"
+      url: "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/introducing-chat-agent-relay/"
+      datePublished: "2026-03-01"
+      description: "Why we built an open-source middleware for chat-to-agent integration."
+    - "@type": "BlogPosting"
+      headline: "Architecture Deep Dive"
+      url: "https://ChatAgentRelay.github.io/ChatAgentRelay/blog/architecture-deep-dive/"
+      datePublished: "2026-03-01"
+      description: "The canonical event chain and why every message produces 7 events."
+---

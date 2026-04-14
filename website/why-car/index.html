@@ -1,108 +1,55 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Why Chat Agent Relay — A Standard Relay Layer for Chat-to-Agent Message Paths</title>
-  <meta name="description" content="Why Chat Agent Relay exists: a standard relay layer between chat platforms and agents, centered on canonical events, governance, routing, delivery reliability, and auditability.">
-  <meta name="keywords" content="Chat Agent Relay, CAR, relay layer, canonical events, A2A, governance, audit, chat platform, agent, open source">
+---
+layout: page
+title: "Why Chat Agent Relay — A Standard Relay Layer for Chat-to-Agent Message Paths"
+description: "Why Chat Agent Relay exists: a standard relay layer between chat platforms and agents, centered on canonical events, governance, routing, delivery reliability, and auditability."
+keywords: "Chat Agent Relay, CAR, relay layer, canonical events, A2A, governance, audit, chat platform, agent, open source"
+og_title: "Why Chat Agent Relay — A Standard Relay Layer for Chat-to-Agent Message Paths"
+og_description: "Canonical events, governance, routing, A2A invocation, delivery reliability, replay, and auditability on the message path."
+twitter_title: "Why Chat Agent Relay — A Standard Relay Layer for Chat-to-Agent Message Paths"
+twitter_description: "Why CAR exists: a standard relay layer between chat platforms and agents."
+nav_active: why-car
+structured_data:
+  "@context": "https://schema.org"
+  "@type": "WebPage"
+  name: "Why Chat Agent Relay"
+  description: "Why Chat Agent Relay exists: a standard relay layer between chat platforms and agents."
+  url: "https://ChatAgentRelay.github.io/ChatAgentRelay/why-car/"
+  isPartOf:
+    "@type": "WebSite"
+    name: "Chat Agent Relay"
+    url: "https://ChatAgentRelay.github.io/ChatAgentRelay/"
+---
+<h1>Why Chat Agent Relay Exists</h1>
+<p class="meta">Open-source relay layer &middot; canonical events, governance, routing, delivery reliability, and auditability</p>
 
-  <!-- Open Graph -->
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="Why Chat Agent Relay — A Standard Relay Layer for Chat-to-Agent Message Paths">
-  <meta property="og:description" content="Canonical events, governance, routing, A2A invocation, delivery reliability, replay, and auditability on the message path.">
-  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/why-car/">
-  <meta property="og:site_name" content="Chat Agent Relay">
+<h2>The problem</h2>
+<p>Teams repeatedly rebuild the same chat-to-agent integration path:</p>
+<ul>
+  <li>verify and canonicalize inbound platform traffic</li>
+  <li>apply message-path governance before an agent sees the turn</li>
+  <li>route the turn to the right agent</li>
+  <li>invoke the agent and map its result back into a stable form</li>
+  <li>deliver the response reliably and preserve what happened for audit</li>
+</ul>
+<p>That work is necessary, but it is usually not the core product the team is trying to build.</p>
 
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Why Chat Agent Relay — A Standard Relay Layer for Chat-to-Agent Message Paths">
-  <meta name="twitter:description" content="Why CAR exists: a standard relay layer between chat platforms and agents.">
+<h2>The idea</h2>
+<p>
+  Chat Agent Relay makes that layer explicit. CAR is a <strong>standard relay layer between chat platforms and agents</strong>, centered on canonical events and the governed message path.
+</p>
+<p>
+  Instead of letting every provider payload shape and every agent integration detail leak into application code, CAR keeps channel-specific and agent-specific behavior at the boundaries and keeps the message path inside the relay consistent.
+</p>
 
-  <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
-  <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
-
-  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/why-car/">
-  <link rel="icon" href="/ChatAgentRelay/img/favicon.svg" type="image/svg+xml">
-
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="../css/style.css">
-
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-7FERB87K2D');
-  </script>
-
-  <!-- Structured Data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebPage",
-    "name": "Why Chat Agent Relay",
-    "description": "Why Chat Agent Relay exists: a standard relay layer between chat platforms and agents.",
-    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/why-car/",
-    "isPartOf": { "@type": "WebSite", "name": "Chat Agent Relay", "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/" }
-  }
-  </script>
-</head>
-<body>
-
-<!-- Nav -->
-<nav class="nav">
-  <div class="container">
-    <a href="/ChatAgentRelay/" class="nav-brand"><span class="prompt">$</span> car</a>
-    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
-    <div class="nav-links">
-      <a href="/ChatAgentRelay/why-car/" class="active">Why CAR</a>
-      <a href="/ChatAgentRelay/use-cases/">Use Cases</a>
-      <a href="/ChatAgentRelay/docs/">Docs</a>
-      <a href="/ChatAgentRelay/compare/diy/">Compare</a>
-      <a href="/ChatAgentRelay/blog/">Blog</a>
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="nav-cta" data-track="nav_github">GitHub</a>
-    </div>
+<h2>The message path</h2>
+<div class="terminal" style="max-width:100%;margin-bottom:16px">
+  <div class="terminal-header">
+    <span class="terminal-dot red"></span>
+    <span class="terminal-dot yellow"></span>
+    <span class="terminal-dot green"></span>
+    <span class="terminal-title">message-path.txt</span>
   </div>
-</nav>
-
-<main>
-  <article class="article">
-    <h1>Why Chat Agent Relay Exists</h1>
-    <p class="meta">Open-source relay layer &middot; canonical events, governance, routing, delivery reliability, and auditability</p>
-
-    <h2>The problem</h2>
-    <p>Teams repeatedly rebuild the same chat-to-agent integration path:</p>
-    <ul>
-      <li>verify and canonicalize inbound platform traffic</li>
-      <li>apply message-path governance before an agent sees the turn</li>
-      <li>route the turn to the right agent</li>
-      <li>invoke the agent and map its result back into a stable form</li>
-      <li>deliver the response reliably and preserve what happened for audit</li>
-    </ul>
-    <p>That work is necessary, but it is usually not the core product the team is trying to build.</p>
-
-    <h2>The idea</h2>
-    <p>
-      Chat Agent Relay makes that layer explicit. CAR is a <strong>standard relay layer between chat platforms and agents</strong>, centered on canonical events and the governed message path.
-    </p>
-    <p>
-      Instead of letting every provider payload shape and every agent integration detail leak into application code, CAR keeps channel-specific and agent-specific behavior at the boundaries and keeps the message path inside the relay consistent.
-    </p>
-
-    <h2>The message path</h2>
-    <div class="terminal" style="max-width:100%;margin-bottom:16px">
-      <div class="terminal-header">
-        <span class="terminal-dot red"></span>
-        <span class="terminal-dot yellow"></span>
-        <span class="terminal-dot green"></span>
-        <span class="terminal-title">message-path.txt</span>
-      </div>
-      <div class="terminal-body" style="line-height:1.5">
+  <div class="terminal-body" style="line-height:1.5">
 <pre style="margin:0;background:transparent;border:none;padding:0;font-family:inherit;font-size:0.75rem;color:var(--text-muted);white-space:pre;overflow-x:auto">message.received
   → policy.decision.made
   → route.decision.made
@@ -113,92 +60,72 @@
 
 blocked or terminal failure path:
   → event.blocked</pre>
-      </div>
-    </div>
-    <p>
-      This canonical path gives CAR one stable internal contract for governance, routing, delivery, replay, and audit across multiple chat platforms and agent integrations.
-    </p>
-
-    <h2>Boundary model</h2>
-    <div class="feature-grid" style="margin-bottom:16px">
-      <div class="feature-card">
-        <h3>Channel-side boundary</h3>
-        <p>Channel adapters receive provider-native traffic, verify it where applicable, canonicalize it into CAR events, and translate outbound canonical intent back into provider-native delivery behavior.</p>
-      </div>
-      <div class="feature-card">
-        <h3>CAR core</h3>
-        <p>CAR owns canonical event semantics, message-path governance, route decisions, delivery orchestration, and append-only replay/audit truth.</p>
-      </div>
-      <div class="feature-card">
-        <h3>Agent-side boundary</h3>
-        <p>CAR uses <strong>A2A</strong> as the standard agent-side protocol boundary. The remote runtime keeps ownership of its internal execution model, private memory, tools, and framework-specific state.</p>
-      </div>
-    </div>
-
-    <h2>Why that matters</h2>
-    <div class="feature-grid" style="margin-bottom:16px">
-      <div class="feature-card">
-        <h3>Canonical events first</h3>
-        <p>The message path is replayable and explainable because the relay runs on canonical events instead of raw provider payloads.</p>
-      </div>
-      <div class="feature-card">
-        <h3>Governed message path</h3>
-        <p>Policy runs before routing and before delivery, so blocked outcomes remain part of the same auditable path.</p>
-      </div>
-      <div class="feature-card">
-        <h3>A2A at the agent boundary</h3>
-        <p>The relay stays focused on the boundary to agents instead of turning into a general-purpose runtime abstraction layer.</p>
-      </div>
-      <div class="feature-card">
-        <h3>Replay and audit</h3>
-        <p>An append-only ledger preserves what happened on the message path and why, without depending on scattered logs or runtime-private state.</p>
-      </div>
-      <div class="feature-card">
-        <h3>Extensible boundaries</h3>
-        <p>Channel adapters and agent adapters can be extended while preserving the same relay-centered architecture.</p>
-      </div>
-    </div>
-
-    <h2>What Chat Agent Relay is not</h2>
-    <ul>
-      <li>Not an agent runtime or orchestration framework</li>
-      <li>Not an agent-internal governance platform</li>
-      <li>Not an inbox, CRM, or SaaS workspace product</li>
-      <li>Not the place where runtime-private execution state becomes CAR's source of truth</li>
-    </ul>
-
-    <h2>Current repository shape</h2>
-    <ul>
-      <li>Built-in channel adapters for major chat platforms</li>
-      <li>Built-in A2A agent adapter</li>
-      <li>Canonical event contracts and schema validation</li>
-      <li>Middleware for governance and routing</li>
-      <li>Delivery orchestration and retry behavior</li>
-      <li>Append-only ledger for replay and audit</li>
-      <li>Conformance tooling for adapter validation</li>
-    </ul>
-
-    <div class="hero-actions" style="justify-content:flex-start;margin-top:32px">
-      <a href="/ChatAgentRelay/docs/" class="btn btn-primary" data-track="why_car_get_started">Get Started</a>
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-secondary" data-track="why_car_github">View Source</a>
-    </div>
-  </article>
-</main>
-
-<!-- Footer -->
-<footer class="footer">
-  <div class="container">
-    <div class="footer-links">
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
-      <a href="/ChatAgentRelay/docs/">Docs</a>
-      <a href="/ChatAgentRelay/blog/">Blog</a>
-      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
-    </div>
-    <p>MIT License &middot; Built with Bun and TypeScript</p>
   </div>
-</footer>
+</div>
+<p>
+  This canonical path gives CAR one stable internal contract for governance, routing, delivery, replay, and audit across multiple chat platforms and agent integrations.
+</p>
 
-<script src="../js/main.js"></script>
-</body>
-</html>
+<h2>Boundary model</h2>
+<div class="feature-grid" style="margin-bottom:16px">
+  <div class="feature-card">
+    <h3>Channel-side boundary</h3>
+    <p>Channel adapters receive provider-native traffic, verify it where applicable, canonicalize it into CAR events, and translate outbound canonical intent back into provider-native delivery behavior.</p>
+  </div>
+  <div class="feature-card">
+    <h3>CAR core</h3>
+    <p>CAR owns canonical event semantics, message-path governance, route decisions, delivery orchestration, and append-only replay/audit truth.</p>
+  </div>
+  <div class="feature-card">
+    <h3>Agent-side boundary</h3>
+    <p>CAR uses <strong>A2A</strong> as the standard agent-side protocol boundary. The remote runtime keeps ownership of its internal execution model, private memory, tools, and framework-specific state.</p>
+  </div>
+</div>
+
+<h2>Why that matters</h2>
+<div class="feature-grid" style="margin-bottom:16px">
+  <div class="feature-card">
+    <h3>Canonical events first</h3>
+    <p>The message path is replayable and explainable because the relay runs on canonical events instead of raw provider payloads.</p>
+  </div>
+  <div class="feature-card">
+    <h3>Governed message path</h3>
+    <p>Policy runs before routing and before delivery, so blocked outcomes remain part of the same auditable path.</p>
+  </div>
+  <div class="feature-card">
+    <h3>A2A at the agent boundary</h3>
+    <p>The relay stays focused on the boundary to agents instead of turning into a general-purpose runtime abstraction layer.</p>
+  </div>
+  <div class="feature-card">
+    <h3>Replay and audit</h3>
+    <p>An append-only ledger preserves what happened on the message path and why, without depending on scattered logs or runtime-private state.</p>
+  </div>
+  <div class="feature-card">
+    <h3>Extensible boundaries</h3>
+    <p>Channel adapters and agent adapters can be extended while preserving the same relay-centered architecture.</p>
+  </div>
+</div>
+
+<h2>What Chat Agent Relay is not</h2>
+<ul>
+  <li>Not an agent runtime or orchestration framework</li>
+  <li>Not an agent-internal governance platform</li>
+  <li>Not an inbox, CRM, or SaaS workspace product</li>
+  <li>Not the place where runtime-private execution state becomes CAR's source of truth</li>
+</ul>
+
+<h2>Current repository shape</h2>
+<ul>
+  <li>Built-in channel adapters for major chat platforms</li>
+  <li>Built-in A2A agent adapter</li>
+  <li>Canonical event contracts and schema validation</li>
+  <li>Middleware for governance and routing</li>
+  <li>Delivery orchestration and retry behavior</li>
+  <li>Append-only ledger for replay and audit</li>
+  <li>Conformance tooling for adapter validation</li>
+</ul>
+
+<div class="hero-actions" style="justify-content:flex-start;margin-top:32px">
+  <a href="{{ site.baseurl }}/docs/" class="btn btn-primary" data-track="why_car_get_started">Get Started</a>
+  <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-secondary" data-track="why_car_github">View Source</a>
+</div>

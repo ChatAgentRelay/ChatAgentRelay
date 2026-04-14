@@ -1,85 +1,38 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>One Agent, Every Chat Platform — Chat Agent Relay</title>
-  <meta name="description" content="Connect a single agent to Slack, Discord, Telegram, Teams, WhatsApp, Lark, DingTalk, and WebChat through one relay layer instead of rebuilding plumbing per platform.">
+---
+layout: page
+title: "One Agent, Every Chat Platform — Chat Agent Relay"
+description: "Connect a single agent to Slack, Discord, Telegram, Teams, WhatsApp, Lark, DingTalk, and WebChat through one relay layer instead of rebuilding plumbing per platform."
+og_title: "One Agent, Every Chat Platform — Chat Agent Relay"
+og_description: "Connect a single agent to every chat platform through one relay layer."
+twitter_title: "One Agent, Every Chat Platform — Chat Agent Relay"
+twitter_description: "Connect a single agent to every chat platform through one relay layer."
+nav_active: use-cases
+---
+<h1>One Agent, Every Chat Platform</h1>
+<p class="meta">Stop rebuilding webhook verification, auth, message formatting, and delivery logic for each platform.</p>
 
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="One Agent, Every Chat Platform — Chat Agent Relay">
-  <meta property="og:description" content="Connect a single agent to every chat platform through one relay layer.">
-  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/use-cases/multi-channel/">
-  <meta property="og:site_name" content="Chat Agent Relay">
+<h2>The problem</h2>
+<p>Your agent works. Now Slack wants it. Then Teams. Then Discord. Then Telegram for the mobile team. Each platform has its own:</p>
+<ul>
+  <li>Webhook or socket protocol for receiving messages</li>
+  <li>Authentication and signature verification</li>
+  <li>Message format (Block Kit, Embeds, Markdown variants, HTML)</li>
+  <li>Delivery API and error semantics</li>
+  <li>Rate limits, retry behavior, and session management</li>
+</ul>
+<p>You end up maintaining N separate integration layers that all do conceptually the same thing: receive a message, send it to the agent, deliver the response. The per-platform plumbing grows faster than the product.</p>
 
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="One Agent, Every Chat Platform — Chat Agent Relay">
-  <meta name="twitter:description" content="Connect a single agent to every chat platform through one relay layer.">
+<h2>How CAR solves it</h2>
+<p>Chat Agent Relay sits between your chat platforms and your agent. Channel adapters handle the platform-specific boundary; CAR normalizes everything into canonical events on the inside.</p>
 
-  <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
-  <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
-
-  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/use-cases/multi-channel/">
-  <link rel="icon" href="/ChatAgentRelay/img/favicon.svg" type="image/svg+xml">
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="../../css/style.css">
-
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-7FERB87K2D');
-  </script>
-</head>
-<body>
-
-<nav class="nav">
-  <div class="container">
-    <a href="/ChatAgentRelay/" class="nav-brand"><span class="prompt">$</span> car</a>
-    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
-    <div class="nav-links">
-      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
-      <a href="/ChatAgentRelay/use-cases/" class="active">Use Cases</a>
-      <a href="/ChatAgentRelay/docs/">Docs</a>
-      <a href="/ChatAgentRelay/compare/diy/">Compare</a>
-      <a href="/ChatAgentRelay/blog/">Blog</a>
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="nav-cta" data-track="nav_github">GitHub</a>
-    </div>
+<div class="terminal" style="max-width:100%;margin:24px 0">
+  <div class="terminal-header">
+    <span class="terminal-dot red"></span>
+    <span class="terminal-dot yellow"></span>
+    <span class="terminal-dot green"></span>
+    <span class="terminal-title">architecture</span>
   </div>
-</nav>
-
-<main>
-  <article class="article">
-    <h1>One Agent, Every Chat Platform</h1>
-    <p class="meta">Stop rebuilding webhook verification, auth, message formatting, and delivery logic for each platform.</p>
-
-    <h2>The problem</h2>
-    <p>Your agent works. Now Slack wants it. Then Teams. Then Discord. Then Telegram for the mobile team. Each platform has its own:</p>
-    <ul>
-      <li>Webhook or socket protocol for receiving messages</li>
-      <li>Authentication and signature verification</li>
-      <li>Message format (Block Kit, Embeds, Markdown variants, HTML)</li>
-      <li>Delivery API and error semantics</li>
-      <li>Rate limits, retry behavior, and session management</li>
-    </ul>
-    <p>You end up maintaining N separate integration layers that all do conceptually the same thing: receive a message, send it to the agent, deliver the response. The per-platform plumbing grows faster than the product.</p>
-
-    <h2>How CAR solves it</h2>
-    <p>Chat Agent Relay sits between your chat platforms and your agent. Channel adapters handle the platform-specific boundary; CAR normalizes everything into canonical events on the inside.</p>
-
-    <div class="terminal" style="max-width:100%;margin:24px 0">
-      <div class="terminal-header">
-        <span class="terminal-dot red"></span>
-        <span class="terminal-dot yellow"></span>
-        <span class="terminal-dot green"></span>
-        <span class="terminal-title">architecture</span>
-      </div>
-      <div class="terminal-body" style="line-height:1.5">
+  <div class="terminal-body" style="line-height:1.5">
 <pre style="margin:0;background:transparent;border:none;padding:0;font-family:inherit;font-size:0.75rem;color:var(--text-muted);white-space:pre;overflow-x:auto">Slack     ─┐
 Discord   ─┤
 Telegram  ─┤    CAR normalizes → governs → routes → invokes
@@ -88,20 +41,20 @@ WhatsApp  ─┤                                   Your Agent (A2A)
 Lark      ─┤                                          ↓
 DingTalk  ─┤    CAR delivers ← formats ← retries ← response
 WebChat   ─┘</pre>
-      </div>
-    </div>
+  </div>
+</div>
 
-    <p>Your agent receives the same canonical invocation regardless of which platform the message came from. It responds once; CAR translates the response into the right format for each platform and handles delivery.</p>
+<p>Your agent receives the same canonical invocation regardless of which platform the message came from. It responds once; CAR translates the response into the right format for each platform and handles delivery.</p>
 
-    <h2>What that looks like</h2>
-    <div class="terminal" style="max-width:100%;margin:24px 0">
-      <div class="terminal-header">
-        <span class="terminal-dot red"></span>
-        <span class="terminal-dot yellow"></span>
-        <span class="terminal-dot green"></span>
-        <span class="terminal-title">terminal</span>
-      </div>
-      <div class="terminal-body">
+<h2>What that looks like</h2>
+<div class="terminal" style="max-width:100%;margin:24px 0">
+  <div class="terminal-header">
+    <span class="terminal-dot red"></span>
+    <span class="terminal-dot yellow"></span>
+    <span class="terminal-dot green"></span>
+    <span class="terminal-title">terminal</span>
+  </div>
+  <div class="terminal-body">
 <pre style="margin:0;background:transparent;border:none;padding:0;font-family:inherit;font-size:0.85rem;color:var(--text-muted);white-space:pre;overflow-x:auto"><span style="color:var(--text-dim)">$</span> car channel add slack --type=slack --bot-token=xoxb-... --app-token=xapp-...
 <span style="color:var(--text-dim)">$</span> car channel add discord --type=discord --bot-token=...
 <span style="color:var(--text-dim)">$</span> car channel add telegram --type=telegram --bot-token=...
@@ -109,49 +62,30 @@ WebChat   ─┘</pre>
 <span style="color:var(--text-dim)">$</span> car route add --default --agent=my-bot
 <span style="color:var(--text-dim)">$</span> car start
 <span style="color:var(--green)">[car] 3 channels registered &middot; 1 agent registered &middot; relay running</span></pre>
-      </div>
-    </div>
-
-    <p>Send a message from any of the three platforms. The same agent handles all of them through the same canonical event path.</p>
-
-    <h2>Built-in channels</h2>
-    <div class="feature-grid">
-      <div class="feature-card"><h3>Slack</h3><p>Socket Mode, events, slash commands, Block Kit output, ack reactions, streaming updates</p></div>
-      <div class="feature-card"><h3>Discord</h3><p>Gateway API, slash commands, rich embeds, access control</p></div>
-      <div class="feature-card"><h3>Telegram</h3><p>Bot API webhooks, bot commands, progressive streaming via message editing</p></div>
-      <div class="feature-card"><h3>Microsoft Teams</h3><p>Bot Framework webhook, JWT verification</p></div>
-      <div class="feature-card"><h3>WhatsApp Business</h3><p>Cloud API webhooks, HMAC verification, 24h session tracking</p></div>
-      <div class="feature-card"><h3>Lark / DingTalk / WebChat</h3><p>Event subscription, auto token management, HTTP transport with CORS</p></div>
-    </div>
-
-    <h2>What you keep</h2>
-    <ul>
-      <li>Full ownership of your agent runtime, memory, and tools</li>
-      <li>A2A as the standard protocol boundary &mdash; no vendor lock-in</li>
-      <li>The ability to add or remove channels at runtime without restarting</li>
-      <li>Canonical event audit trail across all channels</li>
-    </ul>
-
-    <div class="hero-actions" style="justify-content:flex-start;margin-top:32px">
-      <a href="/ChatAgentRelay/docs/" class="btn btn-primary">Get Started</a>
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-secondary">View on GitHub</a>
-    </div>
-  </article>
-</main>
-
-<footer class="footer">
-  <div class="container">
-    <div class="footer-links">
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
-      <a href="/ChatAgentRelay/docs/">Docs</a>
-      <a href="/ChatAgentRelay/blog/">Blog</a>
-      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
-    </div>
-    <p>MIT License &middot; Built with Bun and TypeScript</p>
   </div>
-</footer>
+</div>
 
-<script src="../../js/main.js"></script>
-</body>
-</html>
+<p>Send a message from any of the three platforms. The same agent handles all of them through the same canonical event path.</p>
+
+<h2>Built-in channels</h2>
+<div class="feature-grid">
+  <div class="feature-card"><h3>Slack</h3><p>Socket Mode, events, slash commands, Block Kit output, ack reactions, streaming updates</p></div>
+  <div class="feature-card"><h3>Discord</h3><p>Gateway API, slash commands, rich embeds, access control</p></div>
+  <div class="feature-card"><h3>Telegram</h3><p>Bot API webhooks, bot commands, progressive streaming via message editing</p></div>
+  <div class="feature-card"><h3>Microsoft Teams</h3><p>Bot Framework webhook, JWT verification</p></div>
+  <div class="feature-card"><h3>WhatsApp Business</h3><p>Cloud API webhooks, HMAC verification, 24h session tracking</p></div>
+  <div class="feature-card"><h3>Lark / DingTalk / WebChat</h3><p>Event subscription, auto token management, HTTP transport with CORS</p></div>
+</div>
+
+<h2>What you keep</h2>
+<ul>
+  <li>Full ownership of your agent runtime, memory, and tools</li>
+  <li>A2A as the standard protocol boundary &mdash; no vendor lock-in</li>
+  <li>The ability to add or remove channels at runtime without restarting</li>
+  <li>Canonical event audit trail across all channels</li>
+</ul>
+
+<div class="hero-actions" style="justify-content:flex-start;margin-top:32px">
+  <a href="{{ site.baseurl }}/docs/" class="btn btn-primary">Get Started</a>
+  <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-secondary">View on GitHub</a>
+</div>

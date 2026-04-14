@@ -1,0 +1,24 @@
+title: Chat Agent Relay
+description: >-
+  Open-source relay layer between chat platforms and agents.
+  Canonical events, governance, routing, delivery reliability, and auditability.
+url: https://ChatAgentRelay.github.io
+baseurl: /ChatAgentRelay
+
+permalink: /blog/:title/
+
+defaults:
+  - scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"
+  - scope:
+      path: "docs"
+    values:
+      layout: "doc"
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor

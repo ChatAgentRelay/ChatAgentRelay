@@ -1,84 +1,37 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Governed &amp; Auditable Agent Messaging — Chat Agent Relay</title>
-  <meta name="description" content="Apply governance, policy, and audit to the chat-to-agent message path. Every step recorded in an append-only ledger.">
+---
+layout: page
+title: "Governed & Auditable Agent Messaging — Chat Agent Relay"
+description: "Apply governance, policy, and audit to the chat-to-agent message path. Every step recorded in an append-only ledger."
+og_title: "Governed & Auditable Agent Messaging — Chat Agent Relay"
+og_description: "Apply governance, policy, and audit to the chat-to-agent message path."
+twitter_title: "Governed & Auditable Agent Messaging — Chat Agent Relay"
+twitter_description: "Apply governance, policy, and audit to the chat-to-agent message path."
+nav_active: use-cases
+---
+<h1>Governed &amp; Auditable Agent Messaging</h1>
+<p class="meta">Policy on the message path. Every step in an append-only ledger.</p>
 
-  <meta property="og:type" content="website">
-  <meta property="og:title" content="Governed & Auditable Agent Messaging — Chat Agent Relay">
-  <meta property="og:description" content="Apply governance, policy, and audit to the chat-to-agent message path.">
-  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/use-cases/governance-audit/">
-  <meta property="og:site_name" content="Chat Agent Relay">
+<h2>The problem</h2>
+<p>When an agent lives in a chat channel, three questions come up fast:</p>
+<ul>
+  <li><strong>What happened?</strong> &mdash; A user reports a bad response. You need to reconstruct the exact sequence: what was sent, what policy applied, which agent handled it, what was delivered.</li>
+  <li><strong>What should be blocked?</strong> &mdash; Compliance needs certain content filtered before it reaches the agent or before the agent's response reaches users.</li>
+  <li><strong>Can we prove it?</strong> &mdash; Audit requires a tamper-evident record of every message path outcome, including denied and failed deliveries.</li>
+</ul>
+<p>Scattered logs across chat platform APIs, agent runtimes, and custom middleware cannot answer these questions reliably.</p>
 
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Governed & Auditable Agent Messaging — Chat Agent Relay">
-  <meta name="twitter:description" content="Apply governance, policy, and audit to the chat-to-agent message path.">
+<h2>How CAR solves it</h2>
 
-  <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
-  <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
-
-  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/use-cases/governance-audit/">
-  <link rel="icon" href="/ChatAgentRelay/img/favicon.svg" type="image/svg+xml">
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="../../css/style.css">
-
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-7FERB87K2D');
-  </script>
-</head>
-<body>
-
-<nav class="nav">
-  <div class="container">
-    <a href="/ChatAgentRelay/" class="nav-brand"><span class="prompt">$</span> car</a>
-    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
-    <div class="nav-links">
-      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
-      <a href="/ChatAgentRelay/use-cases/" class="active">Use Cases</a>
-      <a href="/ChatAgentRelay/docs/">Docs</a>
-      <a href="/ChatAgentRelay/compare/diy/">Compare</a>
-      <a href="/ChatAgentRelay/blog/">Blog</a>
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="nav-cta" data-track="nav_github">GitHub</a>
-    </div>
+<h3>Canonical 7-event chain</h3>
+<p>Every message produces a complete event chain in the ledger:</p>
+<div class="terminal" style="max-width:100%;margin:16px 0">
+  <div class="terminal-header">
+    <span class="terminal-dot red"></span>
+    <span class="terminal-dot yellow"></span>
+    <span class="terminal-dot green"></span>
+    <span class="terminal-title">event-chain.txt</span>
   </div>
-</nav>
-
-<main>
-  <article class="article">
-    <h1>Governed &amp; Auditable Agent Messaging</h1>
-    <p class="meta">Policy on the message path. Every step in an append-only ledger.</p>
-
-    <h2>The problem</h2>
-    <p>When an agent lives in a chat channel, three questions come up fast:</p>
-    <ul>
-      <li><strong>What happened?</strong> &mdash; A user reports a bad response. You need to reconstruct the exact sequence: what was sent, what policy applied, which agent handled it, what was delivered.</li>
-      <li><strong>What should be blocked?</strong> &mdash; Compliance needs certain content filtered before it reaches the agent or before the agent's response reaches users.</li>
-      <li><strong>Can we prove it?</strong> &mdash; Audit requires a tamper-evident record of every message path outcome, including denied and failed deliveries.</li>
-    </ul>
-    <p>Scattered logs across chat platform APIs, agent runtimes, and custom middleware cannot answer these questions reliably.</p>
-
-    <h2>How CAR solves it</h2>
-
-    <h3>Canonical 7-event chain</h3>
-    <p>Every message produces a complete event chain in the ledger:</p>
-    <div class="terminal" style="max-width:100%;margin:16px 0">
-      <div class="terminal-header">
-        <span class="terminal-dot red"></span>
-        <span class="terminal-dot yellow"></span>
-        <span class="terminal-dot green"></span>
-        <span class="terminal-title">event-chain.txt</span>
-      </div>
-      <div class="terminal-body" style="line-height:1.5">
+  <div class="terminal-body" style="line-height:1.5">
 <pre style="margin:0;background:transparent;border:none;padding:0;font-family:inherit;font-size:0.75rem;color:var(--text-muted);white-space:pre;overflow-x:auto">message.received          &larr; inbound message canonicalized
   &rarr; policy.decision.made  &larr; governance verdict (allow / deny)
   &rarr; route.decision.made   &larr; which agent handles this
@@ -89,20 +42,20 @@
 
 If denied or failed:
   &rarr; event.blocked         &larr; reason, stage, and context preserved</pre>
-      </div>
-    </div>
-    <p>Every event carries <code>correlation_id</code> and <code>causation_id</code>, linking the full causal chain. The ledger is append-only &mdash; events are never modified or deleted.</p>
+  </div>
+</div>
+<p>Every event carries <code>correlation_id</code> and <code>causation_id</code>, linking the full causal chain. The ledger is append-only &mdash; events are never modified or deleted.</p>
 
-    <h3>Inbound and outbound policy</h3>
-    <p>Define policy rules in YAML. CAR evaluates them on the message path before routing (inbound) and before delivery (outbound):</p>
-    <div class="terminal" style="max-width:100%;margin:16px 0">
-      <div class="terminal-header">
-        <span class="terminal-dot red"></span>
-        <span class="terminal-dot yellow"></span>
-        <span class="terminal-dot green"></span>
-        <span class="terminal-title">policy.yaml</span>
-      </div>
-      <div class="terminal-body">
+<h3>Inbound and outbound policy</h3>
+<p>Define policy rules in YAML. CAR evaluates them on the message path before routing (inbound) and before delivery (outbound):</p>
+<div class="terminal" style="max-width:100%;margin:16px 0">
+  <div class="terminal-header">
+    <span class="terminal-dot red"></span>
+    <span class="terminal-dot yellow"></span>
+    <span class="terminal-dot green"></span>
+    <span class="terminal-title">policy.yaml</span>
+  </div>
+  <div class="terminal-body">
 <pre style="margin:0;background:transparent;border:none;padding:0;font-family:inherit;font-size:0.85rem;color:var(--text-muted);white-space:pre;overflow-x:auto">rules:
   - name: block-sensitive-keywords
     match:
@@ -114,20 +67,20 @@ If denied or failed:
     match:
       channel_pattern: "support-*"
     action: allow</pre>
-      </div>
-    </div>
-    <p>Blocked messages produce <code>event.blocked</code> in the ledger with the denial reason &mdash; the outcome is auditable, not silent.</p>
+  </div>
+</div>
+<p>Blocked messages produce <code>event.blocked</code> in the ledger with the denial reason &mdash; the outcome is auditable, not silent.</p>
 
-    <h3>Replay and query</h3>
-    <p>The HTTP API exposes the ledger for querying:</p>
-    <div class="terminal" style="max-width:100%;margin:16px 0">
-      <div class="terminal-header">
-        <span class="terminal-dot red"></span>
-        <span class="terminal-dot yellow"></span>
-        <span class="terminal-dot green"></span>
-        <span class="terminal-title">terminal</span>
-      </div>
-      <div class="terminal-body">
+<h3>Replay and query</h3>
+<p>The HTTP API exposes the ledger for querying:</p>
+<div class="terminal" style="max-width:100%;margin:16px 0">
+  <div class="terminal-header">
+    <span class="terminal-dot red"></span>
+    <span class="terminal-dot yellow"></span>
+    <span class="terminal-dot green"></span>
+    <span class="terminal-title">terminal</span>
+  </div>
+  <div class="terminal-body">
 <pre style="margin:0;background:transparent;border:none;padding:0;font-family:inherit;font-size:0.85rem;color:var(--text-muted);white-space:pre;overflow-x:auto"><span style="color:var(--text-dim)">$</span> curl http://localhost:3000/api/conversations/conv_abc/events
 <span style="color:var(--green)">[
   { "type": "message.received", "correlation_id": "req_123", ... },
@@ -138,49 +91,30 @@ If denied or failed:
   { "type": "message.send.requested", ... },
   { "type": "message.sent", ... }
 ]</span></pre>
-      </div>
-    </div>
-
-    <h2>What you get</h2>
-    <div class="feature-grid">
-      <div class="feature-card">
-        <h3>Full message path visibility</h3>
-        <p>Reconstruct any message's journey from ingress to delivery (or denial) using correlation IDs and the canonical event chain.</p>
-      </div>
-      <div class="feature-card">
-        <h3>Policy-as-config</h3>
-        <p>Keyword, regex, and custom policy rules in YAML. Inbound filters before the agent sees the message; outbound filters before delivery.</p>
-      </div>
-      <div class="feature-card">
-        <h3>Append-only ledger</h3>
-        <p>SQLite-backed durable storage. Events are never modified. Query by conversation, correlation, or time range.</p>
-      </div>
-      <div class="feature-card">
-        <h3>Structured failure outcomes</h3>
-        <p>Denied and failed deliveries produce <code>event.blocked</code> with stage, reason, and context &mdash; no silent drops.</p>
-      </div>
-    </div>
-
-    <div class="hero-actions" style="justify-content:flex-start;margin-top:32px">
-      <a href="/ChatAgentRelay/docs/" class="btn btn-primary">Get Started</a>
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-secondary">View on GitHub</a>
-    </div>
-  </article>
-</main>
-
-<footer class="footer">
-  <div class="container">
-    <div class="footer-links">
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
-      <a href="/ChatAgentRelay/docs/">Docs</a>
-      <a href="/ChatAgentRelay/blog/">Blog</a>
-      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
-    </div>
-    <p>MIT License &middot; Built with Bun and TypeScript</p>
   </div>
-</footer>
+</div>
 
-<script src="../../js/main.js"></script>
-</body>
-</html>
+<h2>What you get</h2>
+<div class="feature-grid">
+  <div class="feature-card">
+    <h3>Full message path visibility</h3>
+    <p>Reconstruct any message's journey from ingress to delivery (or denial) using correlation IDs and the canonical event chain.</p>
+  </div>
+  <div class="feature-card">
+    <h3>Policy-as-config</h3>
+    <p>Keyword, regex, and custom policy rules in YAML. Inbound filters before the agent sees the message; outbound filters before delivery.</p>
+  </div>
+  <div class="feature-card">
+    <h3>Append-only ledger</h3>
+    <p>SQLite-backed durable storage. Events are never modified. Query by conversation, correlation, or time range.</p>
+  </div>
+  <div class="feature-card">
+    <h3>Structured failure outcomes</h3>
+    <p>Denied and failed deliveries produce <code>event.blocked</code> with stage, reason, and context &mdash; no silent drops.</p>
+  </div>
+</div>
+
+<div class="hero-actions" style="justify-content:flex-start;margin-top:32px">
+  <a href="{{ site.baseurl }}/docs/" class="btn btn-primary">Get Started</a>
+  <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="btn btn-secondary">View on GitHub</a>
+</div>

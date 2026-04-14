@@ -1,0 +1,14 @@
+<nav class="nav">
+  <div class="container">
+    <a href="{{ site.baseurl }}/" class="nav-brand"><span class="prompt">$</span> car</a>
+    <button class="nav-toggle" aria-label="Menu">&#9776;</button>
+    <div class="nav-links">
+      <a href="{{ site.baseurl }}/why-car/"{% if page.nav_active == 'why-car' %} class="active"{% endif %}>Why CAR</a>
+      <a href="{{ site.baseurl }}/use-cases/"{% if page.nav_active == 'use-cases' %} class="active"{% endif %}>Use Cases</a>
+      <a href="{{ site.baseurl }}/docs/"{% if page.nav_active == 'docs' %} class="active"{% endif %}>Docs</a>
+      <a href="{{ site.baseurl }}/compare/diy/"{% if page.nav_active == 'compare' %} class="active"{% endif %}>Compare</a>
+      <a href="{{ site.baseurl }}/blog/"{% if page.nav_active == 'blog' %} class="active"{% endif %}>Blog</a>
+      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" class="nav-cta" data-track="nav_github">GitHub</a>
+    </div>
+  </div>
+</nav>

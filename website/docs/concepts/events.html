@@ -1,288 +1,170 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Event Model — Chat Agent Relay</title>
-  <meta name="description" content="Chat Agent Relay canonical event model: the core message path, event.blocked, canonical envelope, and extension event families.">
+---
+layout: doc
+title: "Event Model — Chat Agent Relay"
+description: "Chat Agent Relay canonical event model: the core message path, event.blocked, canonical envelope, and extension event families."
+og_type: article
+og_title: "Event Model — Chat Agent Relay"
+og_description: "The canonical message path, event.blocked, canonical envelope, and extension event families."
+twitter_title: "Event Model — Chat Agent Relay"
+twitter_description: "Canonical events at the center of the chat-to-agent relay path."
+structured_data:
+  "@context": "https://schema.org"
+  "@type": "TechArticle"
+  name: "Event Model — Chat Agent Relay"
+  description: "Canonical event model: the core message path, event.blocked, canonical envelope, and extension event families."
+  url: "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/concepts/events.html"
+---
+<h1>Event Model</h1>
+<p class="subtitle">Canonical events are the center of the Chat Agent Relay message path. They make governance, routing, delivery, replay, and audit consistent across channels and agents.</p>
 
-  <!-- Open Graph -->
-  <meta property="og:type" content="article">
-  <meta property="og:title" content="Event Model — Chat Agent Relay">
-  <meta property="og:description" content="The canonical message path, event.blocked, canonical envelope, and extension event families.">
-  <meta property="og:url" content="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/concepts/events.html">
-  <meta property="og:site_name" content="Chat Agent Relay">
+<h2 id="core-message-path">Core message path</h2>
+<p>The core relay path is a canonical chain of events:</p>
+<pre><code>message.received
+→ policy.decision.made
+→ route.decision.made
+→ agent.invocation.requested
+→ agent.response.completed
+→ message.send.requested
+→ message.sent</code></pre>
 
-  <!-- Twitter Card -->
-  <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Event Model — Chat Agent Relay">
-  <meta name="twitter:description" content="Canonical events at the center of the chat-to-agent relay path.">
+<table>
+  <thead>
+    <tr><th>Event Type</th><th>Role in the path</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>message.received</code></td><td>Inbound canonicalization</td><td>Inbound message normalized from the chat platform into CAR's canonical model</td></tr>
+    <tr><td><code>policy.decision.made</code></td><td>Governance</td><td>Message-path governance result before routing</td></tr>
+    <tr><td><code>route.decision.made</code></td><td>Routing</td><td>Selected route for the turn</td></tr>
+    <tr><td><code>agent.invocation.requested</code></td><td>Agent boundary</td><td>Canonical invocation handed to the agent-side boundary</td></tr>
+    <tr><td><code>agent.response.completed</code></td><td>Agent result</td><td>Agent result mapped back into canonical form</td></tr>
+    <tr><td><code>message.send.requested</code></td><td>Outbound intent</td><td>Canonical outbound intent prepared for delivery</td></tr>
+    <tr><td><code>message.sent</code></td><td>Delivery outcome</td><td>Delivery success recorded on the canonical path</td></tr>
+  </tbody>
+</table>
 
-  <meta property="og:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
-  <meta name="twitter:image" content="https://ChatAgentRelay.github.io/ChatAgentRelay/img/og-card.svg">
-
-  <link rel="canonical" href="https://ChatAgentRelay.github.io/ChatAgentRelay/docs/concepts/events.html">
-  <link rel="icon" href="/ChatAgentRelay/img/favicon.svg" type="image/svg+xml">
-
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="../../css/style.css">
-  <link rel="stylesheet" href="../../css/docs.css">
-
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-7FERB87K2D"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-7FERB87K2D');
-  </script>
-
-  <!-- Structured Data -->
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "TechArticle",
-    "headline": "Event Model — Chat Agent Relay",
-    "description": "Canonical event model: the core message path, event.blocked, canonical envelope, and extension event families.",
-    "url": "https://ChatAgentRelay.github.io/ChatAgentRelay/docs/concepts/events.html"
-  }
-  </script>
-</head>
-<body>
-
-<!-- Nav -->
-<nav class="nav"><div class="container nav-inner">
-  <a href="/ChatAgentRelay/" class="nav-logo">Chat Agent Relay</a>
-  <div class="nav-links">
-    <a href="/ChatAgentRelay/docs/">Docs</a>
-    <a href="/ChatAgentRelay/why-car/">Why CAR</a>
-    <a href="/ChatAgentRelay/use-cases/">Use Cases</a>
-    <a href="/ChatAgentRelay/blog/">Blog</a>
-    <a href="https://github.com/ChatAgentRelay/ChatAgentRelay" target="_blank">GitHub</a>
-  </div>
-</div></nav>
-
-<div class="doc-shell">
-
-<!-- Sidebar -->
-<aside class="doc-sidebar">
-  <div class="sidebar-group">
-    <span class="sidebar-group-title">Getting Started</span>
-    <a href="/ChatAgentRelay/docs/" class="sidebar-link">Overview</a>
-  </div>
-  <div class="sidebar-group">
-    <span class="sidebar-group-title">Channels</span>
-    <a href="/ChatAgentRelay/docs/channels/" class="sidebar-link">Overview</a>
-    <a href="/ChatAgentRelay/docs/channels/slack.html" class="sidebar-link">Slack</a>
-    <a href="/ChatAgentRelay/docs/channels/discord.html" class="sidebar-link">Discord</a>
-    <a href="/ChatAgentRelay/docs/channels/webchat.html" class="sidebar-link">WebChat</a>
-    <a href="/ChatAgentRelay/docs/channels/telegram.html" class="sidebar-link">Telegram</a>
-    <a href="/ChatAgentRelay/docs/channels/lark.html" class="sidebar-link">Lark / 飞书</a>
-    <a href="/ChatAgentRelay/docs/channels/dingtalk.html" class="sidebar-link">DingTalk / 钉钉</a>
-  </div>
-  <div class="sidebar-group">
-    <span class="sidebar-group-title">Agents</span>
-    <a href="/ChatAgentRelay/docs/agents/" class="sidebar-link">Overview</a>
-    <a href="/ChatAgentRelay/docs/agents/a2a.html" class="sidebar-link">A2A</a>
-  </div>
-  <div class="sidebar-group">
-    <span class="sidebar-group-title">Configuration</span>
-    <a href="/ChatAgentRelay/docs/configuration/" class="sidebar-link">CLI &amp; Config</a>
-    <a href="/ChatAgentRelay/docs/configuration/routing.html" class="sidebar-link">Routing</a>
-    <a href="/ChatAgentRelay/docs/configuration/storage.html" class="sidebar-link">Storage</a>
-  </div>
-  <div class="sidebar-group">
-    <span class="sidebar-group-title">Concepts</span>
-    <a href="/ChatAgentRelay/docs/concepts/" class="sidebar-link">Architecture</a>
-    <a href="/ChatAgentRelay/docs/concepts/events.html" class="sidebar-link active">Event Model</a>
-    <a href="/ChatAgentRelay/docs/concepts/pipeline.html" class="sidebar-link">Pipeline</a>
-  </div>
-  <div class="sidebar-group">
-    <span class="sidebar-group-title">Reference</span>
-    <a href="/ChatAgentRelay/docs/api/" class="sidebar-link">HTTP API</a>
-  </div>
-</aside>
-
-<!-- Content -->
-<main class="doc-content">
-  <h1>Event Model</h1>
-  <p class="subtitle">Canonical events are the center of the Chat Agent Relay message path. They make governance, routing, delivery, replay, and audit consistent across channels and agents.</p>
-
-  <h2 id="core-message-path">Core message path</h2>
-  <p>The core relay path is a canonical chain of events:</p>
-  <pre><code>message.received
-  → policy.decision.made
-  → route.decision.made
-  → agent.invocation.requested
-  → agent.response.completed
-  → message.send.requested
-  → message.sent</code></pre>
-
-  <table>
-    <thead>
-      <tr><th>Event Type</th><th>Role in the path</th><th>Description</th></tr>
-    </thead>
-    <tbody>
-      <tr><td><code>message.received</code></td><td>Inbound canonicalization</td><td>Inbound message normalized from the chat platform into CAR's canonical model</td></tr>
-      <tr><td><code>policy.decision.made</code></td><td>Governance</td><td>Message-path governance result before routing</td></tr>
-      <tr><td><code>route.decision.made</code></td><td>Routing</td><td>Selected route for the turn</td></tr>
-      <tr><td><code>agent.invocation.requested</code></td><td>Agent boundary</td><td>Canonical invocation handed to the agent-side boundary</td></tr>
-      <tr><td><code>agent.response.completed</code></td><td>Agent result</td><td>Agent result mapped back into canonical form</td></tr>
-      <tr><td><code>message.send.requested</code></td><td>Outbound intent</td><td>Canonical outbound intent prepared for delivery</td></tr>
-      <tr><td><code>message.sent</code></td><td>Delivery outcome</td><td>Delivery success recorded on the canonical path</td></tr>
-    </tbody>
-  </table>
-
-  <h2 id="blocked-path"><code>event.blocked</code> and blocked paths</h2>
-  <p>
-    When a path is denied, blocked, or fails terminally, CAR records <code>event.blocked</code> rather than silently dropping the outcome.
-  </p>
-  <p>Illustrative examples:</p>
-  <pre><code>message.received
-  → policy.decision.made (deny)
-  → event.blocked
+<h2 id="blocked-path"><code>event.blocked</code> and blocked paths</h2>
+<p>
+  When a path is denied, blocked, or fails terminally, CAR records <code>event.blocked</code> rather than silently dropping the outcome.
+</p>
+<p>Illustrative examples:</p>
+<pre><code>message.received
+→ policy.decision.made (deny)
+→ event.blocked
 
 message.received
-  → policy.decision.made
-  → route.decision.made
-  → agent.invocation.requested
-  → event.blocked</code></pre>
-  <p>
-    This is what keeps the message path explainable even when processing does not reach a normal completion.
-  </p>
+→ policy.decision.made
+→ route.decision.made
+→ agent.invocation.requested
+→ event.blocked</code></pre>
+<p>
+  This is what keeps the message path explainable even when processing does not reach a normal completion.
+</p>
 
-  <h2 id="canonical-envelope">Canonical event envelope</h2>
-  <p>All canonical events share a common envelope. An illustrative example:</p>
-  <pre><code>{
-  "event_id": "evt_01H...",
-  "schema_version": "v1alpha1",
-  "event_type": "message.received",
-  "tenant_id": "tenant_acme",
-  "workspace_id": "ws_support",
-  "channel": "slack",
-  "channel_instance_id": "slack_support_prod",
-  "conversation_id": "conv_123",
-  "thread_id": "thr_123",
-  "session_id": "sess_123",
-  "message_id": "msg_123",
-  "correlation_id": "corr_123",
-  "causation_id": null,
-  "occurred_at": "2026-04-02T12:00:00Z",
-  "actor": {
-    "id": "user_ext_42",
-    "display_name": "Alice"
-  },
-  "actor_type": "end_user",
-  "payload": {
-    "text": "hello"
-  },
-  "attachments": [],
-  "provider_extensions": {
-    "slack": {
-      "team_id": "T123",
-      "raw_event_type": "app_mention"
-    }
+<h2 id="canonical-envelope">Canonical event envelope</h2>
+<p>All canonical events share a common envelope. An illustrative example:</p>
+<pre><code>{
+"event_id": "evt_01H...",
+"schema_version": "v1alpha1",
+"event_type": "message.received",
+"tenant_id": "tenant_acme",
+"workspace_id": "ws_support",
+"channel": "slack",
+"channel_instance_id": "slack_support_prod",
+"conversation_id": "conv_123",
+"thread_id": "thr_123",
+"session_id": "sess_123",
+"message_id": "msg_123",
+"correlation_id": "corr_123",
+"causation_id": null,
+"occurred_at": "2026-04-02T12:00:00Z",
+"actor": {
+  "id": "user_ext_42",
+  "display_name": "Alice"
+},
+"actor_type": "end_user",
+"payload": {
+  "text": "hello"
+},
+"attachments": [],
+"provider_extensions": {
+  "slack": {
+    "team_id": "T123",
+    "raw_event_type": "app_mention"
   }
+}
 }</code></pre>
 
-  <table>
-    <thead>
-      <tr><th>Field</th><th>Description</th></tr>
-    </thead>
-    <tbody>
-      <tr><td><code>event_id</code></td><td>Stable identity for the event</td></tr>
-      <tr><td><code>schema_version</code></td><td>Canonical schema version</td></tr>
-      <tr><td><code>event_type</code></td><td>Canonical event family and action</td></tr>
-      <tr><td><code>tenant_id</code>, <code>workspace_id</code></td><td>Relay scope</td></tr>
-      <tr><td><code>channel</code>, <code>channel_instance_id</code></td><td>Channel context</td></tr>
-      <tr><td><code>conversation_id</code>, <code>session_id</code></td><td>Conversation and session continuity</td></tr>
-      <tr><td><code>correlation_id</code>, <code>causation_id</code></td><td>Causal linkage across the message path</td></tr>
-      <tr><td><code>occurred_at</code></td><td>Event occurrence time</td></tr>
-      <tr><td><code>actor</code>, <code>actor_type</code></td><td>Actor context where relevant</td></tr>
-      <tr><td><code>payload</code></td><td>The canonical business fact for the event</td></tr>
-      <tr><td><code>provider_extensions</code></td><td>Optional provider-native detail preserved as structured extension data</td></tr>
-    </tbody>
-  </table>
+<table>
+  <thead>
+    <tr><th>Field</th><th>Description</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><code>event_id</code></td><td>Stable identity for the event</td></tr>
+    <tr><td><code>schema_version</code></td><td>Canonical schema version</td></tr>
+    <tr><td><code>event_type</code></td><td>Canonical event family and action</td></tr>
+    <tr><td><code>tenant_id</code>, <code>workspace_id</code></td><td>Relay scope</td></tr>
+    <tr><td><code>channel</code>, <code>channel_instance_id</code></td><td>Channel context</td></tr>
+    <tr><td><code>conversation_id</code>, <code>session_id</code></td><td>Conversation and session continuity</td></tr>
+    <tr><td><code>correlation_id</code>, <code>causation_id</code></td><td>Causal linkage across the message path</td></tr>
+    <tr><td><code>occurred_at</code></td><td>Event occurrence time</td></tr>
+    <tr><td><code>actor</code>, <code>actor_type</code></td><td>Actor context where relevant</td></tr>
+    <tr><td><code>payload</code></td><td>The canonical business fact for the event</td></tr>
+    <tr><td><code>provider_extensions</code></td><td>Optional provider-native detail preserved as structured extension data</td></tr>
+  </tbody>
+</table>
 
-  <h2 id="correlation-and-causation">Correlation and causation</h2>
-  <p>
-    All events in one relay path share a <code>correlation_id</code>. Child events also carry a <code>causation_id</code> pointing to the event that directly led to them.
-  </p>
-  <pre><code>message.received (causation: null)
-  → policy.decision.made (causation: message.received)
-  → route.decision.made (causation: policy.decision.made)
-  → agent.invocation.requested (causation: route.decision.made)
-  → agent.response.completed (causation: agent.invocation.requested)
-  → message.send.requested (causation: agent.response.completed)
-  → message.sent (causation: message.send.requested)</code></pre>
-  <p>
-    This makes replay and audit possible without depending on hidden mutable state.
-  </p>
+<h2 id="correlation-and-causation">Correlation and causation</h2>
+<p>
+  All events in one relay path share a <code>correlation_id</code>. Child events also carry a <code>causation_id</code> pointing to the event that directly led to them.
+</p>
+<pre><code>message.received (causation: null)
+→ policy.decision.made (causation: message.received)
+→ route.decision.made (causation: policy.decision.made)
+→ agent.invocation.requested (causation: route.decision.made)
+→ agent.response.completed (causation: agent.invocation.requested)
+→ message.send.requested (causation: agent.response.completed)
+→ message.sent (causation: message.send.requested)</code></pre>
+<p>
+  This makes replay and audit possible without depending on hidden mutable state.
+</p>
 
-  <h2 id="extension-event-families">Extension event families</h2>
-  <p>
-    CAR also supports extension event families that enrich the relay path without redefining the core canonical chain.
-  </p>
+<h2 id="extension-event-families">Extension event families</h2>
+<p>
+  CAR also supports extension event families that enrich the relay path without redefining the core canonical chain.
+</p>
 
-  <h3 id="messaging-extensions">Messaging extensions</h3>
-  <ul>
-    <li><code>message.updated</code></li>
-    <li><code>message.deleted</code></li>
-    <li><code>reaction.received</code></li>
-    <li><code>command.received</code></li>
-  </ul>
+<h3 id="messaging-extensions">Messaging extensions</h3>
+<ul>
+  <li><code>message.updated</code></li>
+  <li><code>message.deleted</code></li>
+  <li><code>reaction.received</code></li>
+  <li><code>command.received</code></li>
+</ul>
 
-  <h3 id="agent-extensions">Agent extensions</h3>
-  <ul>
-    <li><code>agent.status.changed</code></li>
-    <li><code>agent.input.requested</code></li>
-    <li><code>agent.input.provided</code></li>
-  </ul>
+<h3 id="agent-extensions">Agent extensions</h3>
+<ul>
+  <li><code>agent.status.changed</code></li>
+  <li><code>agent.input.requested</code></li>
+  <li><code>agent.input.provided</code></li>
+</ul>
 
-  <p>
-    These are useful where supported, but they are not the minimum canonical chain that defines CAR's core relay identity.
-  </p>
+<p>
+  These are useful where supported, but they are not the minimum canonical chain that defines CAR's core relay identity.
+</p>
 
-  <div class="callout callout-info">
-    <strong>Core vs extension</strong>
-    The core message path defines the minimum relay chain. Richer interaction signals such as updates, reactions, commands, and resumable input flows are extension semantics layered on top.
-  </div>
-
-  <!-- Pagination -->
-  <div class="doc-pagination">
-    <a href="/ChatAgentRelay/docs/concepts/" class="prev">
-      <span class="label">Previous</span>
-      <span class="title">&larr; Architecture</span>
-    </a>
-    <a href="/ChatAgentRelay/docs/concepts/pipeline.html" class="next">
-      <span class="label">Next</span>
-      <span class="title">Pipeline &rarr;</span>
-    </a>
-  </div>
-</main>
-
+<div class="callout callout-info">
+  <strong>Core vs extension</strong>
+  The core message path defines the minimum relay chain. Richer interaction signals such as updates, reactions, commands, and resumable input flows are extension semantics layered on top.
 </div>
 
-<button class="sidebar-toggle" aria-label="Toggle sidebar">&#9776;</button>
-
-<!-- Footer -->
-<footer class="footer">
-  <div class="container">
-    <div class="footer-links">
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay">GitHub</a>
-      <a href="/ChatAgentRelay/docs/">Docs</a>
-      <a href="/ChatAgentRelay/blog/">Blog</a>
-      <a href="/ChatAgentRelay/why-car/">Why CAR</a>
-      <a href="/ChatAgentRelay/use-cases/">Use Cases</a>
-      <a href="https://github.com/ChatAgentRelay/ChatAgentRelay/issues">Issues</a>
-    </div>
-    <p>MIT License &middot; Built with Bun and TypeScript</p>
-  </div>
-</footer>
-
-<script src="../../js/main.js"></script>
-</body>
-</html>
+<!-- Pagination -->
+<div class="doc-pagination">
+  <a href="/ChatAgentRelay/docs/concepts/" class="prev">
+    <span class="label">Previous</span>
+    <span class="title">&larr; Architecture</span>
+  </a>
+  <a href="/ChatAgentRelay/docs/concepts/pipeline.html" class="next">
+    <span class="label">Next</span>
+    <span class="title">Pipeline &rarr;</span>
+  </a>
+</div>
