@@ -7,6 +7,7 @@ import type {
   AgentInvocationContext,
   AgentResult,
   ChannelAdapter,
+  InboundAttachment,
 } from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { SqliteLedgerStore } from "@chat-agent-relay/event-ledger";
@@ -90,6 +91,36 @@ function createFailingAgent(): AgentAdapter {
   };
 }
 
+/** Agent response includes optional reaction egress hint (see delivery.applyBestEffortReaction). */
+function createMockAgentWithReactionHint(
+  reaction: { emoji: string; target_message_id: string },
+  text = "Your order shipped yesterday.",
+): AgentAdapter {
+  const base = createMockAgent(text);
+  return {
+    ...base,
+    invoke: async (ctx: AgentInvocationContext): Promise<AgentResult> => {
+      const r = await base.invoke(ctx);
+      if (!r.ok) return r;
+      const prev = r.event.provider_extensions;
+      const baseExt =
+        prev !== undefined && typeof prev === "object" && prev !== null && !Array.isArray(prev)
+          ? { ...(prev as Record<string, unknown>) }
+          : {};
+      return {
+        ...r,
+        event: {
+          ...r.event,
+          provider_extensions: {
+            ...baseExt,
+            reaction,
+          },
+        },
+      };
+    },
+  };
+}
+
 describe("first executable path pipeline (end-to-end)", () => {
   let validators: ContractHarnessValidators;
   let ingress: WebChatIngress;
@@ -140,6 +171,164 @@ describe("first executable path pipeline (end-to-end)", () => {
       "message.send.requested",
       "message.sent",
     ]);
+  });
+
+  it("calls sendTyping before agent.invoke when the sender implements sendTyping", async () => {
+    const callOrder: string[] = [];
+    const baseAgent = createMockAgent();
+    const agent: AgentAdapter = {
+      ...baseAgent,
+      invoke: async (ctx: AgentInvocationContext) => {
+        callOrder.push("invoke");
+        return baseAgent.invoke(ctx);
+      },
+    };
+
+    const typingChannel: ChannelAdapter = {
+      channelType: ingress.channelType,
+      describeCapabilities: () => ingress.describeCapabilities(),
+      canonicalize: (raw) => ingress.canonicalize(raw),
+      createSender: () => ({
+        send: async () => {
+          callOrder.push("send");
+          return { providerMessageId: "webchat_1" };
+        },
+        sendTyping: async () => {
+          callOrder.push("typing");
+        },
+      }),
+    };
+
+    const pipeline = await FirstExecutablePathPipeline.create(
+      makeConfig({ routeAgentName: "b1", channel: typingChannel, agent }),
+    );
+    const result = await pipeline.execute(validInput());
+
+    expect(result.blocked).toBeUndefined();
+    expect(callOrder[0]).toBe("typing");
+    expect(callOrder[1]).toBe("invoke");
+    expect(callOrder).toContain("send");
+  });
+
+  it("completes the happy path when the sender has no sendTyping", async () => {
+    const channelWithoutTyping: ChannelAdapter = {
+      channelType: ingress.channelType,
+      describeCapabilities: () => ingress.describeCapabilities(),
+      canonicalize: (raw) => ingress.canonicalize(raw),
+      createSender: () => ({
+        send: async () => ({ providerMessageId: "webchat_99" }),
+      }),
+    };
+
+    const pipeline = await FirstExecutablePathPipeline.create(
+      makeConfig({ routeAgentName: "b1", channel: channelWithoutTyping }),
+    );
+    const result = await pipeline.execute(validInput());
+
+    expect(result.events).toHaveLength(7);
+    expect(result.blocked).toBeUndefined();
+  });
+
+  it("ignores sendTyping failures and still completes the happy path", async () => {
+    const flakyTypingChannel: ChannelAdapter = {
+      channelType: ingress.channelType,
+      describeCapabilities: () => ingress.describeCapabilities(),
+      canonicalize: (raw) => ingress.canonicalize(raw),
+      createSender: () => ({
+        send: async () => ({ providerMessageId: "webchat_typing_err" }),
+        sendTyping: async () => {
+          throw new Error("typing indicator failed");
+        },
+      }),
+    };
+
+    const pipeline = await FirstExecutablePathPipeline.create(
+      makeConfig({ routeAgentName: "b1", channel: flakyTypingChannel }),
+    );
+    const result = await pipeline.execute(validInput());
+
+    expect(result.events).toHaveLength(7);
+    expect(result.blocked).toBeUndefined();
+  });
+
+  it("calls addReaction when agent response includes provider_extensions.reaction", async () => {
+    const reactionCalls: { messageId: string; emoji: string }[] = [];
+    const reactionChannel: ChannelAdapter = {
+      channelType: ingress.channelType,
+      describeCapabilities: () => ingress.describeCapabilities(),
+      canonicalize: (raw) => ingress.canonicalize(raw),
+      createSender: () => ({
+        send: async () => ({ providerMessageId: "webchat_reaction_1" }),
+        addReaction: async (messageId, emoji) => {
+          reactionCalls.push({ messageId, emoji });
+        },
+      }),
+    };
+
+    const pipeline = await FirstExecutablePathPipeline.create(
+      makeConfig({
+        routeAgentName: "reaction_agent",
+        channel: reactionChannel,
+        agent: createMockAgentWithReactionHint({ emoji: "thumbsup", target_message_id: "msg_123" }),
+      }),
+    );
+    const result = await pipeline.execute(validInput());
+
+    expect(result.blocked).toBeUndefined();
+    expect(reactionCalls).toEqual([{ messageId: "msg_123", emoji: "thumbsup" }]);
+    expect(result.events.map((e) => e.event_type)).toContain("message.sent");
+  });
+
+  it("does not call addReaction when no reaction hint is present", async () => {
+    let reactionCallCount = 0;
+    const channel: ChannelAdapter = {
+      channelType: ingress.channelType,
+      describeCapabilities: () => ingress.describeCapabilities(),
+      canonicalize: (raw) => ingress.canonicalize(raw),
+      createSender: () => ({
+        send: async () => ({ providerMessageId: "webchat_no_rx" }),
+        addReaction: async () => {
+          reactionCallCount++;
+        },
+      }),
+    };
+
+    const pipeline = await FirstExecutablePathPipeline.create(
+      makeConfig({ routeAgentName: "b1", channel, agent: createMockAgent() }),
+    );
+    const result = await pipeline.execute(validInput());
+
+    expect(result.blocked).toBeUndefined();
+    expect(reactionCallCount).toBe(0);
+    expect(result.events).toHaveLength(7);
+  });
+
+  it("does not block delivery when addReaction fails", async () => {
+    const reactionChannel: ChannelAdapter = {
+      channelType: ingress.channelType,
+      describeCapabilities: () => ingress.describeCapabilities(),
+      canonicalize: (raw) => ingress.canonicalize(raw),
+      createSender: () => ({
+        send: async () => ({ providerMessageId: "webchat_rx_fail_ok" }),
+        addReaction: async () => {
+          throw new Error("reactions API unavailable");
+        },
+      }),
+    };
+
+    const pipeline = await FirstExecutablePathPipeline.create(
+      makeConfig({
+        routeAgentName: "reaction_fail_agent",
+        channel: reactionChannel,
+        agent: createMockAgentWithReactionHint({ emoji: "+1", target_message_id: "msg_999" }),
+      }),
+    );
+    const result = await pipeline.execute(validInput());
+
+    expect(result.blocked).toBeUndefined();
+    expect(result.events).toHaveLength(7);
+    expect(result.events[result.events.length - 1]!.event_type).toBe("message.sent");
+    expect(result.explanation.providerMessageId).toBe("webchat_rx_fail_ok");
   });
 
   it("all seven events pass contract validation", async () => {
@@ -479,5 +668,280 @@ describe("first executable path pipeline (end-to-end)", () => {
     expect(result.blocked).toBeUndefined();
     expect(result.events).toHaveLength(7);
     expect(result.events.map((event) => event.event_type)).not.toContain("event.blocked");
+  });
+
+  it("processes command.received through the full pipeline", async () => {
+    const commandAdapter: ChannelAdapter = {
+      channelType: "slack",
+      describeCapabilities: () => ({
+        channel: "slack",
+        messaging: { text: true, attachments: false, reactions: false, threads: false },
+        streaming: { progressiveUpdate: false, nativeStreaming: false },
+        interactive: { buttons: false, menus: false, commands: true },
+        delivery: { retry: true, chunking: false, edit: false },
+      }),
+      canonicalize: (raw: unknown) => {
+        const input = raw as Record<string, string>;
+        return {
+          ok: true as const,
+          idempotencyKey: `cmd:${input.trigger_id}`,
+          event: {
+            event_id: `evt_${crypto.randomUUID()}`,
+            schema_version: "v1alpha1",
+            event_type: "command.received",
+            tenant_id: "tenant_acme",
+            workspace_id: "ws_support",
+            channel: "slack",
+            channel_instance_id: "slack_acme",
+            conversation_id: `conv_${crypto.randomUUID()}`,
+            session_id: `sess_${crypto.randomUUID()}`,
+            correlation_id: `corr_${crypto.randomUUID()}`,
+            occurred_at: new Date().toISOString(),
+            actor_type: "end_user",
+            actor: { id: "user_123" },
+            payload: { command_name: input.command, text: input.text, arguments: {} },
+          },
+        };
+      },
+      createSender: () => ({
+        send: async (text: string) => ({ providerMessageId: `prov_${crypto.randomUUID()}` }),
+      }),
+    };
+
+    const agent = createMockAgent("Command response: order status");
+    const pipeline = await FirstExecutablePathPipeline.create({
+      channel: commandAdapter,
+      resolveAgent: (name) => (name === "cmd_agent" ? agent : undefined),
+      routeFn: () => ({ agentName: "cmd_agent", routeId: 1, matchType: "default", reason: "default" }),
+    });
+
+    const result = await pipeline.execute({ command: "status", text: "my order", trigger_id: "t1" });
+
+    expect(result.blocked).toBeUndefined();
+    expect(result.events).toHaveLength(7);
+    expect(result.events[0]!.event_type).toBe("command.received");
+    expect(result.events[0]!.payload["command_name"]).toBe("status");
+    expect(result.events.map((e) => e.event_type)).toEqual([
+      "command.received",
+      "policy.decision.made",
+      "route.decision.made",
+      "agent.invocation.requested",
+      "agent.response.completed",
+      "message.send.requested",
+      "message.sent",
+    ]);
+    expect(result.explanation.inboundText).toBe("/status my order");
+  });
+
+  it("passes command text correctly to agent invocation context", async () => {
+    let capturedContext: AgentInvocationContext | undefined;
+    const capturingAgent: AgentAdapter = {
+      invoke: async (ctx: AgentInvocationContext): Promise<AgentResult> => {
+        capturedContext = ctx;
+        return createMockAgent().invoke(ctx);
+      },
+      describeCapabilities: () => ({
+        streaming: false, multiTurn: false, resume: false, hitl: false, cancel: false, artifacts: false,
+      }),
+    };
+
+    const commandAdapter: ChannelAdapter = {
+      channelType: "test",
+      describeCapabilities: () => ({
+        channel: "test",
+        messaging: { text: true, attachments: false, reactions: false, threads: false },
+        streaming: { progressiveUpdate: false, nativeStreaming: false },
+        interactive: { buttons: false, menus: false, commands: true },
+        delivery: { retry: true, chunking: false, edit: false },
+      }),
+      canonicalize: () => ({
+        ok: true as const,
+        idempotencyKey: "cmd:test",
+        event: {
+          event_id: `evt_${crypto.randomUUID()}`,
+          schema_version: "v1alpha1",
+          event_type: "command.received",
+          tenant_id: "t1",
+          workspace_id: "w1",
+          channel: "test",
+          channel_instance_id: "test1",
+          conversation_id: `conv_${crypto.randomUUID()}`,
+          session_id: `sess_${crypto.randomUUID()}`,
+          correlation_id: `corr_${crypto.randomUUID()}`,
+          occurred_at: new Date().toISOString(),
+          actor_type: "end_user",
+          payload: { command_name: "echo", text: "hello world", arguments: {} },
+        },
+      }),
+      createSender: () => ({
+        send: async () => ({ providerMessageId: `prov_${crypto.randomUUID()}` }),
+      }),
+    };
+
+    const pipeline = await FirstExecutablePathPipeline.create({
+      channel: commandAdapter,
+      resolveAgent: () => capturingAgent,
+      routeFn: () => ({ agentName: "test", routeId: 1, matchType: "default", reason: "default" }),
+    });
+
+    await pipeline.execute({});
+    expect(capturedContext).toBeDefined();
+    expect(capturedContext!.messageText).toBe("/echo hello world");
+  });
+
+  it("maps inbound attachments to FilePart entries in AgentInvocationContext.parts", async () => {
+    let capturedContext: AgentInvocationContext | undefined;
+    const capturingAgent: AgentAdapter = {
+      invoke: async (ctx: AgentInvocationContext): Promise<AgentResult> => {
+        capturedContext = ctx;
+        return createMockAgent("Got your files.").invoke(ctx);
+      },
+      describeCapabilities: () => ({
+        streaming: false,
+        multiTurn: false,
+        resume: false,
+        hitl: false,
+        cancel: false,
+        artifacts: false,
+      }),
+    };
+
+    const attachments: InboundAttachment[] = [
+      {
+        attachment_id: "att_1",
+        kind: "file",
+        filename: "notes.txt",
+        mime_type: "text/plain",
+        url: "https://cdn.example/notes.txt",
+      },
+      {
+        attachment_id: "att_2",
+        kind: "image",
+        mime_type: "image/png",
+        url: "https://cdn.example/pic.png",
+      },
+    ];
+
+    const attachmentChannel: ChannelAdapter = {
+      channelType: "test",
+      describeCapabilities: () => ({
+        channel: "test",
+        messaging: { text: true, attachments: true, reactions: false, threads: false },
+        streaming: { progressiveUpdate: false, nativeStreaming: false },
+        interactive: { buttons: false, menus: false, commands: false },
+        delivery: { retry: true, chunking: false, edit: false },
+      }),
+      canonicalize: () => ({
+        ok: true as const,
+        idempotencyKey: "attach:test",
+        event: {
+          event_id: `evt_${crypto.randomUUID()}`,
+          schema_version: "v1alpha1",
+          event_type: "message.received",
+          tenant_id: "t1",
+          workspace_id: "w1",
+          channel: "test",
+          channel_instance_id: "test1",
+          conversation_id: `conv_${crypto.randomUUID()}`,
+          session_id: `sess_${crypto.randomUUID()}`,
+          correlation_id: `corr_${crypto.randomUUID()}`,
+          occurred_at: new Date().toISOString(),
+          actor_type: "end_user",
+          payload: { text: "", attachments },
+        },
+      }),
+      createSender: () => ({
+        send: async () => ({ providerMessageId: `prov_${crypto.randomUUID()}` }),
+      }),
+    };
+
+    const pipeline = await FirstExecutablePathPipeline.create({
+      channel: attachmentChannel,
+      resolveAgent: () => capturingAgent,
+      routeFn: () => ({ agentName: "test", routeId: 1, matchType: "default", reason: "default" }),
+    });
+
+    const result = await pipeline.execute({});
+    expect(result.blocked).toBeUndefined();
+    expect(capturedContext).toBeDefined();
+    expect(capturedContext!.parts).toBeDefined();
+    expect(capturedContext!.parts).toEqual([
+      {
+        kind: "file",
+        name: "notes.txt",
+        mimeType: "text/plain",
+        uri: "https://cdn.example/notes.txt",
+      },
+      {
+        kind: "file",
+        name: "att_2",
+        mimeType: "image/png",
+        uri: "https://cdn.example/pic.png",
+      },
+    ]);
+  });
+
+  it("propagates agent result artifacts onto agent.response.completed provider_extensions", async () => {
+    const artifacts = [
+      {
+        artifactId: "art_1",
+        name: "Export",
+        parts: [
+          {
+            kind: "file" as const,
+            name: "report.pdf",
+            mimeType: "application/pdf",
+            uri: "https://cdn.example/r.pdf",
+          },
+        ],
+      },
+    ];
+
+    const agentWithArtifacts: AgentAdapter = {
+      invoke: async (ctx: AgentInvocationContext): Promise<AgentResult> => ({
+        ok: true,
+        requestId: `req_${crypto.randomUUID()}`,
+        event: {
+          event_id: `evt_${crypto.randomUUID()}`,
+          schema_version: "v1alpha1",
+          event_type: "agent.response.completed",
+          tenant_id: ctx.invocationEvent.tenant_id,
+          workspace_id: ctx.invocationEvent.workspace_id,
+          channel: ctx.invocationEvent.channel,
+          ...(ctx.invocationEvent.channel_instance_id !== undefined
+            ? { channel_instance_id: ctx.invocationEvent.channel_instance_id }
+            : {}),
+          conversation_id: ctx.invocationEvent.conversation_id,
+          session_id: ctx.invocationEvent.session_id,
+          correlation_id: ctx.invocationEvent.correlation_id,
+          causation_id: ctx.invocationEvent.event_id,
+          occurred_at: new Date().toISOString(),
+          actor_type: "agent",
+          payload: { text: "Here is your file.", status: "completed" },
+          provider_extensions: { mock: { agent: "artifacts_test" } },
+        },
+        artifacts,
+      }),
+      describeCapabilities: () => ({
+        streaming: false,
+        multiTurn: false,
+        resume: false,
+        hitl: false,
+        cancel: false,
+        artifacts: true,
+      }),
+    };
+
+    const pipeline = await FirstExecutablePathPipeline.create(
+      makeConfig({ routeAgentName: "default_webchat_agent", agent: agentWithArtifacts }),
+    );
+    const result = await pipeline.execute(validInput());
+
+    expect(result.blocked).toBeUndefined();
+    const completed = result.events.find((e) => e.event_type === "agent.response.completed");
+    expect(completed).toBeDefined();
+    const ext = completed!.provider_extensions as Record<string, unknown>;
+    expect(ext["mock"]).toBeDefined();
+    expect(ext["artifacts"]).toEqual(artifacts);
   });
 });

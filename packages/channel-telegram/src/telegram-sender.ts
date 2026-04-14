@@ -1,11 +1,16 @@
-import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
+import type { ButtonAction, CanonicalEvent, RichMessage } from "@chat-agent-relay/contract-harness";
+import { buttonsToInlineKeyboard } from "./button-keyboard";
+import { richMessageToMarkdownV2 } from "./rich-message";
 import type { TelegramSendMessageResponse } from "./types";
 
 const DEFAULT_TELEGRAM_API_BASE = "https://api.telegram.org";
 
 export type TelegramSender = {
   sendMessage(chatId: number | string, text: string): Promise<{ messageId: number }>;
+  sendRichMessage(chatId: number | string, message: RichMessage): Promise<{ messageId: number }>;
+  sendButtons(chatId: number | string, text: string, buttons: ButtonAction[]): Promise<{ messageId: number }>;
   editMessage(chatId: number | string, messageId: number, text: string): Promise<void>;
+  sendTyping(chatId: number | string): Promise<void>;
   sendFn(event: CanonicalEvent): Promise<void>;
 };
 
@@ -28,6 +33,42 @@ export function createTelegramSender(botToken: string, options?: { apiBase?: str
     return { messageId: body.result.message_id };
   }
 
+  async function sendButtons(
+    chatId: number | string,
+    text: string,
+    buttons: ButtonAction[],
+  ): Promise<{ messageId: number }> {
+    const reply_markup = buttonsToInlineKeyboard(buttons);
+    const response = await fetch(`${apiBase}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text, reply_markup }),
+    });
+
+    const body = (await response.json()) as TelegramSendMessageResponse;
+    if (!body.ok || !body.result) {
+      throw new Error(`Telegram sendMessage (buttons) failed: ${JSON.stringify(body)}`);
+    }
+
+    return { messageId: body.result.message_id };
+  }
+
+  async function sendRichMessage(chatId: number | string, message: RichMessage): Promise<{ messageId: number }> {
+    const text = richMessageToMarkdownV2(message);
+    const response = await fetch(`${apiBase}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "MarkdownV2" }),
+    });
+
+    const body = (await response.json()) as TelegramSendMessageResponse;
+    if (!body.ok || !body.result) {
+      throw new Error(`Telegram sendMessage (rich) failed: ${JSON.stringify(body)}`);
+    }
+
+    return { messageId: body.result.message_id };
+  }
+
   async function editMessage(chatId: number | string, messageId: number, text: string): Promise<void> {
     const response = await fetch(`${apiBase}/editMessageText`, {
       method: "POST",
@@ -41,13 +82,26 @@ export function createTelegramSender(botToken: string, options?: { apiBase?: str
     }
   }
 
+  async function sendTyping(chatId: number | string): Promise<void> {
+    const response = await fetch(`${apiBase}/sendChatAction`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, action: "typing" }),
+    });
+
+    const body = (await response.json()) as TelegramSendMessageResponse;
+    if (!body.ok) {
+      throw new Error(`Telegram sendChatAction failed: ${JSON.stringify(body)}`);
+    }
+  }
+
   async function sendFn(event: CanonicalEvent): Promise<void> {
     const chatId = extractChatId(event);
     const text = extractText(event);
     await sendMessage(chatId, text);
   }
 
-  return { sendMessage, editMessage, sendFn };
+  return { sendMessage, sendRichMessage, sendButtons, editMessage, sendTyping, sendFn };
 }
 
 function extractChatId(event: CanonicalEvent): number | string {

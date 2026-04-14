@@ -5,13 +5,23 @@ export type SlackConfig = {
   defaultWorkspaceId?: string | undefined;
 };
 
+export type SlackFileObject = {
+  id: string | number;
+  name?: string | undefined;
+  mimetype?: string | undefined;
+  url_private?: string | undefined;
+  size?: number | undefined;
+};
+
 export type SlackMessageEvent = {
   type: "message";
   subtype?: string | undefined;
   channel: string;
   user: string;
-  text: string;
+  text?: string | undefined;
   ts: string;
+  files?: SlackFileObject[] | undefined;
+  file?: SlackFileObject | undefined;
   team?: string | undefined;
   channel_type?: string | undefined;
   thread_ts?: string | undefined;
@@ -34,8 +44,10 @@ export type SlackAppMentionEvent = {
   type: "app_mention";
   channel: string;
   user: string;
-  text: string;
+  text?: string | undefined;
   ts: string;
+  files?: SlackFileObject[] | undefined;
+  file?: SlackFileObject | undefined;
   team?: string | undefined;
   channel_type?: string | undefined;
   thread_ts?: string | undefined;

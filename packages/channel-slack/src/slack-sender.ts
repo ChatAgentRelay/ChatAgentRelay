@@ -1,5 +1,6 @@
+import type { ButtonAction, RichMessage } from "@chat-agent-relay/contract-harness";
+import { buttonsToSlackBlocks } from "./button-blocks";
 import { chunkText } from "./chunk-text";
-import type { RichMessage } from "./rich-message";
 import { richMessageToSlackBlocks } from "./rich-message";
 import type { SlackPostMessageResponse } from "./types";
 
@@ -103,6 +104,39 @@ export class SlackSender {
     if (!body.ok) {
       throw new Error(`Slack reactions.remove failed: ${body.error ?? "unknown error"}`);
     }
+  }
+
+  async sendButtons(
+    channelId: string,
+    text: string,
+    buttons: ButtonAction[],
+    threadTs?: string,
+  ): Promise<{ providerMessageId: string }> {
+    const blocks = buttonsToSlackBlocks(text, buttons);
+    const payload: Record<string, unknown> = {
+      channel: channelId,
+      blocks,
+      text,
+    };
+    if (threadTs !== undefined) {
+      payload["thread_ts"] = threadTs;
+    }
+
+    const response = await fetch(`${this.apiBase}/chat.postMessage`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.botToken}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const body = (await response.json()) as SlackPostMessageResponse;
+    if (!body.ok) {
+      throw new Error(`Slack chat.postMessage (buttons) failed: ${body.error ?? "unknown error"}`);
+    }
+
+    return { providerMessageId: body.ts ?? "unknown" };
   }
 
   async sendRichMessage(

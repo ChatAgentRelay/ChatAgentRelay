@@ -198,7 +198,7 @@ describe("Discord ingress", () => {
       threads: true,
     });
     expect(caps.streaming).toEqual({ progressiveUpdate: true, nativeStreaming: false });
-    expect(caps.interactive).toEqual({ buttons: false, menus: false, commands: true });
+    expect(caps.interactive).toEqual({ buttons: true, menus: false, commands: true });
     expect(caps.delivery).toEqual({ retry: true, chunking: true, edit: true });
   });
 });

@@ -140,4 +140,23 @@ describe("TelegramSender", () => {
       globalThis.fetch = origFetch;
     }
   });
+
+  it("sends typing action via sendChatAction", async () => {
+    let captured: { url: string; body: unknown } | null = null;
+    const origFetch = globalThis.fetch;
+    globalThis.fetch = (async (input: string | URL | Request, init?: RequestInit) => {
+      captured = { url: String(input), body: JSON.parse(init?.body as string) };
+      return new Response(JSON.stringify({ ok: true, result: true }), { status: 200 });
+    }) as typeof fetch;
+
+    try {
+      const sender = createTelegramSender("BOT_TOKEN_123");
+      await sender.sendTyping(-100999);
+      expect(captured!.url).toBe("https://api.telegram.org/botBOT_TOKEN_123/sendChatAction");
+      expect((captured!.body as Record<string, unknown>)["chat_id"]).toBe(-100999);
+      expect((captured!.body as Record<string, unknown>)["action"]).toBe("typing");
+    } finally {
+      globalThis.fetch = origFetch;
+    }
+  });
 });

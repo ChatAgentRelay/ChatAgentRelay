@@ -1,9 +1,12 @@
 import type {
+  ButtonAction,
   CanonicalEvent,
   CanonicalizationResult,
   ChannelAdapter,
   ChannelCapabilities,
   ChannelSender,
+  InboundAttachment,
+  OutboundAttachment,
   ValidationResult,
 } from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
@@ -57,9 +60,9 @@ export class SlackIngress implements ChannelAdapter {
   describeCapabilities(): ChannelCapabilities {
     return {
       channel: "slack",
-      messaging: { text: true, attachments: false, reactions: true, threads: true },
+      messaging: { text: true, attachments: true, reactions: true, threads: true },
       streaming: { progressiveUpdate: true, nativeStreaming: false },
-      interactive: { buttons: false, menus: false, commands: true },
+      interactive: { buttons: true, menus: false, commands: true },
       delivery: { retry: true, chunking: true, edit: true },
     };
   }
@@ -78,7 +81,17 @@ export class SlackIngress implements ChannelAdapter {
     const threadTs = typeof slack?.["thread_ts"] === "string" ? slack["thread_ts"] : undefined;
     return {
       send: (text: string) => this.sender.send(channel, text, threadTs),
+      sendRichMessage: (message) => this.sender.sendRichMessage(channel, message, threadTs),
       edit: (providerMessageId: string, text: string) => this.sender.update(channel, providerMessageId, text),
+      addReaction: (messageId: string, emoji: string) => this.sender.addReaction(channel, messageId, emoji),
+      sendAttachment: (attachment: OutboundAttachment) => {
+        const text = attachment.uri
+          ? `*${attachment.name}*\n${attachment.uri}`
+          : `Attachment: ${attachment.name} (${attachment.mimeType})`;
+        return this.sender.send(channel, text, threadTs);
+      },
+      sendButtons: (text: string, buttons: ButtonAction[]) =>
+        this.sender.sendButtons(channel, text, buttons, threadTs),
     };
   }
 
@@ -100,6 +113,9 @@ export class SlackIngress implements ChannelAdapter {
       const subtype = (inner as Record<string, unknown>)["subtype"] as string | undefined;
       if (subtype === "message_changed") return this.canonicalizeMessageUpdate(inner);
       if (subtype === "message_deleted") return this.canonicalizeMessageDelete(inner);
+      if (subtype === "file_share") {
+        return this.canonicalizeMessage(inner);
+      }
       if (subtype !== undefined) {
         return {
           ok: false,
@@ -119,7 +135,9 @@ export class SlackIngress implements ChannelAdapter {
       return { ok: false, error: { code: "invalid_slack_event", message: "Not a valid Slack message event" } };
     }
 
-    if (!raw.text || raw.text.trim().length === 0) {
+    const attachments = slackFilesToInboundAttachments(raw);
+    const text = typeof raw.text === "string" ? raw.text : "";
+    if (text.trim().length === 0 && attachments.length === 0) {
       return { ok: false, error: { code: "empty_text", message: "Message text is empty" } };
     }
 
@@ -144,7 +162,10 @@ export class SlackIngress implements ChannelAdapter {
       actor_type: "end_user",
       actor: { id: raw.user },
       identity_refs: { channel_user_id: raw.user },
-      payload: { text: raw.text },
+      payload: {
+        text: text.trim().length > 0 ? text : "",
+        ...(attachments.length > 0 ? { attachments } : {}),
+      },
       provider_extensions: {
         slack: {
           channel_id: raw.channel,
@@ -420,28 +441,76 @@ function isSlackSlashCommandPayload(raw: unknown): raw is SlackSlashCommandPaylo
   );
 }
 
+function slackHasInboundFiles(obj: Record<string, unknown>): boolean {
+  const files = obj["files"];
+  if (Array.isArray(files) && files.length > 0) return true;
+  const file = obj["file"];
+  return typeof file === "object" && file !== null;
+}
+
 function isSlackMessageEvent(raw: unknown): raw is SlackMessageEvent {
   if (typeof raw !== "object" || raw === null) return false;
   const obj = raw as Record<string, unknown>;
-  return (
-    obj["type"] === "message" &&
-    typeof obj["channel"] === "string" &&
-    typeof obj["user"] === "string" &&
-    typeof obj["text"] === "string" &&
-    typeof obj["ts"] === "string"
-  );
+  if (obj["type"] !== "message") return false;
+  if (typeof obj["channel"] !== "string" || typeof obj["user"] !== "string" || typeof obj["ts"] !== "string") {
+    return false;
+  }
+  if (typeof obj["text"] === "string") return true;
+  return slackHasInboundFiles(obj);
 }
 
 function isSlackAppMentionEvent(raw: unknown): raw is SlackAppMentionEvent {
   if (typeof raw !== "object" || raw === null) return false;
   const obj = raw as Record<string, unknown>;
-  return (
-    obj["type"] === "app_mention" &&
-    typeof obj["channel"] === "string" &&
-    typeof obj["user"] === "string" &&
-    typeof obj["text"] === "string" &&
-    typeof obj["ts"] === "string"
-  );
+  if (obj["type"] !== "app_mention") return false;
+  if (typeof obj["channel"] !== "string" || typeof obj["user"] !== "string" || typeof obj["ts"] !== "string") {
+    return false;
+  }
+  if (typeof obj["text"] === "string") return true;
+  return slackHasInboundFiles(obj);
+}
+
+function slackMimeToKind(mime: string | undefined): InboundAttachment["kind"] {
+  if (!mime) return "file";
+  const lower = mime.toLowerCase();
+  if (lower.startsWith("image/")) return "image";
+  if (lower.startsWith("video/")) return "video";
+  if (lower.startsWith("audio/")) return "audio";
+  return "file";
+}
+
+function slackCollectFileObjects(raw: SlackMessageEvent | SlackAppMentionEvent): unknown[] {
+  const r = raw as Record<string, unknown>;
+  const files = r["files"];
+  if (Array.isArray(files) && files.length > 0) return files;
+  const file = r["file"];
+  if (typeof file === "object" && file !== null) return [file];
+  return [];
+}
+
+function slackFilesToInboundAttachments(raw: SlackMessageEvent | SlackAppMentionEvent): InboundAttachment[] {
+  const out: InboundAttachment[] = [];
+  for (const item of slackCollectFileObjects(raw)) {
+    if (typeof item !== "object" || item === null) continue;
+    const f = item as Record<string, unknown>;
+    const idRaw = f["id"];
+    const attachment_id =
+      typeof idRaw === "string" ? idRaw : typeof idRaw === "number" ? String(idRaw) : undefined;
+    if (!attachment_id) continue;
+    const mime = typeof f["mimetype"] === "string" ? f["mimetype"] : undefined;
+    const name = typeof f["name"] === "string" ? f["name"] : undefined;
+    const url = typeof f["url_private"] === "string" ? f["url_private"] : undefined;
+    const size = typeof f["size"] === "number" ? f["size"] : undefined;
+    out.push({
+      attachment_id,
+      kind: slackMimeToKind(mime),
+      ...(mime !== undefined ? { mime_type: mime } : {}),
+      ...(name !== undefined ? { filename: name } : {}),
+      ...(url !== undefined ? { url } : {}),
+      ...(size !== undefined ? { size_bytes: size } : {}),
+    });
+  }
+  return out;
 }
 
 function isSlackMessageChangedEvent(raw: unknown): raw is SlackMessageChangedEvent {

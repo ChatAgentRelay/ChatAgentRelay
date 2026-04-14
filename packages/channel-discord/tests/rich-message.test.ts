@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import type { RichMessage } from "../src/rich-message";
+import type { RichMessage } from "@chat-agent-relay/contract-harness";
 import { richMessageToDiscordEmbed } from "../src/rich-message";
 
 describe("richMessageToDiscordEmbed", () => {

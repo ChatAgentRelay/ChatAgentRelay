@@ -1,4 +1,5 @@
-import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
+import type { CanonicalEvent, RichMessage } from "@chat-agent-relay/contract-harness";
+import { richMessageToLarkCard } from "./rich-message";
 import type { LarkSendMessageResponse } from "./types";
 
 const DEFAULT_LARK_API_BASE = "https://open.feishu.cn/open-apis";
@@ -6,6 +7,7 @@ const TOKEN_REFRESH_MARGIN_MS = 5 * 60 * 1000;
 
 export type LarkSender = {
   sendMessage: (chatId: string, text: string) => Promise<{ messageId: string }>;
+  sendRichMessage: (chatId: string, message: RichMessage) => Promise<{ messageId: string }>;
   editMessage: (messageId: string, text: string) => Promise<void>;
   sendFn: (event: CanonicalEvent) => Promise<void>;
 };
@@ -65,6 +67,30 @@ export function createLarkSender(appId: string, appSecret: string, options?: { a
     return { messageId: body.data?.message_id ?? "unknown" };
   }
 
+  async function sendRichMessage(chatId: string, message: RichMessage): Promise<{ messageId: string }> {
+    const token = await getAccessToken();
+    const card = richMessageToLarkCard(message);
+    const response = await fetch(`${apiBase}/im/v1/messages?receive_id_type=chat_id`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        receive_id: chatId,
+        msg_type: "interactive",
+        content: JSON.stringify(card),
+      }),
+    });
+
+    const body = (await response.json()) as LarkSendMessageResponse;
+    if (body.code !== 0) {
+      throw new Error(`Lark sendRichMessage failed: ${body.msg}`);
+    }
+
+    return { messageId: body.data?.message_id ?? "unknown" };
+  }
+
   async function editMessage(messageId: string, text: string): Promise<void> {
     const token = await getAccessToken();
     const response = await fetch(`${apiBase}/im/v1/messages/${messageId}`, {
@@ -100,5 +126,5 @@ export function createLarkSender(appId: string, appSecret: string, options?: { a
     await sendMessage(chatId, text);
   }
 
-  return { sendMessage, editMessage, sendFn };
+  return { sendMessage, sendRichMessage, editMessage, sendFn };
 }

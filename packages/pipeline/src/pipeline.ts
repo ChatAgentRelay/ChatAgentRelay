@@ -2,11 +2,13 @@ import type {
   AgentAdapter,
   AgentEvent,
   AgentInvocationContext,
+  AgentPart,
   AgentResult,
   CanonicalEvent,
   ChannelAdapter,
   ChannelSender,
   ConversationTurn,
+  InboundAttachment,
 } from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { DeliveryOrchestrator } from "@chat-agent-relay/delivery";
@@ -122,11 +124,21 @@ export class FirstExecutablePathPipeline {
     for (const event of events) {
       if (event.event_type === "message.received" && typeof event.payload["text"] === "string") {
         turns.push({ role: "user", content: event.payload["text"] });
+      } else if (event.event_type === "command.received" && typeof event.payload["text"] === "string") {
+        const cmd = event.payload["command_name"] as string | undefined;
+        const text = event.payload["text"] as string;
+        turns.push({ role: "user", content: cmd ? `/${cmd} ${text}` : text });
       } else if (event.event_type === "agent.response.completed" && typeof event.payload["text"] === "string") {
         turns.push({ role: "assistant", content: event.payload["text"] });
       }
     }
     return turns;
+  }
+
+  private extractCommandText(event: CanonicalEvent): string {
+    const commandName = event.payload["command_name"] as string | undefined;
+    const text = event.payload["text"] as string;
+    return commandName ? `/${commandName} ${text}` : text;
   }
 
   private resolveSenderId(event: CanonicalEvent): string | undefined {
@@ -169,8 +181,9 @@ export class FirstExecutablePathPipeline {
     const messageReceived = canonResult.event;
     this.appendToLedger(messageReceived);
 
-    if (messageReceived.event_type !== "message.received") {
-      throw new Error(`Expected message.received, got ${messageReceived.event_type}`);
+    const PROCESSABLE_TYPES = new Set(["message.received", "command.received"]);
+    if (!PROCESSABLE_TYPES.has(messageReceived.event_type)) {
+      throw new Error(`Expected message.received or command.received, got ${messageReceived.event_type}`);
     }
 
     const sender = this.channel.createSender(messageReceived);
@@ -270,7 +283,9 @@ export class FirstExecutablePathPipeline {
       };
     }
 
-    const messageText = messageReceived.payload["text"] as string;
+    const messageText = messageReceived.event_type === "command.received"
+      ? this.extractCommandText(messageReceived)
+      : (messageReceived.payload["text"] as string);
     const channelName = this.channel.channelType;
     const routeDecision = this.routeFn(channelName, messageText);
     if (routeDecision === null) {
@@ -329,14 +344,23 @@ export class FirstExecutablePathPipeline {
     });
     this.validateAndAppend(invocationEvent);
 
+    try {
+      await sender.sendTyping?.();
+    } catch {
+      // Typing indicators are best-effort; ignore failures.
+    }
+
     const agentCaps = agent.describeCapabilities();
     const conversationHistory = agentCaps.multiTurn
       ? this.buildConversationHistory(messageReceived.conversation_id)
       : [];
 
+    const parts = this.extractPartsFromAttachments(messageReceived);
+
     const invocationContext: AgentInvocationContext = {
       invocationEvent,
       messageText,
+      ...(parts.length > 0 ? { parts } : {}),
       conversationHistory,
       route: {
         route_id: String(routeDecision.routeId),
@@ -377,7 +401,21 @@ export class FirstExecutablePathPipeline {
       };
     }
 
-    const agentResponse = agentResult.event;
+    let agentResponse: CanonicalEvent = agentResult.event;
+    if (agentResult.artifacts !== undefined && agentResult.artifacts.length > 0) {
+      const prev = agentResult.event.provider_extensions;
+      const baseExt =
+        prev !== undefined && typeof prev === "object" && prev !== null && !Array.isArray(prev)
+          ? { ...(prev as Record<string, unknown>) }
+          : {};
+      agentResponse = {
+        ...agentResult.event,
+        provider_extensions: {
+          ...baseExt,
+          artifacts: agentResult.artifacts,
+        },
+      };
+    }
     this.appendToLedger(agentResponse);
 
     let outboundPolicyEvent: CanonicalEvent | undefined;
@@ -428,6 +466,7 @@ export class FirstExecutablePathPipeline {
 
     let deliveryResult;
     try {
+      // Text send and optional reaction egress (provider_extensions.reaction) run inside deliver().
       deliveryResult = await this.delivery.deliver(agentResponse, sender);
     } catch (deliveryError) {
       const reason = deliveryError instanceof Error ? deliveryError.message : String(deliveryError);
@@ -546,6 +585,23 @@ export class FirstExecutablePathPipeline {
         hitlPending = true;
       }
     }
+  }
+
+  private extractPartsFromAttachments(event: CanonicalEvent): AgentPart[] {
+    const rawAttachments = event.payload["attachments"];
+    if (!Array.isArray(rawAttachments) || rawAttachments.length === 0) return [];
+    const parts: AgentPart[] = [];
+    for (const att of rawAttachments as InboundAttachment[]) {
+      if (!att.attachment_id) continue;
+      const mimeType = att.mime_type ?? "application/octet-stream";
+      parts.push({
+        kind: "file",
+        name: att.filename ?? att.attachment_id,
+        mimeType,
+        ...(att.url ? { uri: att.url } : {}),
+      });
+    }
+    return parts;
   }
 
   private validateAndAppend(event: CanonicalEvent): void {

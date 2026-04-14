@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import { existsSync, mkdirSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { DiscordIngress } from "@chat-agent-relay/channel-discord";
@@ -103,6 +103,10 @@ describe("Discord -> Pipeline -> Agent integration", () => {
     mockDiscordApi = Bun.serve({
       port: 0,
       async fetch(req) {
+        const path = new URL(req.url).pathname;
+        if (path.endsWith("/typing")) {
+          return new Response(null, { status: 204 });
+        }
         const body = (await req.json()) as Record<string, unknown>;
         discordSendCalls.push(body);
         return Response.json({
@@ -115,6 +119,10 @@ describe("Discord -> Pipeline -> Agent integration", () => {
     mockDiscordPort = mockDiscordApi.port!;
 
     validators = await ContractHarnessValidators.create();
+  });
+
+  beforeEach(() => {
+    discordSendCalls = [];
   });
 
   afterAll(() => {
@@ -179,7 +187,6 @@ describe("Discord -> Pipeline -> Agent integration", () => {
   });
 
   it("delivers the agent response via Discord send function", async () => {
-    discordSendCalls = [];
     const pipeline = await createPipeline();
     await pipeline.execute(sampleDiscordMessage());
 

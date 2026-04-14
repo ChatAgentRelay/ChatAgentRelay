@@ -1,4 +1,6 @@
-import type { CanonicalEvent } from "@chat-agent-relay/contract-harness";
+import type { ButtonAction, CanonicalEvent, RichMessage } from "@chat-agent-relay/contract-harness";
+import { buttonsToAdaptiveCard } from "./adaptive-card-buttons";
+import { richMessageToAdaptiveCard } from "./rich-message";
 import { createTeamsTokenManager } from "./token-manager";
 import type { TeamsConversationReference, TeamsSender, TeamsTokenManager } from "./types";
 
@@ -39,6 +41,66 @@ export function createTeamsSender(
     return { messageId: payload.id };
   }
 
+  async function sendRichMessage(
+    reference: TeamsConversationReference,
+    message: RichMessage,
+  ): Promise<{ messageId: string }> {
+    const card = richMessageToAdaptiveCard(message);
+    const response = await authorizedFetch(
+      `${reference.serviceUrl.replace(/\/$/, "")}/v3/conversations/${encodeURIComponent(reference.conversationId)}/activities`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          type: "message",
+          text: message.fallbackText,
+          attachments: [
+            {
+              contentType: "application/vnd.microsoft.card.adaptive",
+              content: card,
+            },
+          ],
+        }),
+      },
+    );
+
+    const payload = (await response.json()) as { id?: string; error?: { message?: string } };
+    if (!response.ok || typeof payload.id !== "string") {
+      throw new Error(payload.error?.message ?? "Teams sendRichMessage failed");
+    }
+
+    return { messageId: payload.id };
+  }
+
+  async function sendButtons(
+    reference: TeamsConversationReference,
+    text: string,
+    buttons: ButtonAction[],
+  ): Promise<{ messageId: string }> {
+    const card = buttonsToAdaptiveCard(text, buttons);
+    const response = await authorizedFetch(
+      `${reference.serviceUrl.replace(/\/$/, "")}/v3/conversations/${encodeURIComponent(reference.conversationId)}/activities`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          type: "message",
+          attachments: [
+            {
+              contentType: "application/vnd.microsoft.card.adaptive",
+              content: card,
+            },
+          ],
+        }),
+      },
+    );
+
+    const payload = (await response.json()) as { id?: string; error?: { message?: string } };
+    if (!response.ok || typeof payload.id !== "string") {
+      throw new Error(payload.error?.message ?? "Teams sendButtons failed");
+    }
+
+    return { messageId: payload.id };
+  }
+
   async function editMessage(reference: TeamsConversationReference, messageId: string, text: string): Promise<void> {
     const response = await authorizedFetch(
       `${reference.serviceUrl.replace(/\/$/, "")}/v3/conversations/${encodeURIComponent(reference.conversationId)}/activities/${encodeURIComponent(messageId)}`,
@@ -60,7 +122,7 @@ export function createTeamsSender(
     await sendMessage(reference, text);
   }
 
-  return { sendMessage, editMessage, sendFn };
+  return { sendMessage, sendRichMessage, sendButtons, editMessage, sendFn };
 }
 
 function extractConversationReference(event: CanonicalEvent): TeamsConversationReference {

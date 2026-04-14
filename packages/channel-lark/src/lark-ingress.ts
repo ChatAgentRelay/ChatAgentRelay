@@ -54,6 +54,8 @@ export class LarkIngress implements ChannelAdapter {
     );
     const base: ChannelSender = {
       send: (text: string) => sender.sendMessage(chatId, text).then((r) => ({ providerMessageId: r.messageId })),
+      sendRichMessage: (message) =>
+        sender.sendRichMessage(chatId, message).then((r) => ({ providerMessageId: r.messageId })),
     };
     if (messageId) {
       base.edit = (providerMessageId: string, text: string) => sender.editMessage(providerMessageId, text);

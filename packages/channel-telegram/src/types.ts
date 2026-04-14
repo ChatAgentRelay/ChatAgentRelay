@@ -33,6 +33,42 @@ export type TelegramMessageEntity = {
   length: number;
 };
 
+export type TelegramPhotoSize = {
+  file_id: string;
+  file_unique_id: string;
+  width: number;
+  height: number;
+  file_size?: number | undefined;
+};
+
+export type TelegramDocument = {
+  file_id: string;
+  file_unique_id: string;
+  file_name?: string | undefined;
+  mime_type?: string | undefined;
+  file_size?: number | undefined;
+};
+
+export type TelegramVideo = {
+  file_id: string;
+  file_unique_id: string;
+  width?: number | undefined;
+  height?: number | undefined;
+  duration?: number | undefined;
+  mime_type?: string | undefined;
+  file_name?: string | undefined;
+  file_size?: number | undefined;
+};
+
+export type TelegramAudioLike = {
+  file_id: string;
+  file_unique_id: string;
+  duration?: number | undefined;
+  mime_type?: string | undefined;
+  file_name?: string | undefined;
+  file_size?: number | undefined;
+};
+
 export type TelegramMessage = {
   message_id: number;
   from?: TelegramUser | undefined;
@@ -40,6 +76,11 @@ export type TelegramMessage = {
   date: number;
   text?: string | undefined;
   entities?: TelegramMessageEntity[] | undefined;
+  photo?: TelegramPhotoSize[] | undefined;
+  document?: TelegramDocument | undefined;
+  video?: TelegramVideo | undefined;
+  audio?: TelegramAudioLike | undefined;
+  voice?: TelegramAudioLike | undefined;
 };
 
 export type TelegramUpdate = {

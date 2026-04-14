@@ -1,13 +1,21 @@
 import type {
+  ButtonAction,
   CanonicalEvent,
   ChannelAdapter,
   ChannelCapabilities,
   ChannelSender,
+  InboundAttachment,
+  OutboundAttachment,
   ValidationResult,
 } from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
 import { createTelegramSender } from "./telegram-sender";
-import type { CanonicalizationResult, IngressError, TelegramMessage, TelegramUpdate } from "./types";
+import type {
+  CanonicalizationResult,
+  IngressError,
+  TelegramMessage,
+  TelegramUpdate,
+} from "./types";
 
 export class TelegramIngress implements ChannelAdapter {
   readonly channelType = "telegram" as const;
@@ -33,9 +41,9 @@ export class TelegramIngress implements ChannelAdapter {
   describeCapabilities(): ChannelCapabilities {
     return {
       channel: "telegram",
-      messaging: { text: true, attachments: false, reactions: false, threads: false },
+      messaging: { text: true, attachments: true, reactions: false, threads: false },
       streaming: { progressiveUpdate: true, nativeStreaming: false },
-      interactive: { buttons: false, menus: false, commands: true },
+      interactive: { buttons: true, menus: false, commands: true },
       delivery: { retry: true, chunking: false, edit: true },
     };
   }
@@ -43,14 +51,25 @@ export class TelegramIngress implements ChannelAdapter {
   createSender(event: CanonicalEvent): ChannelSender {
     const tg = event.provider_extensions?.["telegram"] as Record<string, unknown> | undefined;
     const chatId = (tg?.["chat_id"] ?? event.channel_instance_id?.replace("telegram-", "")) as number | string;
-    const sender = createTelegramSender(
+    const api = createTelegramSender(
       this.botToken,
       this.apiBase !== undefined ? { apiBase: this.apiBase } : undefined,
     );
     return {
       send: (text: string) =>
-        sender.sendMessage(chatId, text).then((r) => ({ providerMessageId: String(r.messageId) })),
-      edit: (providerMessageId: string, text: string) => sender.editMessage(chatId, Number(providerMessageId), text),
+        api.sendMessage(chatId, text).then((r) => ({ providerMessageId: String(r.messageId) })),
+      sendRichMessage: (message) =>
+        api.sendRichMessage(chatId, message).then((r) => ({ providerMessageId: String(r.messageId) })),
+      edit: (providerMessageId: string, text: string) => api.editMessage(chatId, Number(providerMessageId), text),
+      sendTyping: () => api.sendTyping(chatId),
+      sendAttachment: (attachment: OutboundAttachment) => {
+        const text = attachment.uri
+          ? `${attachment.name}\n${attachment.uri}`
+          : `Attachment: ${attachment.name} (${attachment.mimeType})`;
+        return api.sendMessage(chatId, text).then((r) => ({ providerMessageId: String(r.messageId) }));
+      },
+      sendButtons: (text: string, buttons: ButtonAction[]) =>
+        api.sendButtons(chatId, text, buttons).then((r) => ({ providerMessageId: String(r.messageId) })),
     };
   }
 
@@ -76,9 +95,14 @@ export class TelegramIngress implements ChannelAdapter {
     const conversationId = `tg-chat-${message.chat.id}`;
     const idempotencyKey = `tg-${update.update_id}`;
 
+    const messageText = typeof message.text === "string" ? message.text : "";
+    const attachments = telegramMessageToInboundAttachments(message);
     const basePayload: Record<string, unknown> = isCommand
-      ? buildCommandPayload(message.text!)
-      : { text: message.text! };
+      ? buildCommandPayload(messageText)
+      : {
+          text: messageText,
+          ...(attachments.length > 0 ? { attachments } : {}),
+        };
 
     const event: CanonicalEvent = {
       event_id: `evt_${crypto.randomUUID()}`,
@@ -121,6 +145,61 @@ export class TelegramIngress implements ChannelAdapter {
 
     return { ok: true, event, idempotencyKey };
   }
+}
+
+function telegramMessageToInboundAttachments(message: TelegramMessage): InboundAttachment[] {
+  const attachments: InboundAttachment[] = [];
+
+  if (message.photo && message.photo.length > 0) {
+    const largest = message.photo.reduce((a, b) => ((a.width * a.height) >= (b.width * b.height) ? a : b));
+    attachments.push({
+      attachment_id: largest.file_id,
+      kind: "image",
+      mime_type: "image/jpeg",
+      ...(largest.file_size !== undefined ? { size_bytes: largest.file_size } : {}),
+    });
+  }
+
+  if (message.document) {
+    attachments.push({
+      attachment_id: message.document.file_id,
+      kind: "file",
+      ...(message.document.mime_type ? { mime_type: message.document.mime_type } : {}),
+      ...(message.document.file_name ? { filename: message.document.file_name } : {}),
+      ...(message.document.file_size !== undefined ? { size_bytes: message.document.file_size } : {}),
+    });
+  }
+
+  if (message.video) {
+    attachments.push({
+      attachment_id: message.video.file_id,
+      kind: "video",
+      ...(message.video.mime_type ? { mime_type: message.video.mime_type } : {}),
+      ...(message.video.file_name ? { filename: message.video.file_name } : {}),
+      ...(message.video.file_size !== undefined ? { size_bytes: message.video.file_size } : {}),
+    });
+  }
+
+  if (message.audio) {
+    attachments.push({
+      attachment_id: message.audio.file_id,
+      kind: "audio",
+      ...(message.audio.mime_type ? { mime_type: message.audio.mime_type } : {}),
+      ...(message.audio.file_name ? { filename: message.audio.file_name } : {}),
+      ...(message.audio.file_size !== undefined ? { size_bytes: message.audio.file_size } : {}),
+    });
+  }
+
+  if (message.voice) {
+    attachments.push({
+      attachment_id: message.voice.file_id,
+      kind: "audio",
+      ...(message.voice.mime_type ? { mime_type: message.voice.mime_type } : {}),
+      ...(message.voice.file_size !== undefined ? { size_bytes: message.voice.file_size } : {}),
+    });
+  }
+
+  return attachments;
 }
 
 function buildCommandPayload(text: string): Record<string, unknown> {
@@ -193,14 +272,29 @@ function validateTelegramUpdate(raw: unknown): UpdateValidationSuccess | UpdateV
     };
   }
 
-  if (typeof m["text"] !== "string" || (m["text"] as string).length === 0) {
+  const text = typeof m["text"] === "string" ? m["text"] : "";
+  const hasMedia =
+    (Array.isArray(m["photo"]) && m["photo"].length > 0) ||
+    (typeof m["document"] === "object" && m["document"] !== null) ||
+    (typeof m["video"] === "object" && m["video"] !== null) ||
+    (typeof m["audio"] === "object" && m["audio"] !== null) ||
+    (typeof m["voice"] === "object" && m["voice"] !== null);
+
+  if (text.length === 0 && !hasMedia) {
     return {
       ok: false,
       error: {
         code: "missing_field",
-        message: "message.text is required and must be non-empty",
+        message: "message.text is required unless the message includes a photo, document, video, or audio attachment",
         field: "message.text",
       },
+    };
+  }
+
+  if (typeof m["text"] !== "undefined" && typeof m["text"] !== "string") {
+    return {
+      ok: false,
+      error: { code: "missing_field", message: "message.text must be a string when present", field: "message.text" },
     };
   }
 

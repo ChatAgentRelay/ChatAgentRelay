@@ -17,13 +17,22 @@ export type DiscordMessageReference = {
   guild_id?: string | undefined;
 };
 
+export type DiscordAttachment = {
+  id: string;
+  filename: string;
+  content_type?: string | undefined;
+  url: string;
+  size?: number | undefined;
+};
+
 export type DiscordMessageEvent = {
   id: string;
   channel_id: string;
   guild_id?: string | undefined;
   author: DiscordAuthor;
-  content: string;
+  content?: string | undefined;
   timestamp: string;
+  attachments?: DiscordAttachment[] | undefined;
   message_reference?: DiscordMessageReference | undefined;
   thread?: { id: string; name?: string } | undefined;
 };

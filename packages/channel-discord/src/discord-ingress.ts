@@ -1,9 +1,12 @@
 import type {
+  ButtonAction,
   CanonicalEvent,
   CanonicalizationResult,
   ChannelAdapter,
   ChannelCapabilities,
   ChannelSender,
+  InboundAttachment,
+  OutboundAttachment,
   ValidationResult,
 } from "@chat-agent-relay/contract-harness";
 import { ContractHarnessValidators } from "@chat-agent-relay/contract-harness";
@@ -58,7 +61,7 @@ export class DiscordIngress implements ChannelAdapter {
       channel: "discord",
       messaging: { text: true, attachments: false, reactions: true, threads: true },
       streaming: { progressiveUpdate: true, nativeStreaming: false },
-      interactive: { buttons: false, menus: false, commands: true },
+      interactive: { buttons: true, menus: false, commands: true },
       delivery: { retry: true, chunking: true, edit: true },
     };
   }
@@ -69,7 +72,18 @@ export class DiscordIngress implements ChannelAdapter {
     const messageId = discord?.["message_id"] as string | undefined;
     return {
       send: (text: string) => this.sender.send(channelId, text, messageId),
+      sendRichMessage: (message) => this.sender.sendRichMessage(channelId, message, messageId),
       edit: (providerMessageId: string, text: string) => this.sender.update(channelId, providerMessageId, text),
+      sendTyping: () => this.sender.sendTyping(channelId),
+      addReaction: (mid: string, emoji: string) => this.sender.addReaction(channelId, mid, emoji),
+      sendAttachment: (attachment: OutboundAttachment) => {
+        const content = attachment.uri
+          ? `${attachment.name}\n${attachment.uri}`
+          : `Attachment: ${attachment.name} (${attachment.mimeType})`;
+        return this.sender.send(channelId, content, messageId);
+      },
+      sendButtons: (text: string, buttons: ButtonAction[]) =>
+        this.sender.sendButtons(channelId, text, buttons, messageId),
     };
   }
 
@@ -95,7 +109,9 @@ export class DiscordIngress implements ChannelAdapter {
       };
     }
 
-    if (!raw.content || raw.content.trim().length === 0) {
+    const attachments = discordAttachmentsToInbound(raw.attachments);
+    const content = typeof raw.content === "string" ? raw.content : "";
+    if (content.trim().length === 0 && attachments.length === 0) {
       return { ok: false, error: { code: "empty_content", message: "Message content is empty" } };
     }
 
@@ -131,7 +147,10 @@ export class DiscordIngress implements ChannelAdapter {
       actor_type: "end_user",
       actor: { id: raw.author.id, display_name: raw.author.username },
       identity_refs: { channel_user_id: raw.author.id },
-      payload: { text: raw.content },
+      payload: {
+        text: content.trim().length > 0 ? content : "",
+        ...(attachments.length > 0 ? { attachments } : {}),
+      },
       provider_extensions: {
         discord: {
           message_id: raw.id,
@@ -419,12 +438,39 @@ function isDiscordInteraction(raw: unknown): raw is DiscordInteraction {
   );
 }
 
+function discordMimeToKind(mime: string | undefined): InboundAttachment["kind"] {
+  if (!mime) return "file";
+  const lower = mime.toLowerCase();
+  if (lower.startsWith("image/")) return "image";
+  if (lower.startsWith("video/")) return "video";
+  if (lower.startsWith("audio/")) return "audio";
+  return "file";
+}
+
+function discordAttachmentsToInbound(raw: DiscordMessageEvent["attachments"]): InboundAttachment[] {
+  if (!raw || raw.length === 0) return [];
+  const out: InboundAttachment[] = [];
+  for (const a of raw) {
+    const mime = a.content_type;
+    out.push({
+      attachment_id: a.id,
+      kind: discordMimeToKind(mime),
+      ...(mime !== undefined ? { mime_type: mime } : {}),
+      filename: a.filename,
+      url: a.url,
+      ...(a.size !== undefined ? { size_bytes: a.size } : {}),
+    });
+  }
+  return out;
+}
+
 function isDiscordMessageEvent(raw: unknown): raw is DiscordMessageEvent {
   if (typeof raw !== "object" || raw === null) return false;
   const obj = raw as Record<string, unknown>;
   if (typeof obj["id"] !== "string") return false;
   if (typeof obj["channel_id"] !== "string") return false;
-  if (typeof obj["content"] !== "string") return false;
+  const hasAttachments = Array.isArray(obj["attachments"]) && obj["attachments"].length > 0;
+  if (typeof obj["content"] !== "string" && !hasAttachments) return false;
   if (typeof obj["timestamp"] !== "string") return false;
   if (typeof obj["author"] !== "object" || obj["author"] === null) return false;
   const author = obj["author"] as Record<string, unknown>;

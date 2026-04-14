@@ -21,13 +21,22 @@ export type {
 } from "./agent-types";
 export { assertFirstExecutablePathChain } from "./chain-assertions";
 export type {
+  ButtonAction,
   CanonicalizationFailure,
   CanonicalizationResult,
   CanonicalizationSuccess,
   ChannelAdapter,
   ChannelCapabilities,
   ChannelSender,
+  InboundAttachment,
   IngressError,
+  OutboundAttachment,
+  RichBlock,
+  RichCodeBlock,
+  RichDividerBlock,
+  RichHeaderBlock,
+  RichMessage,
+  RichTextBlock,
 } from "./channel-types";
 export { EXTENDED_SCHEMA_PATHS, FIRST_EXECUTABLE_PATH_EVENT_ORDER, SPECIALIZED_SCHEMA_PATHS } from "./constants";
 export { loadFirstExecutablePathFixtures } from "./fixtures";

@@ -6,7 +6,7 @@ export type {
   RichHeaderBlock,
   RichMessage,
   RichTextBlock,
-} from "./rich-message";
+} from "@chat-agent-relay/contract-harness";
 export { richMessageToSlackBlocks } from "./rich-message";
 export type { SlackCanonicalizationResult } from "./slack-ingress";
 export { SlackIngress } from "./slack-ingress";

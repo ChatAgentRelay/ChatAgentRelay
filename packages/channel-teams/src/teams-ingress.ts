@@ -1,4 +1,5 @@
 import type {
+  ButtonAction,
   CanonicalEvent,
   ChannelAdapter,
   ChannelCapabilities,
@@ -37,20 +38,22 @@ export class TeamsIngress implements ChannelAdapter {
       channel: "teams",
       messaging: { text: true, attachments: false, reactions: false, threads: true },
       streaming: { progressiveUpdate: true, nativeStreaming: false },
-      interactive: { buttons: false, menus: false, commands: false },
+      interactive: { buttons: true, menus: false, commands: false },
       delivery: { retry: true, chunking: false, edit: true },
     };
   }
 
   createSender(event: CanonicalEvent): ChannelSender {
     const sender = createTeamsSender(this.appId, this.appSecret, this.teamsTenantId);
+    const ref = extractConversationReference(event);
     return {
       send: (text: string) =>
-        sender
-          .sendMessage(extractConversationReference(event), text)
-          .then((result) => ({ providerMessageId: result.messageId })),
-      edit: (providerMessageId: string, text: string) =>
-        sender.editMessage(extractConversationReference(event), providerMessageId, text),
+        sender.sendMessage(ref, text).then((result) => ({ providerMessageId: result.messageId })),
+      sendRichMessage: (message) =>
+        sender.sendRichMessage(ref, message).then((result) => ({ providerMessageId: result.messageId })),
+      sendButtons: (text: string, buttons: ButtonAction[]) =>
+        sender.sendButtons(ref, text, buttons).then((result) => ({ providerMessageId: result.messageId })),
+      edit: (providerMessageId: string, text: string) => sender.editMessage(ref, providerMessageId, text),
     };
   }
 

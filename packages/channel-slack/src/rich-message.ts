@@ -1,29 +1,4 @@
-export type RichTextBlock = {
-  type: "text";
-  text: string;
-};
-
-export type RichCodeBlock = {
-  type: "code";
-  text: string;
-  language?: string;
-};
-
-export type RichHeaderBlock = {
-  type: "header";
-  text: string;
-};
-
-export type RichDividerBlock = {
-  type: "divider";
-};
-
-export type RichBlock = RichTextBlock | RichCodeBlock | RichHeaderBlock | RichDividerBlock;
-
-export type RichMessage = {
-  blocks: RichBlock[];
-  fallbackText: string;
-};
+import type { RichMessage } from "@chat-agent-relay/contract-harness";
 
 export function richMessageToSlackBlocks(msg: RichMessage): unknown[] {
   return msg.blocks.map((block) => {

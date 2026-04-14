@@ -1,5 +1,6 @@
+import type { ButtonAction, RichMessage } from "@chat-agent-relay/contract-harness";
+import { buttonsToDiscordComponents } from "./button-components";
 import { chunkText } from "./chunk-text";
-import type { RichMessage } from "./rich-message";
 import { richMessageToDiscordEmbed } from "./rich-message";
 import type { DiscordSendMessageResponse } from "./types";
 
@@ -141,6 +142,36 @@ export class DiscordSender {
       const errorBody = await response.text();
       throw new Error(`Discord edit interaction response failed (${response.status}): ${errorBody}`);
     }
+  }
+
+  async sendButtons(
+    channelId: string,
+    text: string,
+    buttons: ButtonAction[],
+    replyToMessageId?: string,
+  ): Promise<{ providerMessageId: string }> {
+    const components = buttonsToDiscordComponents(buttons);
+    const payload: Record<string, unknown> = { content: text, components };
+    if (replyToMessageId !== undefined) {
+      payload["message_reference"] = { message_id: replyToMessageId };
+    }
+
+    const response = await fetch(`${this.apiBase}/channels/${channelId}/messages`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bot ${this.token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`Discord send buttons failed (${response.status}): ${errorBody}`);
+    }
+
+    const body = (await response.json()) as DiscordSendMessageResponse;
+    return { providerMessageId: body.id };
   }
 
   async sendRichMessage(

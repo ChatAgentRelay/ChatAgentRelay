@@ -1,8 +1,10 @@
 import type {
+  ButtonAction,
   CanonicalizationFailure,
   CanonicalizationResult,
   CanonicalizationSuccess,
   IngressError,
+  RichMessage,
 } from "@chat-agent-relay/contract-harness";
 
 export type TeamsConfig = {
@@ -57,6 +59,12 @@ export type TeamsActivity = {
 
 export type TeamsSender = {
   sendMessage(reference: TeamsConversationReference, text: string): Promise<{ messageId: string }>;
+  sendRichMessage(reference: TeamsConversationReference, message: RichMessage): Promise<{ messageId: string }>;
+  sendButtons(
+    reference: TeamsConversationReference,
+    text: string,
+    buttons: ButtonAction[],
+  ): Promise<{ messageId: string }>;
   editMessage(reference: TeamsConversationReference, messageId: string, text: string): Promise<void>;
 };
 

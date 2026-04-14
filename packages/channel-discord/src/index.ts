@@ -13,7 +13,7 @@ export type {
   RichHeaderBlock,
   RichMessage,
   RichTextBlock,
-} from "./rich-message";
+} from "@chat-agent-relay/contract-harness";
 export { richMessageToDiscordEmbed } from "./rich-message";
 export type {
   DiscordAuthor,

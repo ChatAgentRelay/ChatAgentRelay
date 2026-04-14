@@ -433,3 +433,75 @@ Pipeline 检测到 active session → 跳过策略/路由 → 直接调用 agent
 - P3 (Nice-to-have) 租户隔离 ✅ 已实现，其余 6 项待定
 
 核心差异化（A2A 中继、7 事件审计链、消息流治理、HITL 透明中继）已全部就绪。
+
+---
+
+## 7. Chat 功能级别 Roadmap
+
+上述 Section 2–6 聚焦基础设施与治理层面。本节补充**聊天功能级别**的支持规划——即用户在聊天平台上可以做什么、agent 可以回复什么。
+
+完整的跨渠道功能矩阵见 `docs/chat-feature-matrix.md`。
+
+### 7.1 当前聊天功能覆盖总结
+
+| 功能类别 | 覆盖度 | 说明 |
+|----------|--------|------|
+| 文本消息 (ingress + egress) | 8/8 渠道 | 全部渠道完整支持 |
+| 流式/渐进更新 (egress) | 6/8 渠道 | DingTalk、WhatsApp 不支持 |
+| 多轮对话上下文 | 完整 | pipeline 从 ledger 构建 conversationHistory |
+| HITL 中继 | 完整 | A2A input-required -> 用户提示 -> resume |
+| 消息编辑/删除 (ingress) | 2/8 渠道 | Slack、Discord；仅写入 ledger，不触发 agent |
+| Reactions (ingress) | 2/8 渠道 | Slack (add/remove)、Discord (add only)；仅 ledger |
+| Slash 命令 | 3/8 渠道 | Slack、Discord、Telegram；pipeline 尚不处理 command.received |
+| 富消息 (egress) | 2/8 渠道 | Slack (Block Kit)、Discord (Embeds) |
+| 附件/文件 | 0/8 渠道 | 全部渠道均未实现 |
+| 按钮/交互式消息 | 0/8 渠道 | 全部渠道声明 false |
+| 输入指示器 | 0/8 渠道 | Discord 有 API 但未集成到 ChannelAdapter |
+
+### 7.2 Chat 功能 P1 — 必须实现
+
+| # | 功能 | 说明 | 工作量 |
+|---|------|------|--------|
+| CF-1.1 | command.received pipeline 处理 | `execute()` 当前拒绝非 `message.received` 事件。command.received 应能触发 agent 调用（提取 `command_name` + `text` 作为输入）。可选方案：(a) 放宽 execute() 的 guard，将 command 映射为 message 语义；(b) 新增 `executeCommand()` 路径。推荐方案 (a)。 | 2-3d |
+
+### 7.3 Chat 功能 P2 — 显著提升价值
+
+| # | 功能 | 说明 | 工作量 |
+|---|------|------|--------|
+| CF-2.1 | 附件 ingress 归一化 | 在支持文件上传的渠道（Slack file_share、Discord attachments、Telegram photo/document、Teams attachments、WhatsApp media）中，将文件信息归一化到 canonical event 的 `attachments` 字段。不下载文件本体，只传递 URL/metadata。 | 1-2w |
+| CF-2.2 | 附件 egress 投递 | 当 agent 返回 `AgentArtifact` (file part) 时，通过渠道原生 API 上传/发送文件。各渠道实现不同（Slack files.upload、Discord attachment、Telegram sendDocument 等）。 | 1w |
+| CF-2.3 | 按钮/交互式消息 | agent 响应中包含 action 元素时，渠道适配器将其映射为原生交互组件：Slack Block Kit buttons、Discord buttons、Teams Adaptive Card actions、Telegram inline keyboards。需要定义跨渠道的 canonical action 模型。 | 1-2w |
+
+### 7.4 Chat 功能 P3 — 加分项
+
+| # | 功能 | 说明 | 工作量 |
+|---|------|------|--------|
+| CF-3.1 | 输入指示器 (typing) | agent 调用期间向用户发送 typing indicator。需要扩展 `ChannelSender` 接口添加可选 `sendTyping()` 方法，pipeline 在 invoke 前调用。 | 2-3d |
+| CF-3.2 | 富消息扩展 | 将富文本格式支持扩展到更多渠道：Telegram MarkdownV2、Teams Adaptive Cards、Lark Interactive Cards。需要定义 canonical rich content 模型和 per-channel renderer。 | 1w/渠道 |
+| CF-3.3 | DingTalk/WhatsApp 流式 | 探索剩余渠道的渐进更新可能性。DingTalk session webhook 为单次回复语义，可能无法支持。WhatsApp Cloud API 不支持消息编辑。可能需要多条消息 + 最终合并的方案。 | 3-5d |
+| CF-3.4 | Reaction egress | 允许 agent 请求对消息添加 reaction（如确认标记）。需要 pipeline 支持 reaction 类型的 agent 响应，以及 sender 的 reaction API 调用。 | 3-5d |
+| CF-3.5 | 编辑/删除 ingress 处理增强 | 当用户编辑或删除消息时，除了 ledger 记录外，可选择通知 agent（如更新上下文）。需要 AgentAdapter 支持 context update 语义。 | 1w |
+
+### 7.5 明确不支持的聊天功能
+
+以下功能因过于平台特有或超出 CAR 中继定位而**不计划实现**：
+
+- **语音/视频通话**：超出文本中继范围
+- **Telegram 投票/支付**：平台特有业务逻辑
+- **Discord 论坛/舞台频道**：非消息路径
+- **Slack Workflow Builder / 模态框**：平台内部自动化和 UI
+- **Teams 模态框 (Task Modules)**：平台特有 UI
+- **贴纸/GIF**：非结构化内容，中继价值低
+- **已读回执 (outbound)**：各平台 API 限制差异大，投入产出比低
+- **定时/延迟消息**：调度是应用层关注点，不属于中继
+- **消息置顶**：平台特有组织功能
+- **用户在线状态**：平台特有社交功能
+
+### 7.6 Chat 功能里程碑
+
+| 里程碑 | 时间 | 关键能力 |
+|--------|------|----------|
+| **v0.7 — 命令处理** | +1w | command.received 穿透 pipeline 触发 agent |
+| **v0.8 — 附件支持** | +4w | 文件/图片 ingress 归一化 + egress 投递 |
+| **v0.9 — 交互式消息** | +6w | 按钮/actions 跨渠道抽象 + 渲染 |
+| **v1.0 — 完善** | +8w | typing indicator、富消息扩展、全渠道流式 |
