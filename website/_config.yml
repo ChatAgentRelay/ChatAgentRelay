@@ -13,10 +13,15 @@ defaults:
       type: "posts"
     values:
       layout: "post"
+      extra_css: true
+      nav_active: blog
   - scope:
       path: "docs"
     values:
       layout: "doc"
+      extra_css: true
+      nav_style: docs
+      hide_footer: true
 
 exclude:
   - Gemfile
