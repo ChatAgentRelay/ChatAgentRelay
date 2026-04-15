@@ -305,4 +305,4 @@ The numbers improved across the board:
 
 The agent interoperability problem is increasingly being solved by the ecosystem converging on A2A. Our job as middleware is to ride that convergence, not redefine ourselves around it. CAR still exists to relay between chat platforms and deployed agents; A2A is the standard protocol boundary we use on the agent side. That's the simplest architecture that covers the 2026 agent landscape without expanding CAR beyond its relay role.
 
-If you're modernizing an existing CAR setup, the migration path is straightforward: deploy your agent behind an A2A server (most frameworks support this natively now) and update your CAR config to point at the A2A endpoint. See our [A2A documentation](/ChatAgentRelay/docs/agents/a2a.html) for details.
+If you're modernizing an existing CAR setup, the migration path is straightforward: deploy your agent behind an A2A server (most frameworks support this natively now) and update your CAR config to point at the A2A endpoint. See our [A2A documentation](/ChatAgentRelay/docs/agents/a2a/) for details.

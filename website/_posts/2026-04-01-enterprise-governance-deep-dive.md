@@ -13,10 +13,10 @@ twitter_description: "Message flow governance for AI agents: inbound filtering, 
 card_title: "Enterprise Governance in CAR: Message Flow Security Without Agent Lock-In"
 card_description: "How CAR governs the message flow without locking into agent runtimes &mdash; and why it complements Faramesh and AetherClaw"
 show_cta: true
-cta_primary_url: "/ChatAgentRelay/docs/concepts/pipeline.html"
+cta_primary_url: "/ChatAgentRelay/docs/concepts/pipeline/"
 cta_primary_text: "Pipeline Docs"
 cta_primary_track: "blog_gov_pipeline"
-cta_secondary_url: "/ChatAgentRelay/docs/configuration/routing.html"
+cta_secondary_url: "/ChatAgentRelay/docs/configuration/routing/"
 cta_secondary_text: "Routing & Policy"
 cta_secondary_track: "blog_gov_routing"
 structured_data:
