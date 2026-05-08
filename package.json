@@ -16,6 +16,6 @@
     "format": "bunx @biomejs/biome format --write packages examples package.json biome.json"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.11"
+    "@biomejs/biome": "2.4.14"
   }
 }
