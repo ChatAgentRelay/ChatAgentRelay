@@ -22,6 +22,6 @@
     "@chat-agent-relay/channel-teams": "workspace:*",
     "@chat-agent-relay/channel-whatsapp": "workspace:*",
     "@types/bun": "latest",
-    "typescript": "^6.0.2"
+    "typescript": "^7.0.2"
   }
 }
